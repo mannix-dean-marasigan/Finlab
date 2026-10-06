@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Link } from 'react-router';
 import { supabase, toErrorMessage } from '@/lib/supabase';
+import { appUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { InlineError } from '@/components/ui/states';
@@ -17,7 +18,7 @@ export default function ForgotPasswordPage() {
     setError(null);
     setLoading(true);
     const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: appUrl('/reset-password'),
     });
     setLoading(false);
     if (err) setError(toErrorMessage(err));

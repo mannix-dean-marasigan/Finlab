@@ -4,6 +4,7 @@ import { AppLayout } from './app/AppLayout';
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './app/guards';
 import { FullScreenLoader } from './app/FullScreenLoader';
 import { isSupabaseConfigured } from './lib/supabase';
+import { ROUTER_BASENAME } from './lib/utils';
 import { SetupRequired } from './features/system/SetupRequired';
 import { NotFoundPage } from './features/system/NotFoundPage';
 
@@ -42,7 +43,7 @@ const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 export default function App() {
   if (!isSupabaseConfigured) return <SetupRequired />;
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={ROUTER_BASENAME}>
       <Suspense fallback={<FullScreenLoader />}>
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />

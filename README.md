@@ -240,18 +240,21 @@ register → profile bootstrap → onboarding → **tamper attempts** (edit scor
 
 ## Deployment
 
-The frontend is a static SPA — deploy `dist/` anywhere free:
+FINLAB deploys to **GitHub Pages** automatically via `.github/workflows/deploy.yml`. Every push to `main`:
 
-**Vercel / Netlify / Cloudflare Pages**
+1. installs dependencies, runs the unit tests **and** the database integration tests (a failing test blocks the deploy),
+2. builds with `VITE_BASE=/<repo-name>/` so assets and routes live under `https://<user>.github.io/<repo-name>/`,
+3. copies `index.html` to `404.html` so deep links like `/p/handle` work,
+4. publishes to Pages.
 
-- Build command: `npm run build` · Output directory: `dist`
-- Environment variables: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
-- **SPA fallback** (so deep links like `/p/handle` work):
-  - Netlify: `public/_redirects` with `/*  /index.html  200` (already included)
-  - Vercel: `vercel.json` rewrite to `/index.html` (already included)
-  - Cloudflare Pages: SPA fallback is automatic
+**One-time setup**
 
-Then add the production URL to Supabase *Authentication → URL Configuration* (Site URL + Redirect URLs).
+1. Push the repo to GitHub (public repo — free Pages requires public).
+2. *Repo → Settings → Pages → Build and deployment → Source:* **GitHub Actions**.
+3. Supabase values: the workflow has the current project's **public** URL and publishable key as defaults. To point at a different project, add repository **variables** (*Settings → Secrets and variables → Actions → Variables*) `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. Never add the service-role key.
+4. Supabase *Authentication → URL Configuration*: set **Site URL** to `https://<user>.github.io/<repo-name>/` and add `https://<user>.github.io/<repo-name>/**` to **Redirect URLs**.
+
+The app uses Vite's `BASE_URL` for the router basename and all generated links (`appUrl()` in `src/lib/utils.ts`), so it works both at `/` locally and under a sub-path. Any other static host (Vercel, Netlify, Cloudflare Pages) also works: build with `npm run build` (no `VITE_BASE`), publish `dist/`, and configure an SPA fallback to `index.html`.
 
 **Free-tier notes:** Supabase free projects pause after a week of inactivity — keep beta activity regular or upgrade later. Daily backups are not included on free tier; export data periodically via `pg_dump` if needed.
 

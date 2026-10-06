@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { MailCheck } from 'lucide-react';
 import { supabase, toErrorMessage } from '@/lib/supabase';
+import { appUrl } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Field, Input } from '@/components/ui/form';
 import { InlineError } from '@/components/ui/states';
@@ -38,7 +39,7 @@ export default function RegisterPage() {
       password: form.password,
       options: {
         data: { full_name: form.name.trim() },
-        emailRedirectTo: `${window.location.origin}/onboarding`,
+        emailRedirectTo: appUrl('/onboarding'),
       },
     });
     setLoading(false);

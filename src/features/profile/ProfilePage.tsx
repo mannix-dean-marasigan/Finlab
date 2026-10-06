@@ -13,7 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/form';
 import { ErrorState, InlineError, PageSkeleton } from '@/components/ui/states';
 import { COUNTRIES, EXPERIENCE, GOALS, INTERESTS } from '@/features/onboarding/OnboardingPage';
-import { cn } from '@/lib/utils';
+import { appUrl, cn } from '@/lib/utils';
 
 export default function ProfilePage() {
   const { user } = useAuth();
@@ -107,7 +107,7 @@ export default function ProfilePage() {
                 <Field label="Full name" required>
                   <Input value={p.full_name} onChange={(e) => setP({ ...p, full_name: e.target.value })} maxLength={120} />
                 </Field>
-                <Field label="Handle" hint={`Public link: ${window.location.origin}/p/${p.handle || '…'}`}>
+                <Field label="Handle" hint={`Public link: ${appUrl(`/p/${p.handle || '…'}`)}`}>
                   <Input value={p.handle} onChange={(e) => setP({ ...p, handle: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '') })} maxLength={30} className="font-mono" />
                 </Field>
               </div>

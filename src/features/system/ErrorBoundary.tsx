@@ -27,7 +27,7 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
             <button className="rounded-md border border-border-strong px-4 py-2 text-sm hover:bg-surface-3" onClick={() => window.location.reload()}>
               Reload
             </button>
-            <a className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-black" href="/dashboard">
+            <a className="rounded-md bg-accent px-4 py-2 text-sm font-semibold text-black" href={`${import.meta.env.BASE_URL}dashboard`}>
               Go to dashboard
             </a>
           </div>

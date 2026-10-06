@@ -5,6 +5,14 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Router basename derived from Vite's base ("/" locally, "/finlab/" on GitHub Pages). */
+export const ROUTER_BASENAME = import.meta.env.BASE_URL.replace(/\/$/, '') || '/';
+
+/** Absolute URL for an in-app path, respecting the deployment base path. */
+export function appUrl(path: string): string {
+  return `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${path}`;
+}
+
 export function wordCount(text: string | null | undefined): number {
   if (!text || !text.trim()) return 0;
   return text.trim().split(/\s+/).length;

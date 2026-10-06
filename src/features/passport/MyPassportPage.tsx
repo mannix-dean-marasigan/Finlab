@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Copy, ExternalLink, EyeOff, Settings } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMyProfile } from '@/app/queries';
+import { appUrl } from '@/lib/utils';
 import { fetchPassport } from '@/services/api/compete';
 import { PageHeader } from '@/components/common';
 import { Button } from '@/components/ui/button';
@@ -18,7 +19,7 @@ export default function MyPassportPage() {
   if (passport.isError) return <ErrorState error={passport.error} onRetry={() => passport.refetch()} />;
   if (!passport.data) return <ErrorState error="Passport unavailable." />;
 
-  const url = `${window.location.origin}/p/${handle}`;
+  const url = appUrl(`/p/${handle}`);
   return (
     <div className="animate-fade-in">
       <PageHeader
