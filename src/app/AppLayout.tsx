@@ -330,8 +330,12 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
 export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const { pathname } = useLocation();
-  useEffect(() => setDrawer(false), [pathname]);
-  useEffect(() => window.scrollTo(0, 0), [pathname]);
+  // Block bodies on purpose: an effect must return nothing or a cleanup function
+  // (newer browsers make window.scrollTo return a Promise).
+  useEffect(() => {
+    setDrawer(false);
+    window.scrollTo(0, 0);
+  }, [pathname]);
 
   return (
     <div className="min-h-screen bg-bg">
