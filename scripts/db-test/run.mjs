@@ -481,6 +481,12 @@ async function main() {
   ok((await q(carol, `select count(*)::int n from lesson_progress where user_id = $1`, [carol])).rows[0].n === 1, 'passing records the completion');
 
   // ------------------------------------------------------------------
+  await db.query(`update lessons set video_url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' where slug = 'three-statements'`);
+  ok((await q(carol, `select video_url from lessons where slug = 'three-statements'`)).rows[0].video_url.includes('youtube'), 'lesson video URL stored');
+  let badVideo = false;
+  try { await db.query(`update lessons set video_url = 'https://evil.example.com/x' where slug = 'three-statements'`); } catch { badVideo = true; }
+  ok(badVideo, 'non-YouTube video URLs rejected');
+
   section('Certification programs & tracks');
   const track = (await q(carol, `select id from certification_programs where slug = 'track-accounting-foundations'`)).rows[0].id;
   const progs = await rpc(carol, 'list_programs');

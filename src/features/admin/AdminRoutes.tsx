@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router';
-import { Award, BarChart3, ClipboardCheck, Database, LayoutDashboard, Briefcase, Swords, Target, Users, Zap } from 'lucide-react';
+import { Award, BadgeCheck, BarChart3, BookOpen, ClipboardCheck, Database, GraduationCap, LayoutDashboard, Briefcase, MessageSquare, Swords, Target, Users, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AdminOverviewPage from './AdminOverviewPage';
 import AdminChallengesPage from './AdminChallengesPage';
@@ -11,11 +11,19 @@ import AdminPromotionsPage from './AdminPromotionsPage';
 import AdminEventsPage from './AdminEventsPage';
 import AdminUsersPage from './AdminUsersPage';
 import AdminMarketPage from './AdminMarketPage';
+import AdminLessonsPage from './AdminLessonsPage';
+import AdminProgramsPage from './AdminProgramsPage';
+import AdminCertificatesPage from './AdminCertificatesPage';
+import AdminFeedbackPage from './AdminFeedbackPage';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/admin/challenges', label: 'Challenges', icon: Target },
   { to: '/admin/submissions', label: 'Review', icon: ClipboardCheck },
+  { to: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
+  { to: '/admin/lessons', label: 'Lessons', icon: BookOpen },
+  { to: '/admin/programs', label: 'Certifications', icon: GraduationCap },
+  { to: '/admin/certificates', label: 'Certificates', icon: BadgeCheck },
   { to: '/admin/competitions', label: 'Competitions', icon: Swords },
   { to: '/admin/achievements', label: 'Achievements', icon: Award },
   { to: '/admin/promotions', label: 'Promotions', icon: Briefcase },
@@ -57,6 +65,10 @@ export default function AdminRoutes() {
         <Route path="events" element={<AdminEventsPage />} />
         <Route path="market" element={<AdminMarketPage />} />
         <Route path="users" element={<AdminUsersPage />} />
+        <Route path="feedback" element={<AdminFeedbackPage />} />
+        <Route path="lessons" element={<AdminLessonsPage />} />
+        <Route path="programs" element={<AdminProgramsPage />} />
+        <Route path="certificates" element={<AdminCertificatesPage />} />
       </Routes>
     </div>
   );

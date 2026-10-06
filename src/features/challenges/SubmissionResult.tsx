@@ -42,8 +42,13 @@ export function SubmissionResult({ submission, passingScore }: { submission: Sub
         <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
           <ScoreRing value={score} size={112} sub="/ 100" />
           <div className="w-full flex-1">
-            <div className="mb-2 flex items-center gap-2 text-xs text-fg-muted">
+            <div className="mb-2 flex flex-wrap items-center gap-2 text-xs text-fg-muted">
               <scorer.icon className="h-3.5 w-3.5" /> {scorer.label} · pass mark {passingScore}
+              {submission.attempt_number && submission.attempt_number > 1 && (
+                <span className="rounded border border-border-strong px-1.5 py-0.5">
+                  Attempt #{submission.attempt_number} · counts {Math.round(Math.max(0.7, 1 - 0.1 * (submission.attempt_number - 1)) * 100)}% toward skills
+                </span>
+              )}
             </div>
             {final?.criteria_scores?.length ? <ScoreBreakdown criteria={final.criteria_scores} /> : null}
             {final?.feedback && <p className="mt-3 rounded-md border border-border bg-surface-2 p-3 text-sm text-fg-muted">{final.feedback}</p>}

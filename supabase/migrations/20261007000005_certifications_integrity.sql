@@ -21,6 +21,9 @@ on conflict (key) do nothing;
 alter table public.profiles add column if not exists accepted_terms_at timestamptz;
 
 alter table public.lessons add column if not exists check_questions jsonb not null default '[]'::jsonb;
+-- Optional embedded video (YouTube). Watching is not tracked; the knowledge check is the gate.
+alter table public.lessons add column if not exists video_url text
+  check (video_url is null or video_url ~* '^https://(www\.)?(youtube\.com|youtu\.be|m\.youtube\.com)/');
 
 -- ADMIN-ONLY answers for lesson knowledge checks.
 create table public.lesson_check_keys (

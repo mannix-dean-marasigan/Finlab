@@ -1,6 +1,8 @@
 import { Link } from 'react-router';
+import { useQuery } from '@tanstack/react-query';
+import { getUserCertificates } from '@/services/api/misc';
 import {
-  Award, BarChart3, Building2, Calculator, FileText, Globe2, GraduationCap, MapPin, Presentation, Swords, Target, TrendingUp, Trophy, Zap,
+  Award, BadgeCheck, BarChart3, Building2, Calculator, FileText, Globe2, GraduationCap, MapPin, Presentation, Swords, Target, TrendingUp, Trophy, Zap,
 } from 'lucide-react';
 import type { Passport } from '@/types/domain';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -20,6 +22,39 @@ function rankText(r: { rank: number | null; total: number } | null | undefined) 
   if (!r?.rank) return { main: 'Unranked', sub: 'No scored work yet' };
   const pct = (r.rank / r.total) * 100;
   return { main: `#${r.rank}`, sub: `of ${r.total}${r.total >= 10 ? ` · top ${Math.max(1, Math.ceil(pct))}%` : ''}` };
+}
+
+function CertificatesCard({ handle }: { handle: string }) {
+  const certs = useQuery({ queryKey: ['passport', 'certificates', handle], queryFn: () => getUserCertificates(handle) });
+  return (
+    <Card>
+      <CardHeader title={`Verified certificates${certs.data ? ` (${certs.data.length})` : ''}`} icon={<BadgeCheck className="h-3.5 w-3.5" />} />
+      <CardContent>
+        {certs.isPending ? (
+          <div className="h-14 animate-pulse rounded bg-surface-3" />
+        ) : certs.isError ? (
+          <p className="text-sm text-down">Could not load certificates.</p>
+        ) : !certs.data.length ? (
+          <p className="text-sm text-fg-muted">No certificates yet.</p>
+        ) : (
+          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            {certs.data.map((c) => (
+              <Link key={c.code} to={`/verify/${c.code}`} className="flex items-center gap-3 rounded-md border border-accent/30 bg-accent/[0.04] p-3 hover:border-accent/60">
+                <BadgeCheck className="h-5 w-5 shrink-0 text-accent" />
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-medium">{c.title}</div>
+                  <div className="truncate text-xs text-fg-muted">{c.subtitle}</div>
+                  <div className="font-mono text-[0.7rem] text-fg-subtle">
+                    {c.code} · {fmtDate(c.issued_at)}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
 }
 
 /** Recruiter-facing proof-of-work profile. Used for /passport and /p/:handle. */
@@ -182,6 +217,8 @@ export function PassportView({ passport, publicLinks }: { passport: Passport; pu
           </CardContent>
         </Card>
       </div>
+
+      <CertificatesCard handle={profile.handle} />
 
       <Card>
         <CardHeader title="Competition record" icon={<Trophy className="h-3.5 w-3.5" />} />

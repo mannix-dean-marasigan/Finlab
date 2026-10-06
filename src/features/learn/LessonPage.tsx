@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { EmptyState, ErrorState, InlineError, PageSkeleton } from '@/components/ui/states';
 import { TaskInput } from '@/features/challenges/TaskWorkspace';
+import { YouTubeEmbed } from '@/components/YouTubeEmbed';
 import { fmtDateTime, fmtScore } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
@@ -155,6 +156,12 @@ export default function LessonPage() {
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">{l.title}</h1>
             <p className="mt-1 text-fg-muted">{l.summary}</p>
             <hr className="my-6 border-border" />
+            {l.video_url && (
+              <div className="mb-6">
+                <YouTubeEmbed url={l.video_url} title={l.title} />
+                <p className="mt-2 text-xs text-fg-subtle">Watch the video, read the briefing, then pass the knowledge check below.</p>
+              </div>
+            )}
             <Markdown>{l.body}</Markdown>
           </Card>
           <Card>

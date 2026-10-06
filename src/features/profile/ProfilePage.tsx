@@ -1,6 +1,9 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { KeyRound, Save, Sliders, User } from 'lucide-react';
+import { useNavigate } from 'react-router';
+import { KeyRound, Save, Sliders, Trash2, User } from 'lucide-react';
+import { Modal } from '@/components/ui/misc';
+import { deleteMyAccount } from '@/services/api/misc';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { qk, useMyPreferences, useMyProfile, useReference } from '@/app/queries';
@@ -25,6 +28,10 @@ export default function ProfilePage() {
   const [p, setP] = useState({ full_name: '', handle: '', headline: '', bio: '', country_code: 'PH', university: '', primary_specialization_id: '', is_public: true });
   const [pr, setPr] = useState<{ interests: string[]; experience_level: UserPreferences['experience_level']; goal: UserPreferences['goal'] }>({ interests: [], experience_level: null, goal: null });
   const [pw, setPw] = useState({ next: '', confirm: '' });
+  const [deleting, setDeleting] = useState(false);
+  const [confirmText, setConfirmText] = useState('');
+  const { signOut } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (profile.data)
@@ -84,6 +91,15 @@ export default function ProfilePage() {
     onSuccess: () => {
       setPw({ next: '', confirm: '' });
       toast.success('Password updated');
+    },
+  });
+
+  const removeAccount = useMutation({
+    mutationFn: deleteMyAccount,
+    onSuccess: async () => {
+      await signOut();
+      navigate('/login', { replace: true });
+      toast.success('Your account has been deleted.');
     },
   });
 
@@ -228,6 +244,42 @@ export default function ProfilePage() {
               </div>
             </CardContent>
           </Card>
+
+          <Card className="border-down/30">
+            <CardHeader title="Danger zone" icon={<Trash2 className="h-3.5 w-3.5 text-down" />} />
+            <CardContent className="space-y-3">
+              <p className="text-sm text-fg-muted">
+                Permanently delete your account and everything in it: profile, submissions, pitches, reports, models, portfolio, scores, achievements and
+                certificates. This cannot be undone.
+              </p>
+              <Button variant="danger" size="sm" onClick={() => setDeleting(true)}>
+                <Trash2 className="h-4 w-4" /> Delete my account
+              </Button>
+            </CardContent>
+          </Card>
+          <Modal
+            open={deleting}
+            onClose={() => !removeAccount.isPending && setDeleting(false)}
+            title="Delete your FINLAB account?"
+            description="All your work and certificates will be permanently removed. Certificate verification links will stop working."
+            footer={
+              <>
+                <Button variant="ghost" onClick={() => setDeleting(false)} disabled={removeAccount.isPending}>
+                  Cancel
+                </Button>
+                <Button variant="danger" onClick={() => removeAccount.mutate()} loading={removeAccount.isPending} disabled={confirmText !== 'DELETE'}>
+                  Delete permanently
+                </Button>
+              </>
+            }
+          >
+            <Field label='Type "DELETE" to confirm'>
+              <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} className="font-mono" autoFocus />
+            </Field>
+            <div className="mt-3">
+              <InlineError message={removeAccount.error ? (removeAccount.error as Error).message : null} />
+            </div>
+          </Modal>
         </div>
       </div>
     </div>

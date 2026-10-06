@@ -41,6 +41,8 @@ const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
 const CertificationsPage = lazy(() => import('./features/certifications/CertificationsPage'));
 const ProgramPage = lazy(() => import('./features/certifications/ProgramPage'));
 const VerifyCertificatePage = lazy(() => import('./features/certifications/VerifyCertificatePage'));
+const TermsPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.TermsPage })));
+const PrivacyPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.PrivacyPage })));
 const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 
 export default function App() {
@@ -56,6 +58,8 @@ export default function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/p/:handle" element={<PublicPassportPage />} />
           <Route path="/verify/:code" element={<VerifyCertificatePage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
           <Route path="/p/:handle/:kind/:id" element={<PublicWorkPage />} />
           <Route path="/onboarding" element={<RequireAuth allowUnonboarded><OnboardingPage /></RequireAuth>} />
 

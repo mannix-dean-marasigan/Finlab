@@ -330,6 +330,11 @@ export default function ChallengePage() {
                         : 'Untimed. Drafts save as you go.'}
                   </p>
                   {c.max_attempts && <p className="text-xs text-fg-subtle">{c.max_attempts - attemptsUsed} of {c.max_attempts} attempts remaining.</p>}
+                  {subs.length > 0 && (
+                    <p className="text-xs text-fg-subtle">
+                      Retakes: 10-minute cooldown after each submission, and each retake counts 10% less toward your skills (minimum 70%). Your first attempt matters most.
+                    </p>
+                  )}
                   <Button variant="primary" className="w-full justify-center" onClick={() => start.mutate()} loading={start.isPending}>
                     {subs.length ? 'Start new attempt' : 'Start challenge'}
                   </Button>

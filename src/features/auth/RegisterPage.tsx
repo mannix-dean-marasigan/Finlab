@@ -25,6 +25,7 @@ export default function RegisterPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checkEmail, setCheckEmail] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const errors = validateRegistration(form);
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement>) => setForm((f) => ({ ...f, [k]: e.target.value }));
 
@@ -33,12 +34,13 @@ export default function RegisterPage() {
     setTouched(true);
     setError(null);
     if (Object.keys(errors).length) return;
+    if (!agreed) return setError('Please accept the Terms of Use and Privacy Notice to continue.');
     setLoading(true);
     const { data, error: err } = await supabase.auth.signUp({
       email: form.email.trim(),
       password: form.password,
       options: {
-        data: { full_name: form.name.trim() },
+        data: { full_name: form.name.trim(), accepted_terms: true },
         emailRedirectTo: appUrl('/onboarding'),
       },
     });
@@ -83,6 +85,14 @@ export default function RegisterPage() {
         <Field label="Confirm password" htmlFor="confirm" error={show('confirm')}>
           <Input id="confirm" type="password" autoComplete="new-password" value={form.confirm} onChange={set('confirm')} />
         </Field>
+        <label className="flex cursor-pointer items-start gap-2.5 text-sm text-fg-muted">
+          <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#f5a524]" />
+          <span>
+            I agree to the{' '}
+            <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Use</Link> and{' '}
+            <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Notice</Link>, and understand FINLAB is an educational simulation, not investment advice.
+          </span>
+        </label>
         <InlineError message={error} />
         <Button type="submit" variant="primary" className="w-full justify-center" loading={loading}>
           Create account

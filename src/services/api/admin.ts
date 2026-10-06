@@ -225,7 +225,7 @@ export async function adminGetLessonKey(lessonId: string): Promise<Record<string
   const row = unwrap(await supabase.from('lesson_check_keys').select('answers').eq('lesson_id', lessonId).maybeSingle()) as { answers: Record<string, unknown> } | null;
   return row?.answers ?? {};
 }
-export type LessonInput = Pick<Lesson, 'slug' | 'title' | 'summary' | 'category_id' | 'difficulty' | 'estimated_minutes' | 'body' | 'related_challenge_slugs' | 'sort_order' | 'is_published' | 'check_questions'>;
+export type LessonInput = Pick<Lesson, 'slug' | 'title' | 'summary' | 'category_id' | 'difficulty' | 'estimated_minutes' | 'body' | 'related_challenge_slugs' | 'sort_order' | 'is_published' | 'check_questions' | 'video_url'>;
 export async function adminSaveLesson(input: LessonInput, answers: Record<string, unknown>, id?: string): Promise<string> {
   const res = id
     ? await supabase.from('lessons').update(input).eq('id', id).select('id').single()

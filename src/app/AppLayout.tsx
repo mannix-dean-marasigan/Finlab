@@ -12,6 +12,7 @@ import { useAuth } from './auth';
 import { useIsAdmin, useMyProfile, useMyStats, useReference } from './queries';
 import { listNotifications, markNotificationsRead } from '@/services/api/misc';
 import { PageSkeleton } from '@/components/ui/states';
+import { FeedbackButton } from '@/features/feedback/FeedbackButton';
 
 interface NavItem {
   to: string;
@@ -368,6 +369,12 @@ export function AppLayout() {
             <Outlet />
           </Suspense>
         </main>
+        <footer className="no-print mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 pb-16 pt-4 text-xs text-fg-subtle sm:px-6 lg:px-8">
+          <span>FINLAB beta · Educational simulation — not investment advice</span>
+          <Link to="/terms" className="hover:text-fg">Terms</Link>
+          <Link to="/privacy" className="hover:text-fg">Privacy</Link>
+        </footer>
+        <FeedbackButton />
       </div>
     </div>
   );
