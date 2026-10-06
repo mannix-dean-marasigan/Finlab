@@ -133,6 +133,10 @@ async function main() {
     await db.exec(readFileSync(join(root, 'supabase', f), 'utf8'));
     ok(true, f);
   }
+  const minVideos = (await db.query(`select p.slug, coalesce(sum(cardinality(l.video_urls)), 0)::int as n
+      from certification_programs p left join program_modules m on m.program_id = p.id
+      left join lessons l on l.id = m.lesson_id group by p.slug order by n limit 1`)).rows[0];
+  ok(minVideos.n >= 3, 'every certification/track has at least 3 videos', minVideos);
   // Re-running the content seed must be harmless (idempotent).
   await db.exec(readFileSync(join(root, 'supabase', 'seed_002_certifications.sql'), 'utf8'));
   ok(true, 'seed_002 is idempotent');
@@ -481,10 +485,10 @@ async function main() {
   ok((await q(carol, `select count(*)::int n from lesson_progress where user_id = $1`, [carol])).rows[0].n === 1, 'passing records the completion');
 
   // ------------------------------------------------------------------
-  await db.query(`update lessons set video_url = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ' where slug = 'three-statements'`);
-  ok((await q(carol, `select video_url from lessons where slug = 'three-statements'`)).rows[0].video_url.includes('youtube'), 'lesson video URL stored');
+  await db.query(`update lessons set video_urls = '{https://www.youtube.com/watch?v=dQw4w9WgXcQ,https://youtu.be/dQw4w9WgXcQ}' where slug = 'three-statements'`);
+  ok((await q(carol, `select video_urls from lessons where slug = 'three-statements'`)).rows[0].video_urls.length >= 2, 'multiple lesson videos stored');
   let badVideo = false;
-  try { await db.query(`update lessons set video_url = 'https://evil.example.com/x' where slug = 'three-statements'`); } catch { badVideo = true; }
+  try { await db.query(`update lessons set video_urls = '{https://evil.example.com/x}' where slug = 'three-statements'`); } catch { badVideo = true; }
   ok(badVideo, 'non-YouTube video URLs rejected');
 
   section('Certification programs & tracks');

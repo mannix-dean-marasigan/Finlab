@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, BadgeCheck, BookOpen, CheckCircle2, Circle, Clock, FileCheck2, GraduationCap, Lock, Target } from 'lucide-react';
 import { toast } from 'sonner';
 import { enrollProgram, getProgram } from '@/services/api/misc';
+import { useMyProfile } from '@/app/queries';
+import { CertificateDocument } from './VerifyCertificatePage';
 import type { ProgramModuleStatus } from '@/types/domain';
 import { DifficultyBadge, Markdown, ScorePill } from '@/components/common';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
@@ -81,6 +83,7 @@ export default function ProgramPage() {
   const { slug = '' } = useParams();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['program', slug], queryFn: () => getProgram(slug) });
+  const profile = useMyProfile();
   const enroll = useMutation({
     mutationFn: () => enrollProgram(q.data!.program.id),
     onSuccess: (r) => {
@@ -125,6 +128,45 @@ export default function ProgramPage() {
               </div>
             </div>
           </Card>
+          {!certificate_code && (
+            <Card>
+              <CardHeader
+                title="The certificate you'll earn"
+                subtitle="Issued automatically with your name and a unique verification code the moment you pass every module."
+                icon={<BadgeCheck className="h-3.5 w-3.5" />}
+              />
+              <CardContent>
+                <CertificateDocument
+                  preview
+                  c={{
+                    code: 'FLB-XXXX-XXXX',
+                    kind: p.kind,
+                    recipient_name: profile.data?.full_name || 'Your Name',
+                    title: p.certificate_title,
+                    subtitle: p.title,
+                    details: { modules: modules.length, estimated_hours: Number(p.estimated_hours) },
+                    issued_at: new Date().toISOString(),
+                    revoked_at: null,
+                    revoked_reason: null,
+                    handle: null,
+                    program: null,
+                    competition: null,
+                  }}
+                />
+                <ul className="mt-4 grid gap-2 text-xs text-fg-muted sm:grid-cols-3">
+                  <li className="flex gap-2">
+                    <BadgeCheck className="h-4 w-4 shrink-0 text-accent" /> Public verification page anyone can check
+                  </li>
+                  <li className="flex gap-2">
+                    <BadgeCheck className="h-4 w-4 shrink-0 text-accent" /> Download as PDF and add to LinkedIn
+                  </li>
+                  <li className="flex gap-2">
+                    <BadgeCheck className="h-4 w-4 shrink-0 text-accent" /> Shown on your Finance Passport
+                  </li>
+                </ul>
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader title={`Your path · ${done}/${modules.length} complete`} icon={<GraduationCap className="h-3.5 w-3.5" />} />
             <CardContent>

@@ -38,7 +38,7 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
     difficulty: (lesson?.difficulty ?? 'beginner') as Difficulty,
     estimated_minutes: String(lesson?.estimated_minutes ?? 10),
     body: lesson?.body ?? '',
-    video_url: lesson?.video_url ?? '',
+    videos: (lesson?.video_urls ?? []).join('\n'),
     related: (lesson?.related_challenge_slugs ?? []).join(', '),
     sort_order: String(lesson?.sort_order ?? 0),
     is_published: lesson?.is_published ?? false,
@@ -68,7 +68,10 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
     mutationFn: () => {
       if (!/^[a-z0-9-]{3,80}$/.test(f.slug)) throw new Error('Slug: 3–80 chars, lowercase letters, numbers and hyphens.');
       if (!f.title.trim()) throw new Error('Title is required.');
-      if (f.video_url.trim() && !youTubeId(f.video_url.trim())) throw new Error('Video must be a YouTube link (youtube.com/watch?v=… or youtu.be/…).');
+      const videoUrls = f.videos.split('\n').map((v) => v.trim()).filter(Boolean);
+      const bad = videoUrls.find((v) => !youTubeId(v));
+      if (bad) throw new Error(`Not a YouTube video link: ${bad}`);
+      if (videoUrls.length > 6) throw new Error('At most 6 videos per lesson.');
       if (f.is_published && !qs.length) throw new Error('Published lessons need at least one knowledge-check question — otherwise they can never be completed.');
       const questions: ChallengeTask[] = [];
       const answers: Record<string, unknown> = {};
@@ -98,7 +101,7 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         estimated_minutes: Number(f.estimated_minutes) || 10, body: f.body,
         related_challenge_slugs: f.related.split(',').map((s) => s.trim()).filter(Boolean),
         sort_order: Number(f.sort_order) || 0, is_published: f.is_published, check_questions: questions,
-        video_url: f.video_url.trim() || null,
+        video_urls: videoUrls,
       };
       return adminSaveLesson(input, answers, lesson?.id);
     },
@@ -149,8 +152,8 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         <Field label="Summary" className="md:col-span-4">
           <Input value={f.summary} onChange={(e) => setF({ ...f, summary: e.target.value })} />
         </Field>
-        <Field label="YouTube video (optional)" hint="Paste any youtube.com/watch?v=… or youtu.be/… link. Shown at the top of the lesson." className="md:col-span-2">
-          <Input value={f.video_url} onChange={(e) => setF({ ...f, video_url: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" />
+        <Field label="YouTube videos (optional, one per line)" hint="youtube.com/watch?v=… or youtu.be/… links. They play inside the lesson, in this order." className="md:col-span-2">
+          <Textarea rows={3} value={f.videos} onChange={(e) => setF({ ...f, videos: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" className="font-mono text-xs" />
         </Field>
         <Field label="Difficulty">
           <Select value={f.difficulty} onChange={(e) => setF({ ...f, difficulty: e.target.value as Difficulty })}>
@@ -162,11 +165,15 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         <Field label="Minutes">
           <Input value={f.estimated_minutes} onChange={(e) => setF({ ...f, estimated_minutes: e.target.value })} />
         </Field>
-        {f.video_url && youTubeId(f.video_url) && (
-          <div className="md:col-span-2">
-            <YouTubeEmbed url={f.video_url} title="Preview" />
-          </div>
-        )}
+        {f.videos
+          .split('\n')
+          .map((v) => v.trim())
+          .filter((v) => youTubeId(v))
+          .map((v) => (
+            <div key={v} className="md:col-span-2">
+              <YouTubeEmbed url={v} title="Preview" />
+            </div>
+          ))}
         <Field label="Body (markdown)" className="md:col-span-4">
           <Textarea rows={10} value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} className="font-mono text-xs" />
         </Field>
@@ -285,7 +292,13 @@ export default function AdminLessonsPage() {
                 {ref.data?.categories.find((c) => c.id === l.category_id)?.name} <DifficultyBadge difficulty={l.difficulty} />
               </Td>
               <Td align="center">{l.check_questions?.length ? <Badge tone="up">{l.check_questions.length} Q</Badge> : <Badge tone="down">none</Badge>}</Td>
-              <Td align="center">{l.video_url ? <Video className="mx-auto h-4 w-4 text-accent" /> : <span className="text-fg-subtle">—</span>}</Td>
+              <Td align="center">{l.video_urls?.length ? (
+                  <span className="inline-flex items-center gap-1 text-accent">
+                    <Video className="h-4 w-4" /> {l.video_urls.length}
+                  </span>
+                ) : (
+                  <span className="text-fg-subtle">—</span>
+                )}</Td>
               <Td>{l.is_published ? <Badge tone="up">Published</Badge> : <Badge tone="warn">Draft</Badge>}</Td>
               <Td align="right">
                 <Button size="xs" variant="ghost" onClick={() => setEditing(l)}>

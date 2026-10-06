@@ -557,7 +557,7 @@ export interface Lesson {
   sort_order: number;
   is_published: boolean;
   check_questions: ChallengeTask[];
-  video_url: string | null;
+  video_urls: string[];
 }
 export interface LessonCheckResult {
   score: number;

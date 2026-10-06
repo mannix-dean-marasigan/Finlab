@@ -14,7 +14,7 @@ import { appUrl } from '@/lib/utils';
 const KIND_LABEL = { certification: 'Professional Certification', track: 'Learning Track Certificate', competition: 'Competition Certificate' } as const;
 
 /** Paper-style certificate; prints cleanly on A4 landscape. */
-export function CertificateDocument({ c }: { c: CertificateView }) {
+export function CertificateDocument({ c, preview }: { c: CertificateView; preview?: boolean }) {
   const revoked = !!c.revoked_at;
   const detail =
     c.kind === 'competition'
@@ -26,6 +26,11 @@ export function CertificateDocument({ c }: { c: CertificateView }) {
     <div className="certificate-paper relative mx-auto aspect-[1.414/1] w-full max-w-4xl overflow-hidden rounded-md bg-[#fbf8f1] text-[#1a1d23] shadow-2xl print:max-w-none print:rounded-none print:shadow-none">
       <div className="absolute inset-3 rounded-sm border-2 border-[#c8922a] sm:inset-5" />
       <div className="absolute inset-[18px] rounded-sm border border-[#c8922a]/50 sm:inset-[28px]" />
+      {preview && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="rotate-[-18deg] select-none rounded border-4 border-[#c8922a]/40 px-6 py-2 text-3xl font-bold tracking-[0.3em] text-[#c8922a]/40 sm:text-6xl">PREVIEW</span>
+        </div>
+      )}
       {revoked && (
         <div className="absolute inset-0 z-10 flex items-center justify-center">
           <span className="rotate-[-18deg] rounded border-4 border-red-600/70 px-6 py-2 text-4xl font-bold tracking-widest text-red-600/70">REVOKED</span>

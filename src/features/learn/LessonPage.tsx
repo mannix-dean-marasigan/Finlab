@@ -156,10 +156,21 @@ export default function LessonPage() {
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">{l.title}</h1>
             <p className="mt-1 text-fg-muted">{l.summary}</p>
             <hr className="my-6 border-border" />
-            {l.video_url && (
-              <div className="mb-6">
-                <YouTubeEmbed url={l.video_url} title={l.title} />
-                <p className="mt-2 text-xs text-fg-subtle">Watch the video, read the briefing, then pass the knowledge check below.</p>
+            {l.video_urls?.length > 0 && (
+              <div className="mb-6 space-y-4">
+                {l.video_urls.map((url, i) => (
+                  <div key={url}>
+                    {l.video_urls.length > 1 && (
+                      <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
+                        Video {i + 1} of {l.video_urls.length}
+                      </div>
+                    )}
+                    <YouTubeEmbed url={url} title={`${l.title} — video ${i + 1}`} />
+                  </div>
+                ))}
+                <p className="text-xs text-fg-subtle">
+                  Watch the videos, read the briefing, then pass the knowledge check below. Videos are by independent YouTube creators.
+                </p>
               </div>
             )}
             <Markdown>{l.body}</Markdown>
