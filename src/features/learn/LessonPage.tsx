@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, RotateCcw, Target, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, Lock, PlayCircle, RotateCcw, Target, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { invalidateProgress } from '@/app/queries';
-import { fetchLessonAttempts, fetchLessonProgress, getLesson, submitLessonCheck } from '@/services/api/misc';
+import { fetchLessonAttempts, fetchLessonProgress, fetchVideoWatched, getLesson, markVideoWatched, submitLessonCheck } from '@/services/api/misc';
 import { listChallenges } from '@/services/api/challenges';
 import type { Lesson, LessonCheckResult } from '@/types/domain';
 import { DifficultyBadge, Markdown } from '@/components/common';
@@ -122,9 +122,24 @@ function KnowledgeCheck({ lesson, completed }: { lesson: Lesson; completed: bool
 export default function LessonPage() {
   const { slug = '' } = useParams();
   const { user } = useAuth();
+  const qc = useQueryClient();
   const lesson = useQuery({ queryKey: ['lesson', slug], queryFn: () => getLesson(slug) });
   const progress = useQuery({ queryKey: ['lessonProgress', user!.id], queryFn: () => fetchLessonProgress(user!.id) });
   const challenges = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
+  const lessonId = lesson.data?.id;
+  const watched = useQuery({
+    queryKey: ['videoWatched', lessonId],
+    queryFn: () => fetchVideoWatched(user!.id, lessonId!),
+    enabled: !!lessonId && (lesson.data?.video_urls?.length ?? 0) > 0,
+  });
+  const markWatched = useMutation({
+    mutationFn: (method: 'ended' | 'manual') => markVideoWatched(lessonId!, method),
+    onSuccess: (_, method) => {
+      qc.setQueryData(['videoWatched', lessonId], true);
+      toast.success(method === 'ended' ? 'Video complete — knowledge check unlocked' : 'Knowledge check unlocked');
+    },
+    onError: (e) => toast.error((e as Error).message),
+  });
 
   if (lesson.isPending) return <PageSkeleton />;
   if (lesson.isError) return <ErrorState error={lesson.error} onRetry={() => lesson.refetch()} />;
@@ -132,6 +147,8 @@ export default function LessonPage() {
 
   const l = lesson.data;
   const complete = progress.data?.has(l.id) ?? false;
+  const hasVideo = (l.video_urls?.length ?? 0) > 0;
+  const videoDone = watched.data === true;
   const related = (challenges.data ?? []).filter((c) => l.related_challenge_slugs.includes(c.slug));
 
   return (
@@ -156,33 +173,52 @@ export default function LessonPage() {
             <h1 className="mt-3 text-2xl font-semibold tracking-tight">{l.title}</h1>
             <p className="mt-1 text-fg-muted">{l.summary}</p>
             <hr className="my-6 border-border" />
-            {l.video_urls?.length > 0 && (
-              <div className="mb-6 space-y-4">
-                {l.video_urls.map((url, i) => (
-                  <div key={url}>
-                    {l.video_urls.length > 1 && (
-                      <div className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
-                        Video {i + 1} of {l.video_urls.length}
-                      </div>
-                    )}
-                    <YouTubeEmbed url={url} title={`${l.title} — video ${i + 1}`} />
-                  </div>
-                ))}
-                <p className="text-xs text-fg-subtle">
-                  Watch the videos, read the briefing, then pass the knowledge check below. Videos are by independent YouTube creators.
-                </p>
+            {hasVideo && (
+              <div className="mb-6">
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-fg-subtle">
+                  <PlayCircle className="h-4 w-4 text-accent" /> Step 1 · Watch the video
+                </div>
+                <YouTubeEmbed url={l.video_urls[0]} title={l.title} onEnded={() => !videoDone && markWatched.mutate('ended')} />
+                <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <p className="text-xs text-fg-subtle">Video by an independent YouTube creator. The knowledge check unlocks when it finishes or when you mark it as watched.</p>
+                  {videoDone ? (
+                    <Badge tone="up">
+                      <CheckCircle2 className="h-3 w-3" /> Video watched
+                    </Badge>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={() => markWatched.mutate('manual')} loading={markWatched.isPending}>
+                      <CheckCircle2 className="h-4 w-4" /> I've watched the video
+                    </Button>
+                  )}
+                </div>
               </div>
+            )}
+            {hasVideo && (
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Step 2 · Read the briefing</div>
             )}
             <Markdown>{l.body}</Markdown>
           </Card>
           <Card>
             <CardHeader
-              title="Knowledge check"
+              title={`${hasVideo ? 'Step 3 · ' : ''}Knowledge check · ${l.check_questions?.length ?? 0} questions`}
               subtitle="Pass to complete this briefing. Answers are checked on the server and never shown."
               icon={<ListChecks className="h-3.5 w-3.5" />}
             />
             <CardContent>
-              <KnowledgeCheck lesson={l} completed={complete} />
+              {hasVideo && !videoDone && !complete ? (
+                <div className="flex flex-col items-center gap-3 py-8 text-center">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong bg-surface-2 text-fg-subtle">
+                    <Lock className="h-5 w-5" />
+                  </span>
+                  <div className="font-medium">Locked until you watch the video</div>
+                  <p className="max-w-sm text-sm text-fg-muted">
+                    Finish the video above (or mark it as watched) to unlock the {l.check_questions?.length ?? 0}-question knowledge check.
+                  </p>
+                  {watched.isError && <InlineError message="Could not check your video progress. Refresh to try again." />}
+                </div>
+              ) : (
+                <KnowledgeCheck lesson={l} completed={complete} />
+              )}
             </CardContent>
           </Card>
         </div>

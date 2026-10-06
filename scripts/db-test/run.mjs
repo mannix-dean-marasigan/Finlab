@@ -114,6 +114,12 @@ async function perfectResponses(slug) {
   return out;
 }
 
+// Correct answers for a lesson's knowledge check (read from the admin-only key).
+async function lessonAnswers(slug) {
+  const key = (await db.query(`select k.answers from lesson_check_keys k join lessons l on l.id = k.lesson_id where l.slug = $1`, [slug])).rows[0].answers;
+  return Object.fromEntries(Object.entries(key).map(([k, v]) => [k, String(v.answer)]));
+}
+
 const longText = (topic, words) => {
   const sentence = `${topic} drives revenue growth of 12% and margin expansion of 150bp in 2026, supported by 3 key factors.`;
   let s = '';
@@ -133,10 +139,10 @@ async function main() {
     await db.exec(readFileSync(join(root, 'supabase', f), 'utf8'));
     ok(true, f);
   }
-  const minVideos = (await db.query(`select p.slug, coalesce(sum(cardinality(l.video_urls)), 0)::int as n
-      from certification_programs p left join program_modules m on m.program_id = p.id
-      left join lessons l on l.id = m.lesson_id group by p.slug order by n limit 1`)).rows[0];
-  ok(minVideos.n >= 3, 'every certification/track has at least 3 videos', minVideos);
+  const quizSizes = (await db.query(`select min(jsonb_array_length(l.check_questions))::int mn,
+      min((select count(*) from jsonb_object_keys(k.answers)))::int keys
+      from lessons l join lesson_check_keys k on k.lesson_id = l.id`)).rows[0];
+  ok(quizSizes.mn >= 10 && quizSizes.keys >= 10, 'every lesson has 10+ questions with answer keys', quizSizes);
   // Re-running the content seed must be harmless (idempotent).
   await db.exec(readFileSync(join(root, 'supabase', 'seed_002_certifications.sql'), 'utf8'));
   ok(true, 'seed_002 is idempotent');
@@ -469,10 +475,14 @@ async function main() {
   const carol = await createUser('carol@example.com', 'Carol Lim');
   await q(carol, `update profiles set onboarded_at = now() where id = $1`, [carol]);
   const lessonRow = (await q(carol, `select id, check_questions from lessons where slug = 'three-statements'`)).rows[0];
-  ok(lessonRow.check_questions.length === 4, 'lesson exposes its questions');
+  ok(lessonRow.check_questions.length === 10, 'lesson has a 10-question check', lessonRow.check_questions.length);
+  ok(lessonRow.check_questions.every((x) => x.points === 10), 'every question weighted equally');
   ok(!JSON.stringify(lessonRow.check_questions).includes('"answer"'), 'questions do not leak answers');
   ok((await q(carol, `select count(*)::int n from lesson_check_keys`)).rows[0].n === 0, 'lesson answer keys hidden from users');
   await expectError(carol, `insert into lesson_progress (user_id, lesson_id) values ($1, $2)`, [carol, lessonRow.id], 'cannot mark a lesson complete directly', 'permission denied');
+  await expectError(carol, `select public.submit_lesson_check($1, '{}'::jsonb)`, [lessonRow.id], 'check locked until the video is watched', 'Watch the lesson video first');
+  await expectError(carol, `insert into lesson_video_views (user_id, lesson_id, method) values ($1, $2, 'ended')`, [carol, lessonRow.id], 'cannot write video views directly', 'permission denied');
+  await rpc(carol, 'mark_lesson_video_watched', [lessonRow.id, 'manual']);
   const wrong = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ q1: 'a', q2: 'a', q3: '1', q4: 'a' })]);
   ok(wrong.passed === false && Number(wrong.score) === 0, 'wrong answers fail the check', wrong);
   ok(!JSON.stringify(wrong).includes('"answer"'), 'check feedback never reveals answers');
@@ -480,13 +490,19 @@ async function main() {
   await db.exec(`update app_settings set value = '60' where key = 'lesson_retry_seconds'`);
   await expectError(carol, `select public.submit_lesson_check($1, '{}'::jsonb)`, [lessonRow.id], 'retry cooldown on lesson checks', 'try again in');
   await db.exec(`update app_settings set value = '0' where key = 'lesson_retry_seconds'`);
-  const threeOfFour = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ q1: 'b', q2: 'c', q3: '80', q4: 'a' })]);
-  ok(threeOfFour.passed === true && Number(threeOfFour.score) === 75, '3 of 4 correct passes at 75%', threeOfFour);
+  const tsAnswers = await lessonAnswers('three-statements');
+  const sevenRight = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ ...tsAnswers, q8: '1', q9: 'a', q10: 'a' })]);
+  ok(sevenRight.passed === false && Number(sevenRight.score) === 70, '7 of 10 does not pass (80% needed)', sevenRight.score);
+  const eightRight = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ ...tsAnswers, q9: 'a', q10: 'a' })]);
+  ok(eightRight.passed === true && Number(eightRight.score) === 80, '8 of 10 passes', eightRight.score);
   ok((await q(carol, `select count(*)::int n from lesson_progress where user_id = $1`, [carol])).rows[0].n === 1, 'passing records the completion');
 
   // ------------------------------------------------------------------
-  await db.query(`update lessons set video_urls = '{https://www.youtube.com/watch?v=dQw4w9WgXcQ,https://youtu.be/dQw4w9WgXcQ}' where slug = 'three-statements'`);
-  ok((await q(carol, `select video_urls from lessons where slug = 'three-statements'`)).rows[0].video_urls.length >= 2, 'multiple lesson videos stored');
+  const vids = (await db.query(`select min(cardinality(video_urls))::int mn, max(cardinality(video_urls))::int mx from lessons`)).rows[0];
+  ok(vids.mn === 1 && vids.mx === 1, 'every lesson has exactly one video', vids);
+  let twoVideos = false;
+  try { await db.query(`update lessons set video_urls = '{https://youtu.be/dQw4w9WgXcQ,https://youtu.be/abcdefghijk}' where slug = 'three-statements'`); } catch { twoVideos = true; }
+  ok(twoVideos, 'more than one video per lesson rejected');
   let badVideo = false;
   try { await db.query(`update lessons set video_urls = '{https://evil.example.com/x}' where slug = 'three-statements'`); } catch { badVideo = true; }
   ok(badVideo, 'non-YouTube video URLs rejected');
@@ -497,7 +513,8 @@ async function main() {
   ok(progs.length === 7 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
   await rpc(carol, 'enroll_program', [track]);
   const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
-  await rpc(carol, 'submit_lesson_check', [cfsLesson, JSON.stringify({ q1: '105', q2: 'b', q3: '65', q4: 'c' })]);
+  await rpc(carol, 'mark_lesson_video_watched', [cfsLesson, 'ended']);
+  await rpc(carol, 'submit_lesson_check', [cfsLesson, JSON.stringify(await lessonAnswers('cash-flow-statement'))]);
   for (const slug of ['accounting-three-statements', 'accounting-cash-flow-build']) {
     const id = (await q(carol, `select id from challenges where slug = $1`, [slug])).rows[0].id;
     const a = await rpc(carol, 'start_challenge', [id, null]);
@@ -520,9 +537,9 @@ async function main() {
   // Complete every earlier module, then the exam unlocks and passing issues the certificate.
   for (const m of fsaDetail.modules.filter((x) => x.kind !== 'exam' && !x.complete)) {
     if (m.kind === 'lesson') {
-      const key = (await db.query(`select k.answers from lesson_check_keys k join lessons l on l.id = k.lesson_id where l.slug = $1`, [m.lesson_slug])).rows[0].answers;
-      const resp = Object.fromEntries(Object.entries(key).map(([k, v]) => [k, String(v.answer)]));
-      await rpc(carol, 'submit_lesson_check', [(await q(carol, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id, JSON.stringify(resp)]);
+      const lid = (await q(carol, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id;
+      await rpc(carol, 'mark_lesson_video_watched', [lid, 'ended']);
+      await rpc(carol, 'submit_lesson_check', [lid, JSON.stringify(await lessonAnswers(m.lesson_slug))]);
     } else {
       const slug = (await q(carol, `select slug from challenges where id = $1`, [m.challenge_id])).rows[0].slug;
       const a = await rpc(carol, 'start_challenge', [m.challenge_id, null]);

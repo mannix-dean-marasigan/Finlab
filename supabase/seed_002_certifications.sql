@@ -143,13 +143,14 @@ with qs(slug, questions, answers) as (values
      {"id":"q4","type":"mcq","label":"Break-even","prompt":"The break-even volume is where…","options":[{"id":"a","label":"NPV = 0"},{"id":"b","label":"Revenue = 0"},{"id":"c","label":"IRR = 100%"},{"id":"d","label":"Capex = 0"}],"points":25}]$j$,
  $j${"q1":{"answer":"a"},"q2":{"answer":"a"},"q3":{"answer":12,"tolerance_pct":1},"q4":{"answer":"a"}}$j$)
 ), upd as (
+  -- Only fills lessons that have no check yet, so re-running never undoes later expansions (seed_004).
   update public.lessons l set check_questions = qs.questions::jsonb
-  from qs where l.slug = qs.slug
+  from qs where l.slug = qs.slug and jsonb_array_length(l.check_questions) = 0
   returning l.id, qs.answers
 )
 insert into public.lesson_check_keys (lesson_id, answers)
 select id, answers::jsonb from upd
-on conflict (lesson_id) do update set answers = excluded.answers, updated_at = now();
+on conflict (lesson_id) do nothing;
 
 -- ---------------------------------------------------------------------
 -- 3. New challenges (10) and certification exams (3)

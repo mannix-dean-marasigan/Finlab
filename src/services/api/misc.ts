@@ -31,6 +31,18 @@ export async function fetchLessonAttempts(userId: string, lessonId: string): Pro
   return rows.map((r) => ({ ...r, score: Number(r.score) }));
 }
 
+export async function fetchVideoWatched(userId: string, lessonId: string): Promise<boolean> {
+  const rows = unwrap(
+    await supabase.from('lesson_video_views').select('lesson_id').eq('user_id', userId).eq('lesson_id', lessonId),
+  ) as unknown[];
+  return rows.length > 0;
+}
+
+/** Records that the lesson video was finished ('ended') or marked watched ('manual'). */
+export async function markVideoWatched(lessonId: string, method: 'ended' | 'manual'): Promise<void> {
+  unwrap(await supabase.rpc('mark_lesson_video_watched', { p_lesson: lessonId, p_method: method }));
+}
+
 /** Graded server-side against hidden keys; completion is recorded only on a pass. */
 export async function submitLessonCheck(lessonId: string, responses: Record<string, string>): Promise<LessonCheckResult> {
   return unwrap(await supabase.rpc('submit_lesson_check', { p_lesson: lessonId, p_responses: responses })) as LessonCheckResult;

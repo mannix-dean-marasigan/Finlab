@@ -71,8 +71,8 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
       const videoUrls = f.videos.split('\n').map((v) => v.trim()).filter(Boolean);
       const bad = videoUrls.find((v) => !youTubeId(v));
       if (bad) throw new Error(`Not a YouTube video link: ${bad}`);
-      if (videoUrls.length > 6) throw new Error('At most 6 videos per lesson.');
-      if (f.is_published && !qs.length) throw new Error('Published lessons need at least one knowledge-check question — otherwise they can never be completed.');
+      if (videoUrls.length > 1) throw new Error('Only one video per lesson.');
+      if (f.is_published && qs.length < 10) throw new Error(`Published lessons need at least 10 knowledge-check questions (currently ${qs.length}).`);
       const questions: ChallengeTask[] = [];
       const answers: Record<string, unknown> = {};
       const ids = new Set<string>();
@@ -80,7 +80,7 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         if (!/^[a-z0-9_]{1,30}$/.test(q.id) || ids.has(q.id)) throw new Error(`Question id "${q.id}" must be unique (a-z, 0-9, _).`);
         ids.add(q.id);
         if (!q.prompt.trim()) throw new Error(`Question ${q.id} needs a prompt.`);
-        const base: ChallengeTask = { id: q.id, type: q.type, label: q.label || undefined, prompt: q.prompt.trim(), points: 25 };
+        const base: ChallengeTask = { id: q.id, type: q.type, label: q.label || undefined, prompt: q.prompt.trim(), points: 10 };
         if (q.type === 'mcq') {
           base.options = q.options.split('\n').map((l) => l.trim()).filter((l) => l && l.includes('|') && l.split('|')[1].trim()).map((l) => {
             const [oid, ...rest] = l.split('|');
@@ -152,8 +152,8 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         <Field label="Summary" className="md:col-span-4">
           <Input value={f.summary} onChange={(e) => setF({ ...f, summary: e.target.value })} />
         </Field>
-        <Field label="YouTube videos (optional, one per line)" hint="youtube.com/watch?v=… or youtu.be/… links. They play inside the lesson, in this order." className="md:col-span-2">
-          <Textarea rows={3} value={f.videos} onChange={(e) => setF({ ...f, videos: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" className="font-mono text-xs" />
+        <Field label="YouTube video (optional)" hint="One youtube.com/watch?v=… or youtu.be/… link. Plays inside the lesson; the knowledge check unlocks after it." className="md:col-span-2">
+          <Input value={f.videos} onChange={(e) => setF({ ...f, videos: e.target.value })} placeholder="https://www.youtube.com/watch?v=…" />
         </Field>
         <Field label="Difficulty">
           <Select value={f.difficulty} onChange={(e) => setF({ ...f, difficulty: e.target.value as Difficulty })}>
@@ -192,7 +192,7 @@ function Editor({ lesson, onClose }: { lesson: AdminLesson | null; onClose: () =
         <div className="mb-2 flex items-center justify-between">
           <div>
             <div className="text-sm font-semibold">Knowledge check ({qs.length} questions)</div>
-            <div className="text-xs text-fg-muted">Answers are stored in an admin-only table. Users pass at the lesson pass mark (default 75%).</div>
+            <div className="text-xs text-fg-muted">At least 10 questions. Answers are stored in an admin-only table. Users pass at the lesson pass mark (default 80%).</div>
           </div>
           <Button size="xs" variant="outline" onClick={() => setQs((all) => [...all, blankQ(all.length + 1)])}>
             <Plus className="h-3 w-3" /> Question
