@@ -38,6 +38,9 @@ const MyPassportPage = lazy(() => import('./features/passport/MyPassportPage'));
 const PublicPassportPage = lazy(() => import('./features/passport/PublicPassportPage'));
 const PublicWorkPage = lazy(() => import('./features/passport/PublicWorkPage'));
 const ProfilePage = lazy(() => import('./features/profile/ProfilePage'));
+const CertificationsPage = lazy(() => import('./features/certifications/CertificationsPage'));
+const ProgramPage = lazy(() => import('./features/certifications/ProgramPage'));
+const VerifyCertificatePage = lazy(() => import('./features/certifications/VerifyCertificatePage'));
 const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 
 export default function App() {
@@ -52,6 +55,7 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/p/:handle" element={<PublicPassportPage />} />
+          <Route path="/verify/:code" element={<VerifyCertificatePage />} />
           <Route path="/p/:handle/:kind/:id" element={<PublicWorkPage />} />
           <Route path="/onboarding" element={<RequireAuth allowUnonboarded><OnboardingPage /></RequireAuth>} />
 
@@ -59,6 +63,8 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardPage />} />
             <Route path="/learn" element={<LearnPage />} />
             <Route path="/learn/:slug" element={<LessonPage />} />
+            <Route path="/certifications" element={<CertificationsPage />} />
+            <Route path="/certifications/:slug" element={<ProgramPage />} />
             <Route path="/challenges" element={<ChallengesPage />} />
             <Route path="/challenges/:id" element={<ChallengePage />} />
             <Route path="/research" element={<ResearchPage />} />

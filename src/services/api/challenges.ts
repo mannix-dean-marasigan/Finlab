@@ -4,10 +4,14 @@ import type { Challenge, ChallengeAttempt, ChallengeScore, ChallengeSubmission, 
 const CHALLENGE_LIST_COLUMNS =
   'id, slug, title, summary, category_id, kind, pitch_format, difficulty, estimated_minutes, time_limit_minutes, duration_days, points, passing_score, scoring_method, skill_impact, tags, is_published, max_attempts, created_at, updated_at, published_at';
 
+export const isCertificationExam = (c: Pick<Challenge, 'tags'>) => c.tags?.includes('certification_exam');
+
+/** Published challenges, excluding certification exams (those live inside their program). */
 export async function listChallenges(): Promise<Challenge[]> {
-  return unwrap(
+  const rows = unwrap(
     await supabase.from('challenges').select(CHALLENGE_LIST_COLUMNS).eq('is_published', true).order('created_at'),
   ) as unknown as Challenge[];
+  return rows.filter((c) => !isCertificationExam(c));
 }
 
 export async function getChallenge(idOrSlug: string): Promise<Challenge | null> {

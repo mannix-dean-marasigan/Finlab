@@ -8,6 +8,8 @@ import type {
   ChallengeSubmission,
   Competition,
   CriterionScore,
+  FeedbackItem,
+  Lesson,
   MarketEvent,
   PromotionRequirement,
 } from '@/types/domain';
@@ -209,6 +211,112 @@ export async function adminSaveEvent(input: EventInput, key: EventKey, id?: stri
 }
 export async function adminResolveEvent(id: string, summary: string): Promise<number> {
   return unwrap(await supabase.rpc('admin_resolve_market_event', { p_event: id, p_summary: summary })) as number;
+}
+
+// ------------------------------------------------------------ Lessons
+export interface AdminLesson extends Lesson {
+  created_at: string;
+  updated_at: string;
+}
+export async function adminListLessons(): Promise<AdminLesson[]> {
+  return unwrap(await supabase.from('lessons').select('*').order('category_id').order('sort_order')) as AdminLesson[];
+}
+export async function adminGetLessonKey(lessonId: string): Promise<Record<string, unknown>> {
+  const row = unwrap(await supabase.from('lesson_check_keys').select('answers').eq('lesson_id', lessonId).maybeSingle()) as { answers: Record<string, unknown> } | null;
+  return row?.answers ?? {};
+}
+export type LessonInput = Pick<Lesson, 'slug' | 'title' | 'summary' | 'category_id' | 'difficulty' | 'estimated_minutes' | 'body' | 'related_challenge_slugs' | 'sort_order' | 'is_published' | 'check_questions'>;
+export async function adminSaveLesson(input: LessonInput, answers: Record<string, unknown>, id?: string): Promise<string> {
+  const res = id
+    ? await supabase.from('lessons').update(input).eq('id', id).select('id').single()
+    : await supabase.from('lessons').insert(input).select('id').single();
+  if (res.error?.code === '23505') throw new Error('A lesson with this slug already exists.');
+  const saved = unwrap(res) as { id: string };
+  unwrap(await supabase.from('lesson_check_keys').upsert({ lesson_id: saved.id, answers }));
+  return saved.id;
+}
+
+// ------------------------------------------------------------ Programs
+export interface AdminProgram {
+  id: string;
+  slug: string;
+  kind: 'certification' | 'track';
+  title: string;
+  subtitle: string;
+  description: string;
+  category_id: string | null;
+  level: Lesson['difficulty'];
+  estimated_hours: number;
+  certificate_title: string;
+  is_published: boolean;
+  sort_order: number;
+  modules: { id: string; position: number; kind: 'lesson' | 'challenge' | 'exam'; lesson_id: string | null; challenge_id: string | null; min_score: number | null }[];
+}
+export async function adminListPrograms(): Promise<AdminProgram[]> {
+  const rows = unwrap(
+    await supabase.from('certification_programs').select('*, modules:program_modules(*)').order('kind').order('sort_order'),
+  ) as AdminProgram[];
+  return rows.map((p) => ({ ...p, estimated_hours: Number(p.estimated_hours), modules: [...(p.modules ?? [])].sort((a, b) => a.position - b.position) }));
+}
+export type ProgramInput = Omit<AdminProgram, 'id' | 'modules'>;
+export async function adminSaveProgram(input: ProgramInput, modules: Omit<AdminProgram['modules'][number], 'id' | 'position'>[], id?: string): Promise<string> {
+  const res = id
+    ? await supabase.from('certification_programs').update(input).eq('id', id).select('id').single()
+    : await supabase.from('certification_programs').insert(input).select('id').single();
+  if (res.error?.code === '23505') throw new Error('A program with this slug already exists.');
+  const saved = unwrap(res) as { id: string };
+  unwrap(await supabase.from('program_modules').delete().eq('program_id', saved.id));
+  if (modules.length) {
+    unwrap(await supabase.from('program_modules').insert(modules.map((m, i) => ({ ...m, program_id: saved.id, position: i + 1 }))));
+  }
+  return saved.id;
+}
+export async function adminProgramEnrollmentCounts(): Promise<Record<string, { enrolled: number; completed: number }>> {
+  const rows = unwrap(await supabase.from('program_enrollments').select('program_id, completed_at')) as { program_id: string; completed_at: string | null }[];
+  const out: Record<string, { enrolled: number; completed: number }> = {};
+  for (const r of rows) {
+    out[r.program_id] ??= { enrolled: 0, completed: 0 };
+    out[r.program_id].enrolled++;
+    if (r.completed_at) out[r.program_id].completed++;
+  }
+  return out;
+}
+
+// ------------------------------------------------------------ Certificates
+export interface AdminCertificate {
+  id: string;
+  code: string;
+  kind: string;
+  recipient_name: string;
+  title: string;
+  subtitle: string;
+  issued_at: string;
+  revoked_at: string | null;
+  revoked_reason: string | null;
+}
+export async function adminListCertificates(): Promise<AdminCertificate[]> {
+  return unwrap(await supabase.from('certificates').select('*').order('issued_at', { ascending: false }).limit(500)) as AdminCertificate[];
+}
+export async function adminRevokeCertificate(code: string, reason: string) {
+  unwrap(await supabase.rpc('admin_revoke_certificate', { p_code: code, p_reason: reason }));
+}
+
+// ------------------------------------------------------------ Feedback
+export interface AdminFeedback extends FeedbackItem {
+  profile: { full_name: string; handle: string } | null;
+}
+export async function adminListFeedback(status: FeedbackItem['status'] | 'all'): Promise<AdminFeedback[]> {
+  let q = supabase.from('feedback').select('*, profile:profiles(full_name, handle)').order('created_at', { ascending: false }).limit(300);
+  if (status !== 'all') q = q.eq('status', status);
+  return unwrap(await q) as AdminFeedback[];
+}
+export async function adminUpdateFeedback(id: string, status: FeedbackItem['status'], note: string) {
+  unwrap(
+    await supabase
+      .from('feedback')
+      .update({ status, admin_note: note || null, resolved_at: status === 'resolved' ? new Date().toISOString() : null })
+      .eq('id', id),
+  );
 }
 
 // ------------------------------------------------------------ Market data (sample)

@@ -53,6 +53,17 @@
   background-size: 32px 32px;
 }
 
+/* Printing: only the certificate, on a white A4 landscape page */
+@media print {
+  @page { size: A4 landscape; margin: 0; }
+  html, body, #root { background: #ffffff !important; }
+  body * { visibility: hidden; }
+  .print-area, .print-area * { visibility: visible; }
+  .print-area { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  .certificate-paper { width: 297mm !important; height: 210mm !important; aspect-ratio: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .no-print { display: none !important; }
+}
+
 /* Markdown rendering (lessons, briefs, reports) */
 .prose-fin { @apply text-[0.925rem] leading-relaxed text-fg/90; }
 .prose-fin h1 { @apply text-xl font-semibold mt-6 mb-3 text-fg; }

@@ -1,30 +1,129 @@
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, Target } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, RotateCcw, Target, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
-import { fetchLessonProgress, getLesson, setLessonComplete } from '@/services/api/misc';
+import { invalidateProgress } from '@/app/queries';
+import { fetchLessonAttempts, fetchLessonProgress, getLesson, submitLessonCheck } from '@/services/api/misc';
 import { listChallenges } from '@/services/api/challenges';
+import type { Lesson, LessonCheckResult } from '@/types/domain';
 import { DifficultyBadge, Markdown } from '@/components/common';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
-import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/states';
+import { Badge } from '@/components/ui/badge';
+import { EmptyState, ErrorState, InlineError, PageSkeleton } from '@/components/ui/states';
+import { TaskInput } from '@/features/challenges/TaskWorkspace';
+import { fmtDateTime, fmtScore } from '@/lib/format';
+import { cn } from '@/lib/utils';
+
+function KnowledgeCheck({ lesson, completed }: { lesson: Lesson; completed: boolean }) {
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [result, setResult] = useState<LessonCheckResult | null>(null);
+  const [wait, setWait] = useState(0);
+  const attempts = useQuery({ queryKey: ['lessonAttempts', lesson.id], queryFn: () => fetchLessonAttempts(user!.id, lesson.id) });
+  const questions = lesson.check_questions ?? [];
+
+  useEffect(() => {
+    if (wait <= 0) return;
+    const t = setTimeout(() => setWait((w) => w - 1), 1000);
+    return () => clearTimeout(t);
+  }, [wait]);
+
+  const submit = useMutation({
+    mutationFn: () => submitLessonCheck(lesson.id, answers),
+    onSuccess: (r) => {
+      setResult(r);
+      if (r.retry_after_seconds) setWait(r.retry_after_seconds);
+      qc.invalidateQueries({ queryKey: ['lessonAttempts', lesson.id] });
+      qc.invalidateQueries({ queryKey: ['lessonProgress'] });
+      qc.invalidateQueries({ queryKey: ['programs'] });
+      qc.invalidateQueries({ queryKey: ['program'] });
+      invalidateProgress(qc);
+      if (r.passed) toast.success(r.first_completion ? 'Briefing completed — knowledge check passed' : 'Passed again');
+    },
+  });
+
+  if (!questions.length) {
+    return <p className="text-sm text-fg-muted">This briefing has no knowledge check yet, so completion isn't tracked.</p>;
+  }
+
+  const byKey = new Map(result?.questions.map((q) => [q.key, q.correct]));
+  const answered = questions.filter((q) => (answers[q.id] ?? '').trim() !== '').length;
+
+  return (
+    <div className="space-y-4">
+      {completed && !result && (
+        <div className="flex items-center gap-2 rounded-md border border-up/30 bg-up-muted px-3 py-2 text-sm text-up">
+          <CheckCircle2 className="h-4 w-4" /> You've passed this check. You can retake it to practise.
+        </div>
+      )}
+      {questions.map((q, i) => (
+        <div key={q.id} className="relative">
+          {result && (
+            <span className={cn('absolute -left-2 top-4 z-10 rounded-full bg-surface', byKey.get(q.id) ? 'text-up' : 'text-down')}>
+              {byKey.get(q.id) ? <CheckCircle2 className="h-5 w-5" /> : <XCircle className="h-5 w-5" />}
+            </span>
+          )}
+          <TaskInput task={q} index={i} value={answers[q.id] ?? ''} onChange={(v) => setAnswers((a) => ({ ...a, [q.id]: v }))} />
+        </div>
+      ))}
+
+      {result && (
+        <div className={cn('rounded-lg border p-4', result.passed ? 'border-up/40 bg-up-muted' : 'border-down/40 bg-down-muted')}>
+          <div className="flex items-center justify-between gap-3">
+            <div className={cn('font-semibold', result.passed ? 'text-up' : 'text-down')}>
+              {result.passed ? 'Passed' : 'Not yet'} — {fmtScore(result.score)}%
+            </div>
+            <span className="text-xs text-fg-muted">Pass mark {result.pass_pct}%</span>
+          </div>
+          <p className="mt-1 text-sm text-fg-muted">
+            {result.passed
+              ? 'This briefing now counts as completed toward your certifications.'
+              : 'Questions marked ✗ are incorrect. Re-read the briefing above — answers are never revealed, so you have to understand it.'}
+          </p>
+        </div>
+      )}
+      <InlineError message={submit.error ? (submit.error as Error).message : null} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="text-xs text-fg-subtle">
+          {answered}/{questions.length} answered · graded on the server
+        </span>
+        <Button
+          variant="primary"
+          onClick={() => {
+            setResult(null);
+            submit.mutate();
+          }}
+          loading={submit.isPending}
+          disabled={answered < questions.length || wait > 0}
+        >
+          {result && !result.passed ? <RotateCcw className="h-4 w-4" /> : <ListChecks className="h-4 w-4" />}
+          {wait > 0 ? `Retry in ${wait}s` : result && !result.passed ? 'Try again' : 'Check my answers'}
+        </Button>
+      </div>
+      {!!attempts.data?.length && (
+        <div className="border-t border-border pt-3 text-xs text-fg-subtle">
+          Previous attempts:{' '}
+          {attempts.data.slice(0, 5).map((a, i) => (
+            <span key={a.created_at} className={cn('mr-2 font-mono', a.passed ? 'text-up' : 'text-fg-muted')} title={fmtDateTime(a.created_at)}>
+              {fmtScore(a.score)}%{i < Math.min(4, attempts.data.length - 1) ? ',' : ''}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function LessonPage() {
   const { slug = '' } = useParams();
   const { user } = useAuth();
-  const qc = useQueryClient();
   const lesson = useQuery({ queryKey: ['lesson', slug], queryFn: () => getLesson(slug) });
   const progress = useQuery({ queryKey: ['lessonProgress', user!.id], queryFn: () => fetchLessonProgress(user!.id) });
   const challenges = useQuery({ queryKey: ['challenges'], queryFn: listChallenges });
-  const toggle = useMutation({
-    mutationFn: (complete: boolean) => setLessonComplete(user!.id, lesson.data!.id, complete),
-    onSuccess: (_, complete) => {
-      qc.invalidateQueries({ queryKey: ['lessonProgress'] });
-      if (complete) toast.success('Briefing marked complete');
-    },
-    onError: (e) => toast.error((e as Error).message),
-  });
 
   if (lesson.isPending) return <PageSkeleton />;
   if (lesson.isError) return <ErrorState error={lesson.error} onRetry={() => lesson.refetch()} />;
@@ -40,23 +139,35 @@ export default function LessonPage() {
         <ArrowLeft className="h-4 w-4" /> Learn
       </Link>
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <Card className="p-6 sm:p-8">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
-            <DifficultyBadge difficulty={l.difficulty} />
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3 w-3" /> {l.estimated_minutes} min
-            </span>
-          </div>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight">{l.title}</h1>
-          <p className="mt-1 text-fg-muted">{l.summary}</p>
-          <hr className="my-6 border-border" />
-          <Markdown>{l.body}</Markdown>
-          <div className="mt-8 flex justify-end">
-            <Button variant={complete ? 'success' : 'primary'} onClick={() => toggle.mutate(!complete)} loading={toggle.isPending}>
-              <CheckCircle2 className="h-4 w-4" /> {complete ? 'Completed' : 'Mark as complete'}
-            </Button>
-          </div>
-        </Card>
+        <div className="min-w-0 space-y-6">
+          <Card className="p-6 sm:p-8">
+            <div className="flex flex-wrap items-center gap-2 text-xs text-fg-subtle">
+              <DifficultyBadge difficulty={l.difficulty} />
+              <span className="inline-flex items-center gap-1">
+                <Clock className="h-3 w-3" /> {l.estimated_minutes} min
+              </span>
+              {complete && (
+                <Badge tone="up">
+                  <CheckCircle2 className="h-3 w-3" /> Completed
+                </Badge>
+              )}
+            </div>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight">{l.title}</h1>
+            <p className="mt-1 text-fg-muted">{l.summary}</p>
+            <hr className="my-6 border-border" />
+            <Markdown>{l.body}</Markdown>
+          </Card>
+          <Card>
+            <CardHeader
+              title="Knowledge check"
+              subtitle="Pass to complete this briefing. Answers are checked on the server and never shown."
+              icon={<ListChecks className="h-3.5 w-3.5" />}
+            />
+            <CardContent>
+              <KnowledgeCheck lesson={l} completed={complete} />
+            </CardContent>
+          </Card>
+        </div>
         <div className="space-y-4">
           <Card>
             <CardHeader title="Apply it" icon={<Target className="h-3.5 w-3.5" />} />
@@ -73,6 +184,15 @@ export default function LessonPage() {
               )}
             </CardContent>
           </Card>
+          <Link to="/certifications">
+            <Card className="mt-4 flex items-center gap-3 p-4 hover:border-border-strong">
+              <GraduationCap className="h-5 w-5 text-accent" />
+              <div className="text-sm">
+                <div className="font-medium">Earn a certificate</div>
+                <div className="text-xs text-fg-muted">This briefing counts toward certifications and tracks.</div>
+              </div>
+            </Card>
+          </Link>
         </div>
       </div>
     </div>

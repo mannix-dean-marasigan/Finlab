@@ -22,7 +22,15 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/learn', label: 'Learn', icon: BookOpen },
+  {
+    to: '/learn',
+    label: 'Learn',
+    icon: BookOpen,
+    children: [
+      { to: '/learn', label: 'Briefings', icon: BookOpen },
+      { to: '/certifications', label: 'Certifications', icon: GraduationCap },
+    ],
+  },
   { to: '/challenges', label: 'Challenges', icon: Target },
   {
     to: '/research',

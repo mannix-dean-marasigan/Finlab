@@ -129,16 +129,34 @@ async function main() {
     await db.exec(readFileSync(join(migrationsDir, f), 'utf8'));
     ok(true, `migration ${f}`);
   }
-  await db.exec(readFileSync(join(root, 'supabase', 'seed.sql'), 'utf8'));
-  ok(true, 'seed.sql');
+  for (const f of readdirSync(join(root, 'supabase')).filter((x) => /^seed.*\.sql$/.test(x)).sort()) {
+    await db.exec(readFileSync(join(root, 'supabase', f), 'utf8'));
+    ok(true, f);
+  }
+  // Re-running the content seed must be harmless (idempotent).
+  await db.exec(readFileSync(join(root, 'supabase', 'seed_002_certifications.sql'), 'utf8'));
+  ok(true, 'seed_002 is idempotent');
 
   const counts = (await db.query(`select
       (select count(*) from challenges where is_published)::int as challenges,
       (select count(*) from achievements)::int as achievements,
       (select count(*) from market_securities)::int as securities,
-      (select count(*) from challenge_answer_keys)::int as keys`)).rows[0];
-  ok(counts.challenges >= 15 && counts.achievements === 13 && counts.securities === 16, 'seed counts', counts);
-  ok(counts.keys === 11, 'answer keys for every task challenge', counts);
+      (select count(*) from challenge_answer_keys)::int as keys,
+      (select count(*) from challenges where kind = 'tasks')::int as task_challenges,
+      (select count(*) from lessons where jsonb_array_length(check_questions) > 0)::int as lessons_with_checks,
+      (select count(*) from lessons)::int as lessons,
+      (select count(*) from lesson_check_keys)::int as lesson_keys,
+      (select count(*) from certification_programs where is_published)::int as programs,
+      (select count(*) from program_modules where lesson_id is null and challenge_id is null)::int as broken_modules`)).rows[0];
+  ok(counts.challenges >= 28 && counts.achievements === 13 && counts.securities === 16, 'seed counts', counts);
+  ok(counts.keys === counts.task_challenges, 'answer keys for every task challenge', counts);
+  ok(counts.lessons === 12 && counts.lessons_with_checks === 12 && counts.lesson_keys === 12, 'every lesson has a knowledge check + key', counts);
+  ok(counts.programs === 7 && counts.broken_modules === 0, '7 programs, all modules resolved', counts);
+
+  // The main flow below submits many times in quick succession; relax the
+  // anti-gaming limits here and test them explicitly later.
+  await db.exec(`update app_settings set value = '0' where key in ('retry_cooldown_minutes', 'lesson_retry_seconds');
+                 update app_settings set value = '1000' where key = 'max_daily_submissions';`);
 
   // ------------------------------------------------------------------
   section('1. Register → profile bootstrap');
@@ -348,7 +366,7 @@ async function main() {
   ok(p1.result === 'NOT_YET', 'promotion NOT YET with missing requirements', p1.status.requirements.filter((r) => !r.met).map((r) => r.label));
   ok((await q(alice, `select career_level_id from user_stats where user_id = $1`, [alice])).rows[0].career_level_id === 1, 'level unchanged after failed attempt');
 
-  const taskSlugs = (await q(alice, `select slug from challenges where kind = 'tasks' and is_published order by slug`)).rows.map((r) => r.slug);
+  const taskSlugs = (await q(alice, `select slug from challenges where kind = 'tasks' and is_published and not ('certification_exam' = any(tags)) order by slug`)).rows.map((r) => r.slug);
   for (const slug of taskSlugs) {
     const id = (await q(alice, `select id from challenges where slug = $1`, [slug])).rows[0].id;
     const a = await rpc(alice, 'start_challenge', [id, null]);
@@ -372,7 +390,7 @@ async function main() {
   await db.query(`insert into user_roles (user_id, role) values ($1, 'admin')`, [bob]); // bootstrap first admin (SQL editor / service role)
   const users = (await q(bob, `select * from admin_list_users(null, 50)`)).rows;
   ok(users.length === 2 && users.some((u) => u.email === 'alice@example.com'), 'admin can list users with email');
-  ok((await q(bob, `select count(*)::int n from challenge_answer_keys`)).rows[0].n === 11, 'admin can read answer keys');
+  ok((await q(bob, `select count(*)::int n from challenge_answer_keys`)).rows[0].n === counts.keys, 'admin can read answer keys');
   const newCh = (await q(bob, `insert into challenges (slug, title, category_id, kind, difficulty, estimated_minutes, scoring_method, skill_impact, content, is_published)
      values ('admin-written-case', 'Admin written case', 'case_competition', 'tasks', 'intermediate', 20, 'manual', '{"communication":1}',
      '{"tasks":[{"id":"essay","type":"long_text","label":"Essay","prompt":"Discuss.","min_words":20,"points":100}]}', false) returning id`)).rows[0].id;
@@ -431,13 +449,128 @@ async function main() {
   ok(ov.users === 2, 'admin overview');
 
   // ------------------------------------------------------------------
+  section('Competition certificates');
+  const compCert = (await q(alice, `select code, title, subtitle, kind from certificates where user_id = $1 and competition_id = $2`, [alice, comp])).rows[0];
+  ok(compCert && compCert.kind === 'competition' && /Champion/.test(compCert.subtitle), 'winner receives Champion certificate', compCert);
+  const bobCert = (await q(bob, `select subtitle from certificates where user_id = $1 and competition_id = $2`, [bob, comp])).rows[0];
+  ok(bobCert && /2nd Place/.test(bobCert.subtitle), 'runner-up receives 2nd Place certificate', bobCert);
+  const verified = await rpc(null, 'verify_certificate', [compCert.code.toLowerCase()]);
+  ok(verified && verified.recipient_name === 'Alice Santos' && verified.competition?.name, 'anyone can verify a certificate by code (case-insensitive)');
+  ok((await rpc(null, 'verify_certificate', ['FLB-ZZZZ-ZZZZ'])) === null, 'unknown code does not verify');
+  await expectError(alice, `insert into certificates (code, user_id, kind, recipient_name, title) values ('FLB-AAAA-AAAA', $1, 'certification', 'x', 'Fake')`, [alice], 'users cannot forge certificates', 'permission denied');
+  await expectError(alice, `update certificates set revoked_at = null`, [], 'users cannot edit certificates', 'permission denied');
+
+  // ------------------------------------------------------------------
+  section('Lesson knowledge checks');
+  const carol = await createUser('carol@example.com', 'Carol Lim');
+  await q(carol, `update profiles set onboarded_at = now() where id = $1`, [carol]);
+  const lessonRow = (await q(carol, `select id, check_questions from lessons where slug = 'three-statements'`)).rows[0];
+  ok(lessonRow.check_questions.length === 4, 'lesson exposes its questions');
+  ok(!JSON.stringify(lessonRow.check_questions).includes('"answer"'), 'questions do not leak answers');
+  ok((await q(carol, `select count(*)::int n from lesson_check_keys`)).rows[0].n === 0, 'lesson answer keys hidden from users');
+  await expectError(carol, `insert into lesson_progress (user_id, lesson_id) values ($1, $2)`, [carol, lessonRow.id], 'cannot mark a lesson complete directly', 'permission denied');
+  const wrong = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ q1: 'a', q2: 'a', q3: '1', q4: 'a' })]);
+  ok(wrong.passed === false && Number(wrong.score) === 0, 'wrong answers fail the check', wrong);
+  ok(!JSON.stringify(wrong).includes('"answer"'), 'check feedback never reveals answers');
+  ok((await q(carol, `select count(*)::int n from lesson_progress where user_id = $1`, [carol])).rows[0].n === 0, 'failed check records no completion');
+  await db.exec(`update app_settings set value = '60' where key = 'lesson_retry_seconds'`);
+  await expectError(carol, `select public.submit_lesson_check($1, '{}'::jsonb)`, [lessonRow.id], 'retry cooldown on lesson checks', 'try again in');
+  await db.exec(`update app_settings set value = '0' where key = 'lesson_retry_seconds'`);
+  const threeOfFour = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ q1: 'b', q2: 'c', q3: '80', q4: 'a' })]);
+  ok(threeOfFour.passed === true && Number(threeOfFour.score) === 75, '3 of 4 correct passes at 75%', threeOfFour);
+  ok((await q(carol, `select count(*)::int n from lesson_progress where user_id = $1`, [carol])).rows[0].n === 1, 'passing records the completion');
+
+  // ------------------------------------------------------------------
+  section('Certification programs & tracks');
+  const track = (await q(carol, `select id from certification_programs where slug = 'track-accounting-foundations'`)).rows[0].id;
+  const progs = await rpc(carol, 'list_programs');
+  ok(progs.length === 7 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
+  await rpc(carol, 'enroll_program', [track]);
+  const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
+  await rpc(carol, 'submit_lesson_check', [cfsLesson, JSON.stringify({ q1: '105', q2: 'b', q3: '65', q4: 'c' })]);
+  for (const slug of ['accounting-three-statements', 'accounting-cash-flow-build']) {
+    const id = (await q(carol, `select id from challenges where slug = $1`, [slug])).rows[0].id;
+    const a = await rpc(carol, 'start_challenge', [id, null]);
+    await rpc(carol, 'submit_challenge', [a, JSON.stringify(await perfectResponses(slug))]);
+  }
+  const trackDetail = await rpc(carol, 'get_program', ['track-accounting-foundations']);
+  ok(trackDetail.modules.every((m) => m.complete) && trackDetail.enrollment.completed_at, 'all track modules complete', trackDetail.modules.map((m) => [m.title, m.complete]));
+  ok(/^FLB-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(trackDetail.certificate_code ?? ''), 'track certificate issued automatically', trackDetail.certificate_code);
+  const carolHandle = (await q(carol, `select handle from profiles where id = $1`, [carol])).rows[0].handle;
+  const carolCerts = await rpc(null, 'get_user_certificates', [carolHandle]);
+  ok(carolCerts.length === 1, 'public certificate list for passport');
+
+  const exam = (await q(carol, `select id from challenges where slug = 'exam-financial-statements'`)).rows[0].id;
+  await expectError(carol, `select public.start_challenge($1, null)`, [exam], 'exam locked without enrollment', 'Final exam locked');
+  const cert = (await q(carol, `select id from certification_programs where slug = 'financial-statement-analyst'`)).rows[0].id;
+  await rpc(carol, 'enroll_program', [cert]);
+  await expectError(carol, `select public.start_challenge($1, null)`, [exam], 'exam locked until earlier modules are complete', 'Final exam locked');
+  const fsaDetail = await rpc(carol, 'get_program', ['financial-statement-analyst']);
+  ok(fsaDetail.modules.find((m) => m.kind === 'exam').locked === true, 'program detail shows exam as locked');
+  // Complete every earlier module, then the exam unlocks and passing issues the certificate.
+  for (const m of fsaDetail.modules.filter((x) => x.kind !== 'exam' && !x.complete)) {
+    if (m.kind === 'lesson') {
+      const key = (await db.query(`select k.answers from lesson_check_keys k join lessons l on l.id = k.lesson_id where l.slug = $1`, [m.lesson_slug])).rows[0].answers;
+      const resp = Object.fromEntries(Object.entries(key).map(([k, v]) => [k, String(v.answer)]));
+      await rpc(carol, 'submit_lesson_check', [(await q(carol, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id, JSON.stringify(resp)]);
+    } else {
+      const slug = (await q(carol, `select slug from challenges where id = $1`, [m.challenge_id])).rows[0].slug;
+      const a = await rpc(carol, 'start_challenge', [m.challenge_id, null]);
+      await rpc(carol, 'submit_challenge', [a, JSON.stringify(await perfectResponses(slug))]);
+    }
+  }
+  const examAttempt = await rpc(carol, 'start_challenge', [exam, null]);
+  ok(!!examAttempt, 'exam unlocks after all modules are complete');
+  const examRes = await rpc(carol, 'submit_challenge', [examAttempt, JSON.stringify(await perfectResponses('exam-financial-statements'))]);
+  ok(Number(examRes.score) >= 90, 'exam scored', examRes.score);
+  const certRow = (await q(carol, `select code, title from certificates where user_id = $1 and program_id = $2`, [carol, cert])).rows[0];
+  ok(certRow?.title === 'Certified Financial Statement Analyst', 'certification issued on passing the exam', certRow);
+
+  // ------------------------------------------------------------------
+  section('Anti-gaming rules');
+  await db.exec(`update app_settings set value = '10' where key = 'retry_cooldown_minutes'`);
+  const cool = (await q(carol, `select id from challenges where slug = 'accounting-working-capital'`)).rows[0].id;
+  await expectError(carol, `select public.start_challenge($1, null)`, [cool], 'retry cooldown after a submission', 'Cooldown');
+  await db.exec(`update app_settings set value = '0' where key = 'retry_cooldown_minutes'`);
+  const retry = await rpc(carol, 'start_challenge', [cool, null]);
+  const retryRes = await rpc(carol, 'submit_challenge', [retry, JSON.stringify(await perfectResponses('accounting-working-capital'))]);
+  ok(retryRes.attempt_number === 2 && Number(retryRes.skill_weight_factor) === 0.9, 'second attempt counts at 90% toward skills', [retryRes.attempt_number, retryRes.skill_weight_factor]);
+  const retryEv = (await q(carol, `select max(score) s from skill_evidence where user_id = $1 and source_id = $2`, [carol, cool])).rows[0].s;
+  ok(Number(retryEv) === 100, 'best attempt (first, 100%) still counts in full', retryEv);
+  const used = (await db.query(`select count(*)::int n from challenge_submissions where user_id = $1`, [carol])).rows[0].n;
+  await db.exec(`update app_settings set value = '${used}' where key = 'max_daily_submissions'`);
+  const capCh = await rpc(carol, 'start_challenge', [(await q(carol, `select id from challenges where slug = 'valuation-wacc-build'`)).rows[0].id, null]);
+  await expectError(carol, `select public.submit_challenge($1, '{}'::jsonb)`, [capCh], 'daily submission cap', 'Daily limit');
+  await db.exec(`update app_settings set value = '1000' where key = 'max_daily_submissions'`);
+  const thesis = (await q(alice, `select thesis from stock_pitches where user_id = $1 and status = 'submitted' and challenge_id is null limit 1`, [alice])).rows[0].thesis;
+  const dupPitch = (await q(alice, `insert into stock_pitches (format, company, ticker, rating, current_price, target_price, thesis, catalysts, risks) values ('quick','BDO','BDO','BUY',100,120,$1,'a','b') returning id`, [thesis])).rows[0].id;
+  await q(alice, `insert into sources (stock_pitch_id, title) values ($1, 'x')`, [dupPitch]);
+  await expectError(alice, `select public.submit_stock_pitch($1)`, [dupPitch], 'duplicate pitch thesis rejected', 'identical');
+
+  // ------------------------------------------------------------------
+  section('Feedback & account deletion');
+  await q(carol, `insert into feedback (category, message, page) values ('bug', 'The chart overlaps on mobile', '/dashboard')`);
+  ok((await q(alice, `select count(*)::int n from feedback`)).rows[0].n === 0, "users can't read others' feedback");
+  ok((await q(bob, `select count(*)::int n from feedback`)).rows[0].n === 1, 'admin sees feedback');
+  await q(bob, `update feedback set status = 'resolved', resolved_at = now()`);
+  ok((await q(carol, `select status from feedback`)).rows[0].status === 'resolved', 'admin resolves feedback; reporter sees status');
+  await db.query(`update feedback set status = 'open'`);
+  const fbUpd = await q(carol, `update feedback set status = 'resolved'`);
+  ok(fbUpd.affectedRows === 0, 'reporter cannot change status (RLS: 0 rows)', fbUpd.affectedRows);
+  await expectError(carol, `select public.delete_my_account('nope')`, [], 'account deletion requires typed confirmation', 'Type DELETE');
+  await rpc(carol, 'delete_my_account', ['DELETE']);
+  ok((await db.query(`select count(*)::int n from auth.users where id = $1`, [carol])).rows[0].n === 0, 'account deleted');
+  ok((await db.query(`select (select count(*) from profiles where id = $1) + (select count(*) from certificates where user_id = $1) + (select count(*) from challenge_submissions where user_id = $1) as n`, [carol])).rows[0].n == 0, 'all personal data removed by cascade');
+  await expectError(bob, `select public.delete_my_account('DELETE')`, [], 'last admin cannot delete their account', 'only administrator');
+
+  // ------------------------------------------------------------------
   section('19. Data persists (fresh session reads)');
   const persisted = (await q(alice, `select (select count(*) from challenge_submissions where user_id = $1)::int subs,
                                         (select count(*) from stock_pitches where user_id = $1)::int pitches,
                                         (select count(*) from research_projects where user_id = $1)::int reports,
                                         (select count(*) from user_achievements where user_id = $1)::int ach,
                                         (select count(*) from notifications where user_id = $1)::int notes`, [alice])).rows[0];
-  ok(persisted.subs > 10 && persisted.pitches === 3 && persisted.reports === 1 && persisted.ach >= 5, 'all user work persisted', persisted);
+  ok(persisted.subs > 10 && persisted.pitches === 4 && persisted.reports === 1 && persisted.ach >= 5, 'all user work persisted', persisted);
   await q(alice, `update notifications set read_at = now() where user_id = $1`, [alice]);
   await expectError(alice, `update notifications set title = 'x' where user_id = $1`, [alice], 'notifications: only read state editable', 'permission denied');
 

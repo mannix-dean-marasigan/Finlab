@@ -1,12 +1,15 @@
-// Learn + notifications.
+// Learn, certifications, certificates, feedback, account.
 import { supabase, unwrap } from '@/lib/supabase';
-import type { AppNotification, Lesson } from '@/types/domain';
+import type {
+  AppNotification, CertificateSummary, CertificateView, FeedbackItem, Lesson, LessonCheckResult, ProgramDetail, ProgramSummary,
+} from '@/types/domain';
 
+// ------------------------------------------------------------ Lessons
 export async function listLessons(): Promise<Lesson[]> {
   return unwrap(
     await supabase
       .from('lessons')
-      .select('id, slug, title, summary, category_id, difficulty, estimated_minutes, related_challenge_slugs, sort_order, is_published')
+      .select('id, slug, title, summary, category_id, difficulty, estimated_minutes, related_challenge_slugs, sort_order, is_published, check_questions')
       .eq('is_published', true)
       .order('sort_order'),
   ) as Lesson[];
@@ -21,15 +24,58 @@ export async function fetchLessonProgress(userId: string): Promise<Set<string>> 
   return new Set(rows.map((r) => r.lesson_id));
 }
 
-export async function setLessonComplete(userId: string, lessonId: string, complete: boolean): Promise<void> {
-  if (complete) {
-    const res = await supabase.from('lesson_progress').insert({ user_id: userId, lesson_id: lessonId });
-    if (res.error && res.error.code !== '23505') unwrap(res);
-  } else {
-    unwrap(await supabase.from('lesson_progress').delete().eq('user_id', userId).eq('lesson_id', lessonId));
-  }
+export async function fetchLessonAttempts(userId: string, lessonId: string): Promise<{ score: number; passed: boolean; created_at: string }[]> {
+  const rows = unwrap(
+    await supabase.from('lesson_attempts').select('score, passed, created_at').eq('user_id', userId).eq('lesson_id', lessonId).order('created_at', { ascending: false }).limit(10),
+  ) as { score: number; passed: boolean; created_at: string }[];
+  return rows.map((r) => ({ ...r, score: Number(r.score) }));
 }
 
+/** Graded server-side against hidden keys; completion is recorded only on a pass. */
+export async function submitLessonCheck(lessonId: string, responses: Record<string, string>): Promise<LessonCheckResult> {
+  return unwrap(await supabase.rpc('submit_lesson_check', { p_lesson: lessonId, p_responses: responses })) as LessonCheckResult;
+}
+
+// ------------------------------------------------------------ Programs & certificates
+export async function listPrograms(): Promise<ProgramSummary[]> {
+  const rows = unwrap(await supabase.rpc('list_programs')) as ProgramSummary[];
+  return rows.map((r) => ({ ...r, estimated_hours: Number(r.estimated_hours), modules: Number(r.modules), completed_modules: Number(r.completed_modules) }));
+}
+
+export async function getProgram(slug: string): Promise<ProgramDetail | null> {
+  return unwrap(await supabase.rpc('get_program', { p_slug: slug })) as ProgramDetail | null;
+}
+
+export async function enrollProgram(programId: string): Promise<{ enrolled: boolean; certificates: string[] }> {
+  return unwrap(await supabase.rpc('enroll_program', { p_program: programId })) as { enrolled: boolean; certificates: string[] };
+}
+
+export async function verifyCertificate(code: string): Promise<CertificateView | null> {
+  return unwrap(await supabase.rpc('verify_certificate', { p_code: code })) as CertificateView | null;
+}
+
+export async function getUserCertificates(handle: string): Promise<CertificateSummary[]> {
+  return unwrap(await supabase.rpc('get_user_certificates', { p_handle: handle })) as CertificateSummary[];
+}
+
+// ------------------------------------------------------------ Feedback
+export async function submitFeedback(input: { category: FeedbackItem['category']; message: string; page: string }): Promise<void> {
+  unwrap(
+    await supabase.from('feedback').insert({
+      category: input.category,
+      message: input.message.trim(),
+      page: input.page.slice(0, 500),
+      user_agent: navigator.userAgent.slice(0, 500),
+    }),
+  );
+}
+
+// ------------------------------------------------------------ Account
+export async function deleteMyAccount(): Promise<void> {
+  unwrap(await supabase.rpc('delete_my_account', { p_confirm: 'DELETE' }));
+}
+
+// ------------------------------------------------------------ Notifications
 export async function listNotifications(userId: string): Promise<AppNotification[]> {
   return unwrap(
     await supabase.from('notifications').select('*').eq('user_id', userId).order('created_at', { ascending: false }).limit(30),

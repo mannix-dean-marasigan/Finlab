@@ -163,6 +163,7 @@ export interface ChallengeSubmission {
   final_score: number | null;
   submitted_at: string;
   scored_at: string | null;
+  attempt_number: number | null;
 }
 export interface ChallengeScore {
   id: string;
@@ -182,6 +183,8 @@ export interface SubmitResult {
   criteria: CriterionScore[] | null;
   new_achievements: string[];
   upside_pct?: number | null;
+  attempt_number?: number;
+  skill_weight_factor?: number;
 }
 
 // ---------- Work products ----------
@@ -553,6 +556,97 @@ export interface Lesson {
   related_challenge_slugs: string[];
   sort_order: number;
   is_published: boolean;
+  check_questions: ChallengeTask[];
+}
+export interface LessonCheckResult {
+  score: number;
+  passed: boolean;
+  pass_pct: number;
+  first_completion: boolean;
+  questions: { key: string; correct: boolean }[];
+  retry_after_seconds: number | null;
+}
+
+// ---------- Certifications ----------
+export type ProgramKind = 'certification' | 'track';
+export interface ProgramSummary {
+  id: string;
+  slug: string;
+  kind: ProgramKind;
+  title: string;
+  subtitle: string;
+  level: Difficulty;
+  category_id: string | null;
+  estimated_hours: number;
+  certificate_title: string;
+  is_published: boolean;
+  modules: number;
+  completed_modules: number;
+  enrolled: boolean;
+  certificate_code: string | null;
+}
+export interface ProgramModuleStatus {
+  id: string;
+  position: number;
+  kind: 'lesson' | 'challenge' | 'exam';
+  title: string;
+  lesson_slug: string | null;
+  challenge_id: string | null;
+  minutes: number | null;
+  required_score: number | null;
+  best_score: number | null;
+  complete: boolean;
+  locked: boolean;
+}
+export interface ProgramDetail {
+  program: {
+    id: string;
+    slug: string;
+    kind: ProgramKind;
+    title: string;
+    subtitle: string;
+    description: string;
+    level: Difficulty;
+    estimated_hours: number;
+    certificate_title: string;
+    is_published: boolean;
+  };
+  modules: ProgramModuleStatus[];
+  enrollment: { enrolled_at: string; completed_at: string | null } | null;
+  certificate_code: string | null;
+}
+export interface CertificateView {
+  code: string;
+  kind: 'certification' | 'track' | 'competition';
+  recipient_name: string;
+  title: string;
+  subtitle: string;
+  details: { average_score?: number; estimated_hours?: number; modules?: number; rank?: number; participants?: number; score?: number; placement?: string };
+  issued_at: string;
+  revoked_at: string | null;
+  revoked_reason: string | null;
+  handle: string | null;
+  program: { title: string; level: string; estimated_hours: number; description: string } | null;
+  competition: { name: string; ends_at: string } | null;
+}
+export interface CertificateSummary {
+  code: string;
+  kind: CertificateView['kind'];
+  title: string;
+  subtitle: string;
+  issued_at: string;
+}
+export interface FeedbackItem {
+  id: string;
+  user_id: string | null;
+  category: 'bug' | 'idea' | 'content' | 'other';
+  message: string;
+  page: string | null;
+  user_agent: string | null;
+  status: 'open' | 'in_progress' | 'resolved';
+  admin_note: string | null;
+  created_at: string;
+  resolved_at: string | null;
 }
 
 // ---------- Notifications ----------
