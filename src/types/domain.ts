@@ -194,6 +194,8 @@ export interface StockPitch {
   challenge_id: string | null;
   format: PitchFormat;
   status: 'draft' | 'submitted';
+  /** Opt-in: submitted pitch is shown (anonymised) to other analysts for peer review. */
+  peer_review_open?: boolean;
   company: string;
   ticker: string;
   exchange: string | null;
@@ -622,7 +624,7 @@ export interface ProgramSummary {
 export interface ProgramModuleStatus {
   id: string;
   position: number;
-  kind: 'lesson' | 'challenge' | 'exam';
+  kind: 'lesson' | 'challenge' | 'exam' | 'capstone';
   title: string;
   lesson_slug: string | null;
   challenge_id: string | null;
@@ -631,6 +633,149 @@ export interface ProgramModuleStatus {
   best_score: number | null;
   complete: boolean;
   locked: boolean;
+  config: CapstoneConfig | null;
+  capstone: CapstoneStatus | null;
+}
+export interface CapstoneRubricItem {
+  key: string;
+  label: string;
+  max: number;
+}
+export interface CapstoneConfig {
+  title: string;
+  minutes: number;
+  brief: string;
+  deliverables: string[];
+  rubric: CapstoneRubricItem[];
+}
+export interface CapstoneStatus {
+  status: 'submitted' | 'scored' | 'returned';
+  score: number | null;
+  feedback: string | null;
+  criteria: (CapstoneRubricItem & { score: number })[] | null;
+  video_url: string;
+  slides_url: string | null;
+  summary: string;
+  submitted_at: string;
+  scored_at: string | null;
+}
+
+// ------------------------------------------------------------ Engagement
+export interface FlashcardItem {
+  card_id: string;
+  lesson_id: string;
+  lesson_title: string;
+  front: string;
+  back: string;
+  is_new: boolean;
+  interval_days: number;
+}
+export interface FlashcardStats {
+  due: number;
+  learned: number;
+  mastered: number;
+  total: number;
+  reviewed_today: number;
+}
+export interface ReviewQueueItem {
+  pitch_id: string;
+  company: string | null;
+  ticker: string | null;
+  format: 'quick' | 'professional';
+  rating: string | null;
+  submitted_at: string;
+  reviews: number;
+}
+export type PeerReviewCriterion = 'thesis' | 'financial_analysis' | 'valuation' | 'risk' | 'catalysts' | 'communication' | 'sources';
+export interface PeerReview {
+  id: string;
+  scores: Record<PeerReviewCriterion, number>;
+  overall: number;
+  strengths: string;
+  improvements: string;
+  helpful_rating: number | null;
+  created_at: string;
+  mine: boolean;
+  reviewer_label: string;
+}
+export interface DailyChallenge {
+  day: string;
+  question: {
+    id: string;
+    type: 'mcq' | 'numeric';
+    prompt: string;
+    options: { id: string; label: string }[] | null;
+    unit: string | null;
+    category_id: string | null;
+  };
+  answered: boolean;
+  correct: boolean | null;
+  response: string | null;
+  explanation: string | null;
+  answer: string | number | null;
+  solved_today: number;
+  correct_today: number;
+}
+export interface MyActivity {
+  current_streak: number;
+  longest_streak: number;
+  active_today: boolean;
+  xp_week: number;
+  xp_total: number;
+  days: { date: string; xp: number }[];
+}
+export interface XpLeaderRow {
+  rank: number;
+  user_id: string;
+  handle: string;
+  display_name: string;
+  xp: number;
+  is_me: boolean;
+}
+export interface ProgramLeaderRow {
+  rank: number;
+  user_id: string;
+  handle: string;
+  display_name: string;
+  completed: number;
+  total: number;
+  avg_score: number | null;
+  completed_at: string | null;
+  is_me: boolean;
+}
+export interface TodayItem {
+  kind: 'daily' | 'flashcards' | 'attempt' | 'program' | 'review' | 'explore';
+  title: string;
+  detail: string;
+  link: string;
+}
+export interface AdminAnalytics {
+  days: { date: string; signups: number; active: number; xp: number }[];
+  funnel: { step: string; users: number }[];
+  active_7d: number;
+  active_30d: number;
+  programs: { title: string; kind: string; enrolled: number; completed: number }[];
+  hardest_questions: { lesson: string; lesson_slug: string; question: string; prompt: string | null; attempts: number; pct_correct: number }[];
+  hardest_tasks: { challenge: string; task: string; attempts: number; avg_pct: number }[];
+  activities: { title: string; kind: string; lesson: string; attempts: number; avg_score: number | null }[];
+  daily: { answered_today: number; correct_today: number };
+  pending: { submissions: number; capstones: number; feedback: number };
+}
+export interface AdminCapstoneRow {
+  id: string;
+  module_id: string;
+  user_id: string;
+  video_url: string;
+  slides_url: string | null;
+  summary: string;
+  status: CapstoneStatus['status'];
+  score: number | null;
+  criteria: CapstoneStatus['criteria'];
+  feedback: string | null;
+  submitted_at: string;
+  scored_at: string | null;
+  learner: { full_name: string; handle: string } | null;
+  module: { config: CapstoneConfig; program: { title: string } | null } | null;
 }
 export interface ProgramDetail {
   program: {

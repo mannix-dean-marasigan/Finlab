@@ -278,7 +278,15 @@ export interface AdminProgram {
   certificate_title: string;
   is_published: boolean;
   sort_order: number;
-  modules: { id: string; position: number; kind: 'lesson' | 'challenge' | 'exam'; lesson_id: string | null; challenge_id: string | null; min_score: number | null }[];
+  modules: {
+    id: string;
+    position: number;
+    kind: 'lesson' | 'challenge' | 'exam' | 'capstone';
+    lesson_id: string | null;
+    challenge_id: string | null;
+    min_score: number | null;
+    config: Record<string, unknown>;
+  }[];
 }
 export async function adminListPrograms(): Promise<AdminProgram[]> {
   const rows = unwrap(
@@ -287,16 +295,18 @@ export async function adminListPrograms(): Promise<AdminProgram[]> {
   return rows.map((p) => ({ ...p, estimated_hours: Number(p.estimated_hours), modules: [...(p.modules ?? [])].sort((a, b) => a.position - b.position) }));
 }
 export type ProgramInput = Omit<AdminProgram, 'id' | 'modules'>;
-export async function adminSaveProgram(input: ProgramInput, modules: Omit<AdminProgram['modules'][number], 'id' | 'position'>[], id?: string): Promise<string> {
+/** Modules keep their ids (when given) so learner capstone submissions survive edits. */
+export async function adminSaveProgram(
+  input: ProgramInput,
+  modules: (Omit<AdminProgram['modules'][number], 'id' | 'position'> & { id?: string })[],
+  id?: string,
+): Promise<string> {
   const res = id
     ? await supabase.from('certification_programs').update(input).eq('id', id).select('id').single()
     : await supabase.from('certification_programs').insert(input).select('id').single();
   if (res.error?.code === '23505') throw new Error('A program with this slug already exists.');
   const saved = unwrap(res) as { id: string };
-  unwrap(await supabase.from('program_modules').delete().eq('program_id', saved.id));
-  if (modules.length) {
-    unwrap(await supabase.from('program_modules').insert(modules.map((m, i) => ({ ...m, program_id: saved.id, position: i + 1 }))));
-  }
+  unwrap(await supabase.rpc('admin_save_program_modules', { p_program: saved.id, p_modules: modules }));
   return saved.id;
 }
 export async function adminProgramEnrollmentCounts(): Promise<Record<string, { enrolled: number; completed: number }>> {

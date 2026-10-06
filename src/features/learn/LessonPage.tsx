@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, Lock, PlayCircle, Puzzle, RotateCcw, Target, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, Layers, ListChecks, Lock, PlayCircle, Puzzle, RotateCcw, Target, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { invalidateProgress } from '@/app/queries';
@@ -271,6 +271,15 @@ export default function LessonPage() {
               )}
             </CardContent>
           </Card>
+          <Link to={`/flashcards?session=1&lesson=${l.id}`}>
+            <Card className="flex items-center gap-3 p-4 hover:border-border-strong">
+              <Layers className="h-5 w-5 text-accent" />
+              <div className="text-sm">
+                <div className="font-medium">Study the flashcards</div>
+                <div className="text-xs text-fg-muted">Spaced repetition for this briefing's key formulas and ideas.</div>
+              </div>
+            </Card>
+          </Link>
           <Link to="/certifications">
             <Card className="mt-4 flex items-center gap-3 p-4 hover:border-border-strong">
               <GraduationCap className="h-5 w-5 text-accent" />

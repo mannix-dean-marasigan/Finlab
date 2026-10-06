@@ -662,6 +662,17 @@ async function main() {
   const carolAch = (await q(carol, `select achievement_id from user_achievements where user_id = $1`, [carol])).rows.map((r) => r.achievement_id);
   ok(carolAch.includes('capstone_passed') && carolAch.includes('first_certificate'), 'capstone + certificate achievements', carolAch);
   await expectError(carol, `select public.submit_capstone($1, 'https://youtu.be/abc', null, $2)`, [capMod.id, summary], 'passed capstone cannot be resubmitted', 'already passed');
+  const capList = await rpc(bob, 'admin_list_capstones', ['all']);
+  ok(capList.length === 1 && capList[0].learner.full_name === 'Carol Lim' && capList[0].module.config.rubric.length === 4, 'admin capstone queue with learner + rubric');
+  await expectError(carol, `select public.admin_list_capstones('all')`, [], 'capstone queue is admin-only', 'Admin access required');
+  const modsBefore = (await db.query(`select id, kind, lesson_id, challenge_id, min_score, config from program_modules where program_id = $1 order by position`, [cert])).rows;
+  await rpc(bob, 'admin_save_program_modules', [cert, JSON.stringify([...modsBefore.slice(1), modsBefore[0]])]);
+  const modsAfter = (await db.query(`select id from program_modules where program_id = $1 order by position`, [cert])).rows.map((r) => r.id);
+  ok(modsAfter.length === modsBefore.length && modsAfter[modsAfter.length - 1] === modsBefore[0].id, 'admin reorders modules in place (ids kept)');
+  ok((await db.query(`select count(*)::int n from capstone_submissions where id = $1`, [capSub])).rows[0].n === 1, 'capstone submissions survive program edits');
+  await rpc(bob, 'admin_save_program_modules', [cert, JSON.stringify(modsBefore)]);
+  ok((await db.query(`select id from program_modules where program_id = $1 order by position`, [cert])).rows.map((r) => r.id).join() === modsBefore.map((m) => m.id).join(), 'original order restored');
+  await expectError(carol, `select public.admin_save_program_modules($1, '[]'::jsonb)`, [cert], 'learners cannot edit program modules', 'Admin access required');
 
   // ------------------------------------------------------------------
   section('Anti-gaming rules');

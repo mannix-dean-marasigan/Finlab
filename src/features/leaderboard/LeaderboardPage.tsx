@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Crown, Medal, Trophy } from 'lucide-react';
+import { Crown, Flame, Medal, Trophy } from 'lucide-react';
 import { useMyProfile, useReference } from '@/app/queries';
 import { fetchLeaderboard, fetchUniversities } from '@/services/api/compete';
+import { getXpLeaderboard } from '@/services/api/engage';
 import type { LeaderboardBoard } from '@/types/domain';
 import { PageHeader } from '@/components/common';
 import { Card } from '@/components/ui/card';
@@ -23,9 +24,57 @@ const BOARDS: { value: LeaderboardBoard; label: string; metric: string; desc: st
   { value: 'portfolio', label: 'Portfolio Mgmt', metric: 'Simulated return %', desc: 'Return of the simulated portfolio since start or last reset (sample prices).' },
 ];
 
+type XpBoard = 'xp_week' | 'xp_30';
+const XP_BOARDS: { value: XpBoard; label: string; desc: string }[] = [
+  { value: 'xp_week', label: 'This week (XP)', desc: 'XP earned since Monday (Manila time) from lessons, practice, challenges, pitches, reviews, flashcards and daily challenges. Resets weekly.' },
+  { value: 'xp_30', label: '30 days (XP)', desc: 'XP earned over the last 30 days.' },
+];
+
+function XpLeaderboard({ board }: { board: XpBoard }) {
+  const rows = useQuery({ queryKey: ['xp-leaderboard', board], queryFn: () => getXpLeaderboard(board === 'xp_week' ? null : 30) });
+  if (rows.isPending) return <LoadingState />;
+  if (rows.isError) return <ErrorState error={rows.error} onRetry={() => rows.refetch()} />;
+  if (!rows.data.length) return <EmptyState icon={<Flame className="h-5 w-5" />} title="No XP earned yet in this period" description="Answer today's daily challenge or review some flashcards to get on the board." />;
+  return (
+    <Table>
+      <thead>
+        <tr>
+          <Th className="w-16">Rank</Th>
+          <Th>Analyst</Th>
+          <Th align="right">XP</Th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.data.map((r) => (
+          <tr key={r.user_id} className={cn('hover:bg-surface-2', r.is_me && 'bg-accent/[0.06]')}>
+            <Td mono>
+              <span className="inline-flex items-center gap-1.5">
+                {r.rank === 1 ? <Crown className="h-4 w-4 text-accent" /> : r.rank <= 3 ? <Medal className="h-4 w-4 text-fg-muted" /> : null}
+                {r.rank}
+              </span>
+            </Td>
+            <Td>
+              <Link to={`/p/${r.handle}`} className="font-medium hover:text-accent">
+                {r.display_name}
+              </Link>
+              {r.is_me && <span className="ml-1.5 text-xs text-accent">(you)</span>}
+              <div className="text-xs text-fg-subtle">@{r.handle}</div>
+            </Td>
+            <Td align="right" mono className="font-semibold">
+              {fmtNumber(r.xp, 0)}
+            </Td>
+          </tr>
+        ))}
+      </tbody>
+    </Table>
+  );
+}
+
 export default function LeaderboardPage() {
   const [params, setParams] = useSearchParams();
-  const board = (params.get('board') as LeaderboardBoard) || 'global';
+  const rawBoard = params.get('board') || 'global';
+  const xpBoard = XP_BOARDS.find((b) => b.value === rawBoard);
+  const board = (xpBoard ? 'global' : rawBoard) as LeaderboardBoard;
   const profile = useMyProfile();
   const ref = useReference();
   const [filter, setFilter] = useState<string>('');
@@ -37,7 +86,7 @@ export default function LeaderboardPage() {
   const rows = useQuery({
     queryKey: ['leaderboard', board, effectiveFilter],
     queryFn: () => fetchLeaderboard(board, effectiveFilter, 100),
-    enabled: !needsFilter || !!effectiveFilter,
+    enabled: !xpBoard && (!needsFilter || !!effectiveFilter),
   });
 
   return (
@@ -49,13 +98,22 @@ export default function LeaderboardPage() {
       />
       <Tabs
         className="mb-4"
-        value={board}
+        value={xpBoard ? xpBoard.value : board}
         onChange={(v) => {
           setFilter('');
           setParams({ board: v });
         }}
-        tabs={BOARDS.map((b) => ({ value: b.value, label: b.label }))}
+        tabs={[...BOARDS.map((b) => ({ value: b.value as string, label: b.label })), ...XP_BOARDS.map((b) => ({ value: b.value as string, label: b.label }))]}
       />
+      {xpBoard ? (
+        <>
+          <p className="mb-4 text-sm text-fg-muted">{xpBoard.desc}</p>
+          <Card>
+            <XpLeaderboard board={xpBoard.value} />
+          </Card>
+        </>
+      ) : (
+      <>
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-sm text-fg-muted">
           <span className="text-fg">{def.metric}.</span> {def.desc}
@@ -133,6 +191,8 @@ export default function LeaderboardPage() {
           </Table>
         )}
       </Card>
+      </>
+      )}
     </div>
   );
 }

@@ -20,6 +20,7 @@ import { ScoreBreakdown } from '@/components/ScoreBreakdown';
 import { SaveIndicator } from '@/features/challenges/TaskWorkspace';
 import { SourcesEditor } from '@/features/shared/SourcesEditor';
 import { ChallengeContextBanner, SecurityPicker } from '@/features/shared/WorkHelpers';
+import { PeerReviewPanel } from '@/features/reviews/PeerReviewPanel';
 import { ratingFromUpside, upsidePct } from '@/lib/finance/valuation';
 import { currencySymbol, fmtDateTime, fmtMoney } from '@/lib/format';
 import { itemCount, wordCount } from '@/lib/utils';
@@ -93,6 +94,7 @@ function PitchReadOnly({ pitch, isOwner }: { pitch: StockPitch; isOwner: boolean
             <SourcesEditor parent={{ pitchId: pitch.id }} readOnly />
           </CardContent>
         </Card>
+        {pitch.status === 'submitted' && <PeerReviewPanel pitch={pitch} isOwner={isOwner} />}
       </div>
       <div className="space-y-4">
         <Card>

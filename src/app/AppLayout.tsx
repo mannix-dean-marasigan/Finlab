@@ -2,8 +2,8 @@ import { Suspense, useEffect, useRef, useState, type ComponentType } from 'react
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, LayoutDashboard, LineChart,
-  LogOut, Menu, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Swords, Target, Trophy, User, X, Zap,
+  Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, Layers, LayoutDashboard, LineChart,
+  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Swords, Target, Trophy, User, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn, initials } from '@/lib/utils';
@@ -30,6 +30,7 @@ const NAV: NavItem[] = [
     children: [
       { to: '/learn', label: 'Briefings', icon: BookOpen },
       { to: '/certifications', label: 'Certifications', icon: GraduationCap },
+      { to: '/flashcards', label: 'Flashcards', icon: Layers },
     ],
   },
   { to: '/challenges', label: 'Challenges', icon: Target },
@@ -40,6 +41,7 @@ const NAV: NavItem[] = [
     children: [
       { to: '/research', label: 'Research Studio', icon: FileSearch },
       { to: '/pitches', label: 'Stock Pitch Arena', icon: Presentation },
+      { to: '/reviews', label: 'Peer Review', icon: MessageSquareText },
       { to: '/valuation', label: 'Valuation', icon: Calculator },
       { to: '/models', label: 'Financial Models', icon: Sigma },
     ],

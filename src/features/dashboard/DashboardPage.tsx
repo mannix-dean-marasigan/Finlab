@@ -20,6 +20,7 @@ import { DifficultyBadge, DynamicIcon, ScorePill, ScoreRing } from '@/components
 import { SkillBars, SkillRadar, mergeSkills } from '@/components/SkillChart';
 import { fmtDate, fmtMinutes, fmtScore, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { DailyChallengeCard, StreakCard, TodayPlanCard } from './EngagementCards';
 
 function greeting() {
   const h = new Date().getHours();
@@ -270,6 +271,9 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
+          <TodayPlanCard />
+          <DailyChallengeCard />
+          <StreakCard />
           <Card className="border-accent/30 bg-gradient-to-b from-accent/[0.06] to-surface">
             <CardHeader title="Recommended next" icon={<Target className="h-3.5 w-3.5 text-accent" />} />
             <CardContent>

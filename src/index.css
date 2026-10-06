@@ -53,6 +53,24 @@
   background-size: 32px 32px;
 }
 
+/* Certificate celebration */
+.confetti-piece {
+  position: absolute;
+  top: -16px;
+  opacity: 0;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.4, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes confetti-fall {
+  0% { opacity: 1; transform: translate3d(0, 0, 0) rotate(0deg); }
+  85% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift, 0px), 105vh, 0) rotate(720deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece { display: none; }
+}
+
 /* Printing: only the certificate, on a white A4 landscape page */
 @media print {
   @page { size: A4 landscape; margin: 0; }

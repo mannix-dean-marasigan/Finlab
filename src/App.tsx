@@ -43,6 +43,8 @@ const ProgramPage = lazy(() => import('./features/certifications/ProgramPage'));
 const VerifyCertificatePage = lazy(() => import('./features/certifications/VerifyCertificatePage'));
 const TermsPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.PrivacyPage })));
+const FlashcardsPage = lazy(() => import('./features/flashcards/FlashcardsPage'));
+const ReviewsPage = lazy(() => import('./features/reviews/ReviewsPage'));
 const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
 
 export default function App() {
@@ -69,6 +71,9 @@ export default function App() {
             <Route path="/learn/:slug" element={<LessonPage />} />
             <Route path="/certifications" element={<CertificationsPage />} />
             <Route path="/certifications/:slug" element={<ProgramPage />} />
+            <Route path="/flashcards" element={<FlashcardsPage />} />
+            <Route path="/reviews" element={<ReviewsPage />} />
+            <Route path="/reviews/:pitchId" element={<ReviewsPage />} />
             <Route path="/challenges" element={<ChallengesPage />} />
             <Route path="/challenges/:id" element={<ChallengePage />} />
             <Route path="/research" element={<ResearchPage />} />

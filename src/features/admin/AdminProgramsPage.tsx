@@ -13,7 +13,38 @@ import { Checkbox, Field, Input, Select, Textarea } from '@/components/ui/form';
 import { Modal, Table, Td, Th } from '@/components/ui/misc';
 import { ErrorState, InlineError, PageSkeleton } from '@/components/ui/states';
 
-type ModuleDraft = { kind: 'lesson' | 'challenge' | 'exam'; ref: string; min_score: string };
+type ModuleDraft = { id?: string; kind: 'lesson' | 'challenge' | 'exam' | 'capstone'; ref: string; min_score: string; config: string };
+
+const CAPSTONE_TEMPLATE = JSON.stringify(
+  {
+    title: 'Capstone: present your analysis',
+    minutes: 120,
+    brief: 'Record a 5–10 minute presentation of your analysis of a listed company…',
+    deliverables: ['A link to your recorded presentation', 'Optional: a link to your slides', 'A 150+ word executive summary'],
+    rubric: [
+      { key: 'structure', label: 'Thesis & structure', max: 25 },
+      { key: 'analysis', label: 'Analysis & evidence', max: 30 },
+      { key: 'delivery', label: 'Delivery & clarity', max: 25 },
+      { key: 'risks', label: 'Risks & Q&A readiness', max: 20 },
+    ],
+  },
+  null,
+  2,
+);
+
+function parseCapstoneConfig(text: string): Record<string, unknown> {
+  let cfg: { title?: unknown; brief?: unknown; rubric?: { key?: unknown; label?: unknown; max?: unknown }[] };
+  try {
+    cfg = JSON.parse(text);
+  } catch {
+    throw new Error('Capstone config is not valid JSON.');
+  }
+  if (typeof cfg.title !== 'string' || typeof cfg.brief !== 'string') throw new Error('Capstone config needs a "title" and a "brief".');
+  if (!Array.isArray(cfg.rubric) || !cfg.rubric.length || cfg.rubric.some((r) => typeof r.key !== 'string' || typeof r.label !== 'string' || !(Number(r.max) > 0))) {
+    throw new Error('Capstone rubric must be a list of { key, label, max }.');
+  }
+  return cfg as Record<string, unknown>;
+}
 
 function Editor({ program, onClose }: { program: AdminProgram | null; onClose: () => void }) {
   const qc = useQueryClient();
@@ -34,7 +65,13 @@ function Editor({ program, onClose }: { program: AdminProgram | null; onClose: (
     sort_order: String(program?.sort_order ?? 0),
   });
   const [mods, setMods] = useState<ModuleDraft[]>(
-    (program?.modules ?? []).map((m) => ({ kind: m.kind, ref: (m.lesson_id ?? m.challenge_id)!, min_score: m.min_score === null ? '' : String(m.min_score) })),
+    (program?.modules ?? []).map((m) => ({
+      id: m.id,
+      kind: m.kind,
+      ref: m.lesson_id ?? m.challenge_id ?? '',
+      min_score: m.min_score === null ? '' : String(m.min_score),
+      config: m.kind === 'capstone' ? JSON.stringify(m.config, null, 2) : '',
+    })),
   );
   const move = (i: number, d: -1 | 1) =>
     setMods((all) => {
@@ -49,19 +86,25 @@ function Editor({ program, onClose }: { program: AdminProgram | null; onClose: (
     mutationFn: () => {
       if (!/^[a-z0-9-]{3,80}$/.test(f.slug)) throw new Error('Slug: 3–80 chars, lowercase letters, numbers and hyphens.');
       if (!f.title.trim() || !f.certificate_title.trim()) throw new Error('Title and certificate title are required.');
-      if (mods.some((m) => !m.ref)) throw new Error('Every module needs a lesson or challenge selected.');
-      if (f.kind === 'certification' && f.is_published && mods[mods.length - 1]?.kind !== 'exam') throw new Error('A certification should end with a final exam module.');
+      if (mods.some((m) => m.kind !== 'capstone' && !m.ref)) throw new Error('Every module needs a lesson or challenge selected.');
+      const configs = mods.map((m) => (m.kind === 'capstone' ? parseCapstoneConfig(m.config) : {}));
+      const tail = mods.filter((m) => m.kind !== 'capstone');
+      if (f.kind === 'certification' && f.is_published && tail[tail.length - 1]?.kind !== 'exam') {
+        throw new Error('A certification should end with a final exam (optionally followed by a capstone).');
+      }
       return adminSaveProgram(
         {
           slug: f.slug, kind: f.kind, title: f.title.trim(), subtitle: f.subtitle, description: f.description,
           category_id: f.category_id || null, level: f.level, estimated_hours: Number(f.estimated_hours) || 1,
           certificate_title: f.certificate_title.trim(), is_published: f.is_published, sort_order: Number(f.sort_order) || 0,
         },
-        mods.map((m) => ({
+        mods.map((m, i) => ({
+          id: m.id,
           kind: m.kind,
           lesson_id: m.kind === 'lesson' ? m.ref : null,
-          challenge_id: m.kind !== 'lesson' ? m.ref : null,
+          challenge_id: m.kind === 'challenge' || m.kind === 'exam' ? m.ref : null,
           min_score: m.kind !== 'lesson' && m.min_score !== '' ? Number(m.min_score) : null,
+          config: configs[i],
         })),
         program?.id,
       );
@@ -142,22 +185,41 @@ function Editor({ program, onClose }: { program: AdminProgram | null; onClose: (
       <div className="mt-6">
         <div className="mb-2 flex items-center justify-between">
           <div className="text-sm font-semibold">Modules (in order)</div>
-          <Button size="xs" variant="outline" onClick={() => setMods((m) => [...m, { kind: 'lesson', ref: '', min_score: '' }])}>
+          <Button size="xs" variant="outline" onClick={() => setMods((m) => [...m, { kind: 'lesson', ref: '', min_score: '', config: '' }])}>
             <Plus className="h-3 w-3" /> Module
           </Button>
         </div>
         <p className="mb-3 text-xs text-fg-muted">
           Exams should be certification-only challenges tagged <code className="font-mono">certification_exam</code> (hidden from the Challenges list) and placed last — they unlock only after every earlier module.
+          An optional <strong>capstone</strong> after the exam asks for a recorded presentation that you score by rubric under Admin → Capstones.
+          Modules keep their identity when reordered; removing a capstone module deletes its submissions.
         </p>
         <div className="space-y-2">
           {mods.map((m, i) => (
-            <div key={i} className="grid items-end gap-2 rounded-md border border-border p-2 md:grid-cols-[40px_160px_1fr_110px_auto]">
+            <div key={m.id ?? `new-${i}`} className="rounded-md border border-border p-2">
+            <div className="grid items-end gap-2 md:grid-cols-[40px_160px_1fr_110px_auto]">
               <span className="pb-2 text-center font-mono text-xs text-fg-subtle">{i + 1}</span>
-              <Select value={m.kind} onChange={(e) => setMods((all) => all.map((x, j) => (j === i ? { ...x, kind: e.target.value as ModuleDraft['kind'], ref: '' } : x)))} aria-label="Module type">
+              <Select
+                value={m.kind}
+                onChange={(e) =>
+                  setMods((all) =>
+                    all.map((x, j) => {
+                      if (j !== i) return x;
+                      const kind = e.target.value as ModuleDraft['kind'];
+                      return { ...x, kind, ref: '', config: kind === 'capstone' ? x.config || CAPSTONE_TEMPLATE : '' };
+                    }),
+                  )
+                }
+                aria-label="Module type"
+              >
                 <option value="lesson">Lesson + check</option>
                 <option value="challenge">Challenge</option>
                 <option value="exam">Final exam</option>
+                <option value="capstone">Capstone presentation</option>
               </Select>
+              {m.kind === 'capstone' ? (
+                <span className="pb-2 text-xs text-fg-muted">Configured below · scored by an admin</span>
+              ) : (
               <Select value={m.ref} onChange={(e) => setMods((all) => all.map((x, j) => (j === i ? { ...x, ref: e.target.value } : x)))} aria-label="Lesson or challenge">
                 <option value="">Select…</option>
                 {m.kind === 'lesson'
@@ -174,10 +236,11 @@ function Editor({ program, onClose }: { program: AdminProgram | null; onClose: (
                         </option>
                       ))}
               </Select>
+              )}
               <Input
                 value={m.min_score}
                 onChange={(e) => setMods((all) => all.map((x, j) => (j === i ? { ...x, min_score: e.target.value } : x)))}
-                placeholder={m.kind === 'lesson' ? '—' : 'Pass mark'}
+                placeholder={m.kind === 'lesson' ? '—' : m.kind === 'capstone' ? '70' : 'Pass mark'}
                 disabled={m.kind === 'lesson'}
                 aria-label="Minimum score"
               />
@@ -192,6 +255,16 @@ function Editor({ program, onClose }: { program: AdminProgram | null; onClose: (
                   <Trash2 className="h-3.5 w-3.5" />
                 </Button>
               </div>
+            </div>
+            {m.kind === 'capstone' && (
+              <Textarea
+                className="mt-2 font-mono text-xs"
+                rows={10}
+                value={m.config}
+                onChange={(e) => setMods((all) => all.map((x, j) => (j === i ? { ...x, config: e.target.value } : x)))}
+                aria-label="Capstone configuration (JSON)"
+              />
+            )}
             </div>
           ))}
         </div>

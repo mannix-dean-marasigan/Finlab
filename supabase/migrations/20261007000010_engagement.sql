@@ -429,6 +429,63 @@ begin
 end;
 $$;
 
+-- Admin: save a program's module list in place. Existing modules keep their
+-- ids so learner capstone submissions (which reference the module) survive edits.
+-- p_modules: [{id?, kind, lesson_id, challenge_id, min_score, config}]
+create or replace function public.admin_save_program_modules(p_program uuid, p_modules jsonb)
+returns void
+language plpgsql security definer set search_path = public
+as $$
+declare
+  x jsonb;
+  i int;
+  v_id uuid;
+begin
+  perform public.assert_admin();
+  if not exists (select 1 from certification_programs where id = p_program) then raise exception 'Program not found'; end if;
+  delete from program_modules
+   where program_id = p_program
+     and id not in (select (e->>'id')::uuid from jsonb_array_elements(p_modules) e where nullif(e->>'id', '') is not null);
+  update program_modules set position = -position where program_id = p_program;
+  for x, i in select e, n::int from jsonb_array_elements(p_modules) with ordinality as t(e, n) loop
+    v_id := nullif(x->>'id', '')::uuid;
+    if v_id is not null and exists (select 1 from program_modules where id = v_id and program_id = p_program) then
+      update program_modules
+         set position = i, kind = x->>'kind', lesson_id = nullif(x->>'lesson_id', '')::uuid,
+             challenge_id = nullif(x->>'challenge_id', '')::uuid, min_score = nullif(x->>'min_score', '')::numeric,
+             config = coalesce(x->'config', '{}'::jsonb)
+       where id = v_id;
+    else
+      insert into program_modules(program_id, position, kind, lesson_id, challenge_id, min_score, config)
+      values (p_program, i, x->>'kind', nullif(x->>'lesson_id', '')::uuid, nullif(x->>'challenge_id', '')::uuid,
+              nullif(x->>'min_score', '')::numeric, coalesce(x->'config', '{}'::jsonb));
+    end if;
+  end loop;
+end;
+$$;
+
+-- Admin: capstone review queue with learner + program context.
+create or replace function public.admin_list_capstones(p_status text default 'submitted')
+returns jsonb
+language plpgsql stable security definer set search_path = public
+as $$
+begin
+  perform public.assert_admin();
+  return (select coalesce(jsonb_agg(jsonb_build_object(
+      'id', c.id, 'module_id', c.module_id, 'user_id', c.user_id, 'video_url', c.video_url, 'slides_url', c.slides_url,
+      'summary', c.summary, 'status', c.status, 'score', c.score, 'criteria', c.criteria, 'feedback', c.feedback,
+      'submitted_at', c.submitted_at, 'scored_at', c.scored_at,
+      'learner', jsonb_build_object('full_name', pr.full_name, 'handle', pr.handle),
+      'module', jsonb_build_object('config', m.config, 'program', jsonb_build_object('title', p.title)))
+      order by c.submitted_at), '[]'::jsonb)
+    from capstone_submissions c
+    join profiles pr on pr.id = c.user_id
+    join program_modules m on m.id = c.module_id
+    join certification_programs p on p.id = m.program_id
+    where p_status = 'all' or c.status = p_status);
+end;
+$$;
+
 -- get_program now understands capstone modules.
 create or replace function public.get_program(p_slug text)
 returns jsonb
@@ -963,7 +1020,8 @@ grant execute on function
   public.submit_capstone(uuid, text, text, text), public.admin_score_capstone(uuid, jsonb, text, boolean),
   public.get_daily_challenge(), public.submit_daily_answer(text), public.manila_today(),
   public.get_my_activity(), public.get_xp_leaderboard(int, int), public.get_program_leaderboard(uuid),
-  public.get_today_plan(), public.admin_analytics(int)
+  public.get_today_plan(), public.admin_analytics(int),
+  public.admin_save_program_modules(uuid, jsonb), public.admin_list_capstones(text)
 to authenticated;
 revoke execute on function
   public.review_flashcard(uuid, int), public.get_flashcard_queue(uuid, int), public.flashcard_stats(),
