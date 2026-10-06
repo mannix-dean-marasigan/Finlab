@@ -173,6 +173,13 @@ async function main() {
   // Re-running the content seed must be harmless (idempotent).
   await db.exec(readFileSync(join(root, 'supabase', 'seed_002_certifications.sql'), 'utf8'));
   ok(true, 'seed_002 is idempotent');
+  await db.exec(readFileSync(join(root, 'supabase', 'seed_006_engagement.sql'), 'utf8'));
+  const eng = (await db.query(`select (select count(*) from flashcards)::int cards,
+      (select count(*) from program_modules where kind = 'capstone')::int capstones,
+      (select count(*) from daily_questions)::int dq, (select count(*) from daily_question_keys)::int dk,
+      (select min(n)::int from (select count(*) n from flashcards group by lesson_id) t) min_per_lesson`)).rows[0];
+  ok(eng.cards === 120 && eng.min_per_lesson === 10 && eng.capstones === 3 && eng.dq === 40 && eng.dk === 40,
+    'seed_006 is idempotent: 10 flashcards per lesson, 3 capstones, 40 daily questions with keys', eng);
 
   const counts = (await db.query(`select
       (select count(*) from challenges where is_published)::int as challenges,
@@ -184,8 +191,8 @@ async function main() {
       (select count(*) from lessons)::int as lessons,
       (select count(*) from lesson_check_keys)::int as lesson_keys,
       (select count(*) from certification_programs where is_published)::int as programs,
-      (select count(*) from program_modules where lesson_id is null and challenge_id is null)::int as broken_modules`)).rows[0];
-  ok(counts.challenges >= 28 && counts.achievements === 13 && counts.securities === 16, 'seed counts', counts);
+      (select count(*) from program_modules where lesson_id is null and challenge_id is null and kind <> 'capstone')::int as broken_modules`)).rows[0];
+  ok(counts.challenges >= 28 && counts.achievements === 22 && counts.securities === 16, 'seed counts', counts);
   ok(counts.keys === counts.task_challenges, 'answer keys for every task challenge', counts);
   ok(counts.lessons === 12 && counts.lessons_with_checks === 12 && counts.lesson_keys === 12, 'every lesson has a knowledge check + key', counts);
   ok(counts.programs === 7 && counts.broken_modules === 0, '7 programs, all modules resolved', counts);
@@ -605,7 +612,7 @@ async function main() {
   const fsaDetail = await rpc(carol, 'get_program', ['financial-statement-analyst']);
   ok(fsaDetail.modules.find((m) => m.kind === 'exam').locked === true, 'program detail shows exam as locked');
   // Complete every earlier module, then the exam unlocks and passing issues the certificate.
-  for (const m of fsaDetail.modules.filter((x) => x.kind !== 'exam' && !x.complete)) {
+  for (const m of fsaDetail.modules.filter((x) => (x.kind === 'lesson' || x.kind === 'challenge') && !x.complete)) {
     if (m.kind === 'lesson') {
       const lid = (await q(carol, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id;
       await rpc(carol, 'mark_lesson_video_watched', [lid, 'ended']);
@@ -621,8 +628,40 @@ async function main() {
   ok(!!examAttempt, 'exam unlocks after all modules are complete');
   const examRes = await rpc(carol, 'submit_challenge', [examAttempt, JSON.stringify(await perfectResponses('exam-financial-statements'))]);
   ok(Number(examRes.score) >= 90, 'exam scored', examRes.score);
+  ok((await q(carol, `select count(*)::int n from certificates where user_id = $1 and program_id = $2`, [carol, cert])).rows[0].n === 0,
+    'no certificate yet: the capstone is still outstanding');
+
+  section('Capstone presentation');
+  const fsaAfterExam = await rpc(carol, 'get_program', ['financial-statement-analyst']);
+  const capMod = fsaAfterExam.modules.find((m) => m.kind === 'capstone');
+  ok(capMod && capMod.locked === false && capMod.complete === false && capMod.position === fsaAfterExam.modules.length,
+    'capstone is the last module and unlocks after the exam', capMod && [capMod.position, capMod.locked]);
+  ok(capMod.config.rubric.length === 4 && capMod.config.rubric.reduce((s, r) => s + r.max, 0) === 100, 'capstone rubric totals 100');
+  const summary = longText('The company converts profit into cash', 160);
+  await expectError(carol, `select public.submit_capstone($1, 'https://evil.example.com/video', null, $2)`, [capMod.id, summary], 'capstone rejects unknown video hosts', 'YouTube');
+  await expectError(carol, `select public.submit_capstone($1, 'https://youtu.be/abc', null, 'Too short')`, [capMod.id], 'capstone requires a 150-word summary', '150 words');
+  const capSub = await rpc(carol, 'submit_capstone', [capMod.id, 'https://youtu.be/abcdefghijk', 'https://docs.google.com/presentation/d/x', summary]);
+  ok(!!capSub, 'capstone submitted');
+  await expectError(carol, `select public.submit_capstone($1, 'https://youtu.be/abc', null, $2)`, [capMod.id, summary], 'cannot resubmit while awaiting review', 'awaiting review');
+  await expectError(carol, `select public.admin_score_capstone($1, '[]'::jsonb, 'x', false)`, [capSub], 'learner cannot score capstones', 'Admin access required');
+  await expectError(carol, `update capstone_submissions set score = 100`, [], 'learner cannot edit capstone score', 'permission denied');
+  const rubric = (pct) => JSON.stringify(capMod.config.rubric.map((r) => ({ key: r.key, label: r.label, max: r.max, score: Math.round(r.max * pct) })));
+  const ret = await rpc(bob, 'admin_score_capstone', [capSub, rubric(0), 'Please add the cash conversion section.', true]);
+  ok(ret.status === 'returned', 'admin returns capstone for revision');
+  await rpc(carol, 'submit_capstone', [capMod.id, 'https://www.loom.com/share/abc', null, summary]);
+  const low = await rpc(bob, 'admin_score_capstone', [capSub, rubric(0.6), 'Below the bar.', false]);
+  ok(Number(low.score) === 60, 'capstone scored 60', low);
+  ok((await q(carol, `select count(*)::int n from certificates where user_id = $1 and program_id = $2`, [carol, cert])).rows[0].n === 0, 'a failing capstone does not issue the certificate');
+  await rpc(carol, 'submit_capstone', [capMod.id, 'https://vimeo.com/123', null, summary]);
+  const high = await rpc(bob, 'admin_score_capstone', [capSub, rubric(0.9), 'Excellent delivery.', false]);
+  ok(Number(high.score) >= 89, 'capstone resubmitted and scored 90', high);
   const certRow = (await q(carol, `select code, title from certificates where user_id = $1 and program_id = $2`, [carol, cert])).rows[0];
-  ok(certRow?.title === 'Certified Financial Statement Analyst', 'certification issued on passing the exam', certRow);
+  ok(certRow?.title === 'Certified Financial Statement Analyst', 'certification issued on passing the capstone', certRow);
+  const capEv = (await q(carol, `select count(*)::int n from skill_evidence where user_id = $1 and source_type = 'capstone'`, [carol])).rows[0].n;
+  ok(capEv === 3, 'capstone adds communication, leadership and judgment evidence', capEv);
+  const carolAch = (await q(carol, `select achievement_id from user_achievements where user_id = $1`, [carol])).rows.map((r) => r.achievement_id);
+  ok(carolAch.includes('capstone_passed') && carolAch.includes('first_certificate'), 'capstone + certificate achievements', carolAch);
+  await expectError(carol, `select public.submit_capstone($1, 'https://youtu.be/abc', null, $2)`, [capMod.id, summary], 'passed capstone cannot be resubmitted', 'already passed');
 
   // ------------------------------------------------------------------
   section('Anti-gaming rules');
@@ -644,6 +683,104 @@ async function main() {
   const dupPitch = (await q(alice, `insert into stock_pitches (format, company, ticker, rating, current_price, target_price, thesis, catalysts, risks) values ('quick','BDO','BDO','BUY',100,120,$1,'a','b') returning id`, [thesis])).rows[0].id;
   await q(alice, `insert into sources (stock_pitch_id, title) values ($1, 'x')`, [dupPitch]);
   await expectError(alice, `select public.submit_stock_pitch($1)`, [dupPitch], 'duplicate pitch thesis rejected', 'identical');
+
+  // ------------------------------------------------------------------
+  section('Flashcards (spaced repetition)');
+  ok((await q(carol, `select count(*)::int n from flashcards`)).rows[0].n === 120, 'learners can read published flashcards');
+  await expectError(carol, `insert into flashcards (lesson_id, position, front, back) values ($1, 99, 'Front', 'Back')`, [lessonRow.id], 'learners cannot create flashcards', 'row-level security');
+  const fq = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
+  ok(fq.length === 20 && fq.every((c) => c.is_new), 'queue introduces 20 new cards per day', fq.length);
+  const card = fq[0].card_id;
+  const r1 = await rpc(carol, 'review_flashcard', [card, 2]);
+  const r2 = await rpc(carol, 'review_flashcard', [card, 2]);
+  const r3 = await rpc(carol, 'review_flashcard', [card, 3]);
+  ok(Number(r1.interval_days) === 1 && Number(r2.interval_days) === 3 && Number(r3.interval_days) === 10.5, 'intervals grow 1 → 3 → 10.5 days', [r1, r2, r3].map((r) => r.interval_days));
+  const r4 = await rpc(carol, 'review_flashcard', [card, 0]);
+  ok(Number(r4.interval_days) === 0, '"Again" resets the interval');
+  const fstate = (await q(carol, `select reps, lapses from flashcard_state where user_id = $1 and card_id = $2`, [carol, card])).rows[0];
+  ok(fstate.reps === 4 && fstate.lapses === 1, 'reps and lapses tracked', fstate);
+  await expectError(carol, `select public.review_flashcard($1, 7)`, [card], 'invalid grade rejected', 'Invalid grade');
+  await expectError(carol, `update flashcard_state set interval_days = 180`, [], 'cannot edit scheduling directly', 'permission denied');
+  const fq2 = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
+  ok(fq2.length === 19 && !fq2.some((c) => c.card_id === card), 'reviewed card leaves the queue; it counts toward today\'s new cards', fq2.length);
+  const fstats = await rpc(carol, 'flashcard_stats');
+  ok(Number(fstats.learned) === 1 && Number(fstats.reviewed_today) === 4 && Number(fstats.total) === 120, 'flashcard stats', fstats);
+  const deck = (await q(carol, `select * from get_flashcard_queue($1, 50)`, [fq[0].lesson_id])).rows;
+  ok(deck.length === 9 && deck.every((c) => c.lesson_id === fq[0].lesson_id), 'per-lesson deck', deck.length);
+
+  // ------------------------------------------------------------------
+  section('Peer review');
+  await expectError(alice, `update stock_pitches set peer_review_open = true where id = $1`, [proId], 'drafts cannot be opened for review', 'Submit the pitch');
+  await q(alice, `update stock_pitches set peer_review_open = true where id = $1`, [pitchId]);
+  ok((await q(alice, `select peer_review_open from stock_pitches where id = $1`, [pitchId])).rows[0].peer_review_open, 'author opens a submitted pitch for peer review');
+  ok(!(await q(alice, `select * from get_review_queue(20)`)).rows.some((r) => r.pitch_id === pitchId), 'own pitch not in own review queue');
+  ok((await q(carol, `select * from get_review_queue(20)`)).rows.some((r) => r.pitch_id === pitchId), 'pitch appears in other analysts\' queue');
+  const forReview = await rpc(carol, 'get_pitch_for_review', [pitchId]);
+  ok(forReview && forReview.ticker === 'BDO' && forReview.sources.length === 3 && !('user_id' in forReview), 'reviewer sees anonymised pitch with sources');
+  const fullScores = { thesis: 4, financial_analysis: 3, valuation: 4, risk: 5, catalysts: 3, communication: 4, sources: 5 };
+  const strengths = 'Clear thesis with quantified loan growth and a sensible P/B valuation anchored on ROE.';
+  const improvements = 'Add a sensitivity on NIM and explain why the market is mispricing asset quality risk.';
+  await expectError(carol, `select public.submit_peer_review($1, $2::jsonb, $3, $4)`, [pitchId, JSON.stringify({ thesis: 4 }), strengths, improvements], 'every criterion must be scored', 'Score every criterion');
+  await expectError(carol, `select public.submit_peer_review($1, $2::jsonb, 'Nice', 'Good')`, [pitchId, JSON.stringify(fullScores)], 'reviews need substantive comments', '60 characters');
+  await expectError(alice, `select public.submit_peer_review($1, $2::jsonb, $3, $4)`, [pitchId, JSON.stringify(fullScores), strengths, improvements], 'cannot review own pitch', 'own pitch');
+  const reviewId = await rpc(carol, 'submit_peer_review', [pitchId, JSON.stringify(fullScores), strengths, improvements]);
+  ok(!!reviewId, 'peer review submitted');
+  ok(Number((await q(carol, `select overall from peer_reviews where id = $1`, [reviewId])).rows[0].overall) === 80, 'overall = 28/35 = 80');
+  await expectError(carol, `select public.submit_peer_review($1, $2::jsonb, $3, $4)`, [pitchId, JSON.stringify(fullScores), strengths, improvements], 'one review per pitch per reviewer', 'duplicate|unique');
+  await expectError(carol, `insert into peer_reviews (pitch_id, reviewer_id, scores, overall, strengths, improvements) values ($1, $2, '{}', 100, $3, $3)`, [pitchId, carol, strengths], 'cannot insert reviews directly', 'permission denied');
+  await db.exec(`update app_settings set value = '1' where key = 'peer_reviews_per_pitch'`);
+  await expectError(bob, `select public.submit_peer_review($1, $2::jsonb, $3, $4)`, [pitchId, JSON.stringify(fullScores), strengths, improvements], 'per-pitch review cap', 'enough reviews');
+  await db.exec(`update app_settings set value = '5' where key = 'peer_reviews_per_pitch'`);
+  const authorView = await rpc(alice, 'get_pitch_reviews', [pitchId]);
+  ok(authorView.length === 1 && authorView[0].reviewer_label === 'Peer analyst #1' && !JSON.stringify(authorView).includes(carol), 'author sees anonymised reviews');
+  await expectError(carol, `select public.rate_peer_review($1, 5)`, [reviewId], 'only the author can rate a review', 'Only the pitch author');
+  await rpc(alice, 'rate_peer_review', [reviewId, 5]);
+  await expectError(alice, `select public.rate_peer_review($1, 4)`, [reviewId], 'a review can be rated once', 'already rated');
+  const prEv = (await q(carol, `select count(*)::int n, min(score) s from skill_evidence where user_id = $1 and source_type = 'peer_review'`, [carol])).rows[0];
+  ok(prEv.n === 2 && Number(prEv.s) === 100, 'helpful review earns communication + leadership evidence', prEv);
+
+  // ------------------------------------------------------------------
+  section('Daily challenge');
+  await expectError(null, `select public.get_daily_challenge()`, [], 'anon cannot read the daily challenge', 'permission denied');
+  const dc = await rpc(carol, 'get_daily_challenge');
+  ok(dc && dc.question.prompt && dc.answered === false && dc.answer === null && dc.explanation === null, 'daily question served without answer', dc?.question?.id);
+  ok((await q(carol, `select count(*)::int n from daily_question_keys`)).rows[0].n === 0, 'daily answer keys hidden');
+  ok((await rpc(bob, 'get_daily_challenge')).question.id === dc.question.id, 'everyone gets the same question today');
+  const dkey = (await db.query(`select answer from daily_question_keys where question_id = $1`, [dc.question.id])).rows[0].answer;
+  const dres = await rpc(carol, 'submit_daily_answer', [String(dkey.answer)]);
+  ok(dres.answered && dres.correct === true && dres.explanation.length > 0 && dres.answer !== null, 'correct answer → explanation revealed', dres.correct);
+  await expectError(carol, `select public.submit_daily_answer('x')`, [], 'one daily answer per day', 'already answered');
+  const bres = await rpc(bob, 'submit_daily_answer', ['zzz-wrong']);
+  ok(bres.correct === false && Number(bres.correct_today) === 1 && Number(bres.solved_today) === 2, 'wrong answer recorded; daily stats', bres);
+  await expectError(carol, `insert into daily_answers (user_id, day, question_id, response, correct) values ($1, current_date + 1, $2, 'x', true)`, [carol, dc.question.id], 'cannot forge daily answers', 'permission denied');
+
+  // ------------------------------------------------------------------
+  section('XP, streaks and leaderboards');
+  await expectError(carol, `select * from public.xp_events(now())`, [], 'raw XP events not callable by clients', 'permission denied');
+  for (const back of [1, 2, 3]) {
+    await db.query(`insert into daily_answers (user_id, day, question_id, response, correct, answered_at)
+                    values ($1, (now() at time zone 'Asia/Manila')::date - $2::int, $3, 'x', true, now() - make_interval(days => $2::int))`, [carol, back, dc.question.id]);
+  }
+  const act = await rpc(carol, 'get_my_activity');
+  ok(act.current_streak === 4 && act.longest_streak >= 4 && act.active_today === true, '4-day streak calculated from activity', [act.current_streak, act.longest_streak]);
+  ok(act.days.length === 35 && act.xp_week > 0 && act.xp_total >= act.xp_week, 'activity heatmap + XP totals', [act.days.length, act.xp_week, act.xp_total]);
+  const xpl = (await q(carol, `select * from get_xp_leaderboard(30, 50)`)).rows;
+  ok(xpl.length === 3 && xpl.some((r) => r.is_me), 'XP leaderboard (30 days)', xpl.map((r) => [r.handle, r.xp]));
+  const cohort = (await q(carol, `select * from get_program_leaderboard($1)`, [cert])).rows;
+  ok(cohort.length === 1 && cohort[0].is_me && Number(cohort[0].completed) === Number(cohort[0].total), 'cohort leaderboard for a certification', cohort[0]);
+  const plan = await rpc(carol, 'get_today_plan');
+  ok(Array.isArray(plan) && plan.length >= 1 && !plan.some((i) => i.kind === 'daily'), 'today plan omits an answered daily challenge', plan.map((i) => i.kind));
+  const alicePlan = await rpc(alice, 'get_today_plan');
+  ok(alicePlan[0].kind === 'daily', 'today plan starts with the daily challenge', alicePlan.map((i) => i.kind));
+  await expectError(carol, `select public.user_streak($1)`, [carol], 'streak internals not callable by clients', 'permission denied');
+
+  // ------------------------------------------------------------------
+  section('Admin analytics');
+  await expectError(carol, `select public.admin_analytics(30)`, [], 'analytics are admin-only', 'Admin access required');
+  const an = await rpc(bob, 'admin_analytics', [30]);
+  ok(an.funnel.length === 6 && Number(an.funnel[0].users) === 3 && an.days.length >= 30, 'funnel + daily series', an.funnel.map((f) => f.users));
+  ok(an.hardest_questions.length > 0 && an.hardest_questions[0].prompt, 'per-question item analysis from stored results', an.hardest_questions[0]);
+  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 7, 'activity + programs summary', [an.daily, an.active_7d]);
 
   // ------------------------------------------------------------------
   section('Feedback & account deletion');
