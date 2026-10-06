@@ -389,6 +389,8 @@ async function main() {
   const handle = (await q(alice, `select handle from profiles where id = $1`, [alice])).rows[0].handle;
   const passport = await rpc(null, 'get_passport', [handle]);
   ok(passport && passport.profile.full_name === 'Alice Santos', 'public passport readable by anon (recruiter link)');
+  await expectError(null, `select public.worked_state('00000000-0000-0000-0000-000000000000')`, [], 'anon cannot call signed-in RPCs', 'permission denied');
+  await expectError(null, `select public.list_programs()`, [], 'anon cannot list programs', 'permission denied');
   ok(Number(passport.counts.stock_pitches) === 2 && Number(passport.counts.research_reports) === 1, 'passport activity counts', passport.counts);
   ok(passport.public_pitches.length === 1, 'passport lists public pitches only');
   ok(passport.achievements.length >= 3, 'passport lists achievements', passport.achievements.map((a) => a.id));

@@ -137,6 +137,7 @@ src/
 6. `supabase/migrations/20261007000006_lesson_videos.sql`
 7. `supabase/migrations/20261007000007_video_gate.sql`
 8. `supabase/migrations/20261007000008_lesson_activities.sql`
+   then `supabase/migrations/20261007000009_anon_function_lockdown.sql`
 9. `supabase/seed.sql`
 10. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
 11. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)
