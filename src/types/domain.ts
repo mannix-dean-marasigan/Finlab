@@ -559,6 +559,39 @@ export interface Lesson {
   check_questions: ChallengeTask[];
   video_urls: string[];
 }
+// ---------- Lesson practice activities ----------
+export type ActivityKind = 'calculator' | 'spot_error' | 'matching' | 'branching' | 'worked_example';
+export interface BranchNode {
+  text: string;
+  end?: boolean;
+  choices?: { id: string; label: string; next: string }[];
+}
+export interface LessonActivity {
+  id: string;
+  lesson_id: string;
+  slug: string;
+  position: number;
+  kind: ActivityKind;
+  title: string;
+  instructions: string;
+  is_required: boolean;
+  content: {
+    calculator?: string;
+    defaults?: Record<string, number>;
+    prompts?: string[];
+    context?: string;
+    columns?: string[];
+    rows?: { id: string; cells: string[] }[];
+    select_count?: number;
+    categories?: { id: string; label: string }[];
+    items?: { id: string; label: string }[];
+    start?: string;
+    nodes?: Record<string, BranchNode>;
+    intro?: string;
+    steps?: { id: string; prompt: string; unit?: string }[];
+  };
+}
+
 export interface LessonCheckResult {
   score: number;
   passed: boolean;

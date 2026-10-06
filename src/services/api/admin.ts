@@ -10,6 +10,7 @@ import type {
   CriterionScore,
   FeedbackItem,
   Lesson,
+  LessonActivity,
   MarketEvent,
   PromotionRequirement,
 } from '@/types/domain';
@@ -234,6 +235,33 @@ export async function adminSaveLesson(input: LessonInput, answers: Record<string
   const saved = unwrap(res) as { id: string };
   unwrap(await supabase.from('lesson_check_keys').upsert({ lesson_id: saved.id, answers }));
   return saved.id;
+}
+
+// ------------------------------------------------------------ Lesson practice activities
+export interface AdminActivity extends LessonActivity {
+  key: Record<string, unknown>;
+}
+export async function adminListActivities(lessonId: string): Promise<AdminActivity[]> {
+  const rows = unwrap(
+    await supabase.from('lesson_activities').select('*, keyrow:lesson_activity_keys(key)').eq('lesson_id', lessonId).order('position'),
+  ) as (LessonActivity & { keyrow: { key: Record<string, unknown> } | { key: Record<string, unknown> }[] | null })[];
+  return rows.map(({ keyrow, ...a }) => ({ ...a, key: (Array.isArray(keyrow) ? keyrow[0]?.key : keyrow?.key) ?? {} }));
+}
+export async function adminSaveActivity(
+  input: Pick<LessonActivity, 'lesson_id' | 'slug' | 'position' | 'kind' | 'title' | 'instructions' | 'content' | 'is_required'>,
+  key: Record<string, unknown>,
+  id?: string,
+): Promise<string> {
+  const res = id
+    ? await supabase.from('lesson_activities').update(input).eq('id', id).select('id').single()
+    : await supabase.from('lesson_activities').insert(input).select('id').single();
+  if (res.error?.code === '23505') throw new Error('An activity with this slug already exists in this lesson.');
+  const saved = unwrap(res) as { id: string };
+  unwrap(await supabase.from('lesson_activity_keys').upsert({ activity_id: saved.id, key }));
+  return saved.id;
+}
+export async function adminDeleteActivity(id: string) {
+  unwrap(await supabase.from('lesson_activities').delete().eq('id', id));
 }
 
 // ------------------------------------------------------------ Programs

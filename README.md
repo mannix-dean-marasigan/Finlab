@@ -136,10 +136,12 @@ src/
 5. `supabase/migrations/20261007000005_certifications_integrity.sql`
 6. `supabase/migrations/20261007000006_lesson_videos.sql`
 7. `supabase/migrations/20261007000007_video_gate.sql`
-8. `supabase/seed.sql`
-9. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
-10. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)
-11. `supabase/seed_004_quiz_expansion.sql` (10-question knowledge checks — safe to re-run)
+8. `supabase/migrations/20261007000008_lesson_activities.sql`
+9. `supabase/seed.sql`
+10. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
+11. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)
+12. `supabase/seed_004_quiz_expansion.sql` (10-question knowledge checks — safe to re-run)
+13. `supabase/seed_005_lesson_activities.sql` (interactive practice: calculators, spot-the-error, drag & drop, branching cases, worked examples — safe to re-run)
 
 Upgrading an existing database: run only the files you haven't run yet, in the same order (migration 0005 must run before `seed_002`).
 

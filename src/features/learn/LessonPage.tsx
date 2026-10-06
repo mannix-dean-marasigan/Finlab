@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, Lock, PlayCircle, RotateCcw, Target, XCircle } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, ListChecks, Lock, PlayCircle, Puzzle, RotateCcw, Target, XCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { invalidateProgress } from '@/app/queries';
-import { fetchLessonAttempts, fetchLessonProgress, fetchVideoWatched, getLesson, markVideoWatched, submitLessonCheck } from '@/services/api/misc';
+import {
+  fetchActivityBest, fetchLessonAttempts, fetchLessonProgress, fetchVideoWatched, getLesson, listLessonActivities, markVideoWatched, submitLessonCheck,
+} from '@/services/api/misc';
+import { PracticeSection } from './activities/PracticeSection';
 import { listChallenges } from '@/services/api/challenges';
 import type { Lesson, LessonCheckResult } from '@/types/domain';
 import { DifficultyBadge, Markdown } from '@/components/common';
@@ -132,6 +135,12 @@ export default function LessonPage() {
     queryFn: () => fetchVideoWatched(user!.id, lessonId!),
     enabled: !!lessonId && (lesson.data?.video_urls?.length ?? 0) > 0,
   });
+  const activities = useQuery({ queryKey: ['activities', lessonId], queryFn: () => listLessonActivities(lessonId!), enabled: !!lessonId });
+  const best = useQuery({
+    queryKey: ['activityBest', lessonId],
+    queryFn: () => fetchActivityBest(user!.id, (activities.data ?? []).map((a) => a.id)),
+    enabled: !!activities.data,
+  });
   const markWatched = useMutation({
     mutationFn: (method: 'ended' | 'manual') => markVideoWatched(lessonId!, method),
     onSuccess: (_, method) => {
@@ -149,6 +158,8 @@ export default function LessonPage() {
   const complete = progress.data?.has(l.id) ?? false;
   const hasVideo = (l.video_urls?.length ?? 0) > 0;
   const videoDone = watched.data === true;
+  const requiredLeft = (activities.data ?? []).filter((a) => a.is_required && a.kind !== 'calculator' && best.data?.[a.id] === undefined).length;
+  const stepNo = (n: number) => (hasVideo ? `Step ${n} · ` : '');
   const related = (challenges.data ?? []).filter((c) => l.related_challenge_slugs.includes(c.slug));
 
   return (
@@ -180,7 +191,7 @@ export default function LessonPage() {
                 </div>
                 <YouTubeEmbed url={l.video_urls[0]} title={l.title} onEnded={() => !videoDone && markWatched.mutate('ended')} />
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                  <p className="text-xs text-fg-subtle">Video by an independent YouTube creator. The knowledge check unlocks when it finishes or when you mark it as watched.</p>
+                  <p className="text-xs text-fg-subtle">Video by an independent YouTube creator. It counts as watched when it finishes, or when you mark it.</p>
                   {videoDone ? (
                     <Badge tone="up">
                       <CheckCircle2 className="h-3 w-3" /> Video watched
@@ -198,22 +209,44 @@ export default function LessonPage() {
             )}
             <Markdown>{l.body}</Markdown>
           </Card>
+          {!!activities.data?.length && (
+            <Card>
+              <CardHeader
+                title={`${stepNo(3)}Practice · ${activities.data.length} activities`}
+                subtitle="Hands-on exercises. Attempt every required activity to unlock the knowledge check — scores here are for practice."
+                icon={<Puzzle className="h-3.5 w-3.5" />}
+                action={
+                  requiredLeft > 0 ? <Badge tone="warn">{requiredLeft} required left</Badge> : <Badge tone="up">Practice done</Badge>
+                }
+              />
+              <CardContent>
+                <PracticeSection activities={activities.data} best={best.data ?? {}} lessonId={l.id} />
+              </CardContent>
+            </Card>
+          )}
           <Card>
             <CardHeader
-              title={`${hasVideo ? 'Step 3 · ' : ''}Knowledge check · ${l.check_questions?.length ?? 0} questions`}
+              title={`${stepNo(activities.data?.length ? 4 : 3)}Knowledge check · ${l.check_questions?.length ?? 0} questions`}
               subtitle="Pass to complete this briefing. Answers are checked on the server and never shown."
               icon={<ListChecks className="h-3.5 w-3.5" />}
             />
             <CardContent>
-              {hasVideo && !videoDone && !complete ? (
+              {!complete && ((hasVideo && !videoDone) || requiredLeft > 0) ? (
                 <div className="flex flex-col items-center gap-3 py-8 text-center">
                   <span className="flex h-12 w-12 items-center justify-center rounded-full border border-border-strong bg-surface-2 text-fg-subtle">
                     <Lock className="h-5 w-5" />
                   </span>
-                  <div className="font-medium">Locked until you watch the video</div>
-                  <p className="max-w-sm text-sm text-fg-muted">
-                    Finish the video above (or mark it as watched) to unlock the {l.check_questions?.length ?? 0}-question knowledge check.
-                  </p>
+                  <div className="font-medium">Locked</div>
+                  <ul className="space-y-1 text-sm text-fg-muted">
+                    {hasVideo && (
+                      <li className={videoDone ? 'text-up' : ''}>{videoDone ? '✓' : '○'} Watch the video (or mark it as watched)</li>
+                    )}
+                    {!!activities.data?.length && (
+                      <li className={requiredLeft === 0 ? 'text-up' : ''}>
+                        {requiredLeft === 0 ? '✓' : '○'} Attempt every required practice activity{requiredLeft > 0 ? ` (${requiredLeft} left)` : ''}
+                      </li>
+                    )}
+                  </ul>
                   {watched.isError && <InlineError message="Could not check your video progress. Refresh to try again." />}
                 </div>
               ) : (

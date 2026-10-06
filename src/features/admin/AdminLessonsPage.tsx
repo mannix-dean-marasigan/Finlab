@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, Plus, Trash2, Video } from 'lucide-react';
+import { Pencil, Plus, Puzzle, Trash2, Video } from 'lucide-react';
+import { AdminActivitiesModal } from './AdminActivitiesModal';
 import { toast } from 'sonner';
 import { useReference } from '@/app/queries';
 import { adminGetLessonKey, adminListLessons, adminSaveLesson, type AdminLesson, type LessonInput } from '@/services/api/admin';
@@ -258,6 +259,7 @@ export default function AdminLessonsPage() {
   const ref = useReference();
   const list = useQuery({ queryKey: ['admin', 'lessons'], queryFn: adminListLessons });
   const [editing, setEditing] = useState<AdminLesson | null | 'new'>(null);
+  const [practice, setPractice] = useState<AdminLesson | null>(null);
 
   if (list.isPending) return <PageSkeleton />;
   if (list.isError) return <ErrorState error={list.error} onRetry={() => list.refetch()} />;
@@ -301,6 +303,9 @@ export default function AdminLessonsPage() {
                 )}</Td>
               <Td>{l.is_published ? <Badge tone="up">Published</Badge> : <Badge tone="warn">Draft</Badge>}</Td>
               <Td align="right">
+                <Button size="xs" variant="ghost" onClick={() => setPractice(l)}>
+                  <Puzzle className="h-3.5 w-3.5" /> Practice
+                </Button>
                 <Button size="xs" variant="ghost" onClick={() => setEditing(l)}>
                   <Pencil className="h-3.5 w-3.5" /> Edit
                 </Button>
@@ -310,6 +315,7 @@ export default function AdminLessonsPage() {
         </tbody>
       </Table>
       {editing && <Editor lesson={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
+      {practice && <AdminActivitiesModal lessonId={practice.id} lessonTitle={practice.title} onClose={() => setPractice(null)} />}
     </Card>
   );
 }

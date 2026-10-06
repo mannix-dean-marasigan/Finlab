@@ -114,6 +114,33 @@ async function perfectResponses(slug) {
   return out;
 }
 
+// Completes every graded practice activity of a lesson with correct answers.
+async function completeActivities(uid, slug) {
+  const acts = (await db.query(
+    `select a.id, a.kind, a.content, k.key from lesson_activities a join lessons l on l.id = a.lesson_id
+     left join lesson_activity_keys k on k.activity_id = a.id where l.slug = $1 order by a.position`, [slug])).rows;
+  for (const a of acts) {
+    if (a.kind === 'matching') await rpc(uid, 'submit_activity', [a.id, JSON.stringify({ placements: a.key })]);
+    else if (a.kind === 'spot_error') await rpc(uid, 'submit_activity', [a.id, JSON.stringify({ selected: a.key.errors })]);
+    else if (a.kind === 'branching') await rpc(uid, 'submit_activity', [a.id, JSON.stringify({ path: bestPath(a.content, a.key) })]);
+    else if (a.kind === 'worked_example') {
+      for (const s of a.content.steps) await rpc(uid, 'worked_check', [a.id, s.id, String(a.key[s.id].answer)]);
+    }
+  }
+  return acts;
+}
+function bestPath(content, key) {
+  const path = [];
+  let node = content.start;
+  while (node && !content.nodes[node].end) {
+    const choices = content.nodes[node].choices;
+    const best = choices.reduce((b, c) => ((key.points[`${node}.${c.id}`] ?? 0) > (key.points[`${node}.${b.id}`] ?? 0) ? c : b), choices[0]);
+    path.push({ node, choice: best.id });
+    node = best.next;
+  }
+  return path;
+}
+
 // Correct answers for a lesson's knowledge check (read from the admin-only key).
 async function lessonAnswers(slug) {
   const key = (await db.query(`select k.answers from lesson_check_keys k join lessons l on l.id = k.lesson_id where l.slug = $1`, [slug])).rows[0].answers;
@@ -165,7 +192,7 @@ async function main() {
 
   // The main flow below submits many times in quick succession; relax the
   // anti-gaming limits here and test them explicitly later.
-  await db.exec(`update app_settings set value = '0' where key in ('retry_cooldown_minutes', 'lesson_retry_seconds');
+  await db.exec(`update app_settings set value = '0' where key in ('retry_cooldown_minutes', 'lesson_retry_seconds', 'activity_retry_seconds');
                  update app_settings set value = '1000' where key = 'max_daily_submissions';`);
 
   // ------------------------------------------------------------------
@@ -483,6 +510,46 @@ async function main() {
   await expectError(carol, `select public.submit_lesson_check($1, '{}'::jsonb)`, [lessonRow.id], 'check locked until the video is watched', 'Watch the lesson video first');
   await expectError(carol, `insert into lesson_video_views (user_id, lesson_id, method) values ($1, $2, 'ended')`, [carol, lessonRow.id], 'cannot write video views directly', 'permission denied');
   await rpc(carol, 'mark_lesson_video_watched', [lessonRow.id, 'manual']);
+  await expectError(carol, `select public.submit_lesson_check($1, '{}'::jsonb)`, [lessonRow.id], 'check locked until practice activities are attempted', 'Complete the practice activities first');
+
+  section('Interactive practice activities');
+  ok((await q(carol, `select count(*)::int n from lesson_activity_keys`)).rows[0].n === 0, 'activity answer keys hidden from users');
+  const actCounts = (await db.query(`select count(*)::int n, count(distinct lesson_id)::int lessons,
+      count(*) filter (where kind = 'calculator')::int calc from lesson_activities`)).rows[0];
+  ok(actCounts.n === 24 && actCounts.lessons === 12 && actCounts.calc === 7, 'every lesson has practice (24 activities, 7 calculators)', actCounts);
+  const acts = (await db.query(`select a.id, a.kind, a.slug, a.content, k.key from lesson_activities a join lessons l on l.id = a.lesson_id
+      join lesson_activity_keys k on k.activity_id = a.id where l.slug in ('three-statements','cash-flow-statement','credit-analysis')`)).rows;
+  const matching = acts.find((a) => a.slug === 'which-statement');
+  const allWrong = Object.fromEntries(Object.keys(matching.key).map((k) => [k, 'zzz']));
+  const m0 = await rpc(carol, 'submit_activity', [matching.id, JSON.stringify({ placements: allWrong })]);
+  ok(Number(m0.score) === 0 && m0.correct === 0, 'matching: all wrong scores 0', m0.score);
+  ok(!JSON.stringify(m0).includes('"bs"') && !JSON.stringify(m0).includes('"cfs"'), 'matching feedback does not reveal correct categories');
+  await db.exec(`update app_settings set value = '60' where key = 'activity_retry_seconds'`);
+  await expectError(carol, `select public.submit_activity($1, '{}'::jsonb)`, [matching.id], 'activity retry cooldown', 'Slow down');
+  await db.exec(`update app_settings set value = '0' where key = 'activity_retry_seconds'`);
+  const m1 = await rpc(carol, 'submit_activity', [matching.id, JSON.stringify({ placements: matching.key })]);
+  ok(Number(m1.score) === 100, 'matching: all correct scores 100');
+  const spot = acts.find((a) => a.slug === 'income-statement-errors');
+  const spot0 = await rpc(carol, 'submit_activity', [spot.id, JSON.stringify({ selected: ['r5', 'r1'] })]);
+  ok(Number(spot0.score) === 0 && spot0.found === 1 && spot0.false_flags === 1, 'spot-the-error: false flags cancel hits', spot0);
+  const spot1 = await rpc(carol, 'submit_activity', [spot.id, JSON.stringify({ selected: spot.key.errors })]);
+  ok(Number(spot1.score) === 100 && spot1.explanations.r5, 'spot-the-error: all found scores 100 with explanations');
+  const branch = acts.find((a) => a.slug === 'loan-request');
+  await expectError(carol, `select public.submit_activity($1, $2::jsonb)`, [branch.id, JSON.stringify({ path: [{ node: 'n2b', choice: 'b' }] })], 'branching: invalid path rejected', 'Invalid path');
+  await expectError(carol, `select public.submit_activity($1, $2::jsonb)`, [branch.id, JSON.stringify({ path: [{ node: 'n1', choice: 'b' }] })], 'branching: unfinished scenario rejected', 'Finish the scenario');
+  const b0 = await rpc(carol, 'submit_activity', [branch.id, JSON.stringify({ path: [{ node: 'n1', choice: 'a' }, { node: 'n2a', choice: 'a' }] })]);
+  ok(Number(b0.score) === 0 && b0.ending === 'end_bad', 'branching: bad path scores 0 with its ending', b0.score);
+  const b1 = await rpc(carol, 'submit_activity', [branch.id, JSON.stringify({ path: bestPath(branch.content, branch.key) })]);
+  ok(Number(b1.score) === 100 && b1.debrief.length === 2, 'branching: best path scores 100 with debrief');
+  const worked = acts.find((a) => a.slug === 'build-cfo-fcf');
+  await expectError(carol, `select public.worked_check($1, 's2', '-30')`, [worked.id], 'worked example: steps unlock in order', 'previous step');
+  const w0 = await rpc(carol, 'worked_check', [worked.id, 's1', '999']);
+  ok(w0.correct === false && !w0.explanation, 'worked example: wrong answer, no explanation leaked');
+  const hint = await rpc(carol, 'worked_hint', [worked.id, 's1']);
+  ok(typeof hint === 'string' && hint.length > 5, 'worked example: hint available');
+  for (const s of worked.content.steps) var wLast = await rpc(carol, 'worked_check', [worked.id, s.id, String(worked.key[s.id].answer)]);
+  ok(wLast.completed === true && Number(wLast.score) === 87, 'worked example: score 100 − 10 (hint) − 3 (wrong) = 87', wLast);
+  await expectError(carol, `insert into activity_attempts (user_id, activity_id, score) values ($1, $2, 100)`, [carol, worked.id], 'cannot forge activity attempts', 'permission denied');
   const wrong = await rpc(carol, 'submit_lesson_check', [lessonRow.id, JSON.stringify({ q1: 'a', q2: 'a', q3: '1', q4: 'a' })]);
   ok(wrong.passed === false && Number(wrong.score) === 0, 'wrong answers fail the check', wrong);
   ok(!JSON.stringify(wrong).includes('"answer"'), 'check feedback never reveals answers');
@@ -514,6 +581,7 @@ async function main() {
   await rpc(carol, 'enroll_program', [track]);
   const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
   await rpc(carol, 'mark_lesson_video_watched', [cfsLesson, 'ended']);
+  await completeActivities(carol, 'cash-flow-statement');
   await rpc(carol, 'submit_lesson_check', [cfsLesson, JSON.stringify(await lessonAnswers('cash-flow-statement'))]);
   for (const slug of ['accounting-three-statements', 'accounting-cash-flow-build']) {
     const id = (await q(carol, `select id from challenges where slug = $1`, [slug])).rows[0].id;
@@ -539,6 +607,7 @@ async function main() {
     if (m.kind === 'lesson') {
       const lid = (await q(carol, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id;
       await rpc(carol, 'mark_lesson_video_watched', [lid, 'ended']);
+      await completeActivities(carol, m.lesson_slug);
       await rpc(carol, 'submit_lesson_check', [lid, JSON.stringify(await lessonAnswers(m.lesson_slug))]);
     } else {
       const slug = (await q(carol, `select slug from challenges where id = $1`, [m.challenge_id])).rows[0].slug;
