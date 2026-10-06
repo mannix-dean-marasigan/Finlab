@@ -1,0 +1,71 @@
+@import 'tailwindcss';
+
+/* FINLAB design tokens — dark-first terminal aesthetic */
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-bg: #07090d;
+  --color-surface: #0c1016;
+  --color-surface-2: #11161e;
+  --color-surface-3: #171e28;
+  --color-border: #1c2430;
+  --color-border-strong: #2a3443;
+  --color-fg: #e6edf3;
+  --color-fg-muted: #8b98a8;
+  --color-fg-subtle: #5d6978;
+
+  --color-accent: #f5a524;
+  --color-accent-strong: #ffb84d;
+  --color-accent-muted: #f5a5241f;
+  --color-up: #22c55e;
+  --color-up-muted: #22c55e1a;
+  --color-down: #f43f5e;
+  --color-down-muted: #f43f5e1a;
+  --color-info: #3b82f6;
+  --color-info-muted: #3b82f61f;
+  --color-violet: #a78bfa;
+
+  --animate-fade-in: fade-in 180ms ease-out;
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    @apply bg-bg text-fg font-sans antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+  }
+  ::selection { background: #f5a52455; }
+  * { scrollbar-width: thin; scrollbar-color: #2a3443 transparent; }
+  input, textarea, select, button { font: inherit; }
+  :focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+}
+
+@utility tabular { font-variant-numeric: tabular-nums; }
+@utility grid-bg {
+  background-image:
+    linear-gradient(to right, #ffffff08 1px, transparent 1px),
+    linear-gradient(to bottom, #ffffff08 1px, transparent 1px);
+  background-size: 32px 32px;
+}
+
+/* Markdown rendering (lessons, briefs, reports) */
+.prose-fin { @apply text-[0.925rem] leading-relaxed text-fg/90; }
+.prose-fin h1 { @apply text-xl font-semibold mt-6 mb-3 text-fg; }
+.prose-fin h2 { @apply text-lg font-semibold mt-6 mb-2 text-fg; }
+.prose-fin h3 { @apply text-base font-semibold mt-4 mb-2 text-fg; }
+.prose-fin p { @apply my-3; }
+.prose-fin ul { @apply list-disc pl-5 my-3 space-y-1; }
+.prose-fin ol { @apply list-decimal pl-5 my-3 space-y-1; }
+.prose-fin strong { @apply text-fg font-semibold; }
+.prose-fin a { @apply text-accent underline underline-offset-2; }
+.prose-fin code { @apply font-mono text-[0.85em] bg-surface-3 px-1 py-0.5 rounded; }
+.prose-fin blockquote { @apply border-l-2 border-accent/60 pl-4 my-4 text-fg-muted; }
+.prose-fin table { @apply w-full my-4 text-sm border-collapse; }
+.prose-fin th { @apply text-left font-medium text-fg-muted border-b border-border-strong px-3 py-2 bg-surface-2; }
+.prose-fin td { @apply border-b border-border px-3 py-2 font-mono tabular; }
+.prose-fin hr { @apply border-border my-6; }
