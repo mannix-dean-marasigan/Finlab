@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { BadgeCheck, Share2, X } from 'lucide-react';
@@ -44,6 +44,56 @@ function Confetti() {
   );
 }
 
+/** The confetti pop-up. `preview` (admin) shows the same dialog without real links. */
+export function CelebrationDialog({ code, title, onClose, preview }: { code: string; title: string; onClose: () => void; preview?: boolean }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Certificate earned">
+      <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={onClose} />
+      <Confetti />
+      <div className="relative w-full max-w-md rounded-xl border border-accent/40 bg-surface p-8 text-center shadow-2xl animate-fade-in">
+        <button onClick={onClose} className="absolute right-3 top-3 rounded p-1 text-fg-muted hover:bg-surface-3 hover:text-fg" aria-label="Close">
+          <X className="h-4 w-4" />
+        </button>
+        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/50 bg-accent-muted text-accent shadow-[0_0_40px_#f5a52455]">
+          <BadgeCheck className="h-9 w-9" />
+        </span>
+        <div className="mt-5 text-xs font-semibold uppercase tracking-widest text-accent">Certificate earned{preview ? ' · admin preview' : ''}</div>
+        <h2 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h2>
+        <p className="mt-2 text-sm text-fg-muted">
+          Issued with verification code <span className="font-mono text-fg">{code}</span>. Anyone can verify it — add it to your LinkedIn and résumé.
+        </p>
+        {preview ? (
+          <div className="mt-6">
+            <Button variant="primary" className="w-full justify-center" onClick={onClose}>
+              Close preview
+            </Button>
+          </div>
+        ) : (
+          <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Link to={`/verify/${code}`} onClick={onClose}>
+              <Button variant="primary" className="w-full justify-center">
+                <BadgeCheck className="h-4 w-4" /> View certificate
+              </Button>
+            </Link>
+            <Link to={`/verify/${code}?share=1`} onClick={onClose}>
+              <Button className="w-full justify-center">
+                <Share2 className="h-4 w-4" /> Share on LinkedIn
+              </Button>
+            </Link>
+          </div>
+        )}
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /** Shows once per certificate (remembered in this browser). */
 export function CertificateCelebration({ code, title }: { code: string | null; title: string }) {
   const [open, setOpen] = useState(false);
@@ -56,54 +106,15 @@ export function CertificateCelebration({ code, title }: { code: string | null; t
     }
   }, [code]);
 
-  const close = () => {
+  const close = useCallback(() => {
     setOpen(false);
     try {
       if (code) localStorage.setItem(seenKey(code), new Date().toISOString());
     } catch {
       /* ignore */
     }
-  };
-
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && close();
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  });
+  }, [code]);
 
   if (!open || !code) return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Certificate earned">
-      <div className="absolute inset-0 bg-black/75 backdrop-blur-[2px]" onClick={close} />
-      <Confetti />
-      <div className="relative w-full max-w-md rounded-xl border border-accent/40 bg-surface p-8 text-center shadow-2xl animate-fade-in">
-        <button onClick={close} className="absolute right-3 top-3 rounded p-1 text-fg-muted hover:bg-surface-3 hover:text-fg" aria-label="Close">
-          <X className="h-4 w-4" />
-        </button>
-        <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/50 bg-accent-muted text-accent shadow-[0_0_40px_#f5a52455]">
-          <BadgeCheck className="h-9 w-9" />
-        </span>
-        <div className="mt-5 text-xs font-semibold uppercase tracking-widest text-accent">Certificate earned</div>
-        <h2 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h2>
-        <p className="mt-2 text-sm text-fg-muted">
-          Issued with verification code <span className="font-mono text-fg">{code}</span>. Anyone can verify it — add it to your LinkedIn and résumé.
-        </p>
-        <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-center">
-          <Link to={`/verify/${code}`} onClick={close}>
-            <Button variant="primary" className="w-full justify-center">
-              <BadgeCheck className="h-4 w-4" /> View certificate
-            </Button>
-          </Link>
-          <Link to={`/verify/${code}?share=1`} onClick={close}>
-            <Button className="w-full justify-center">
-              <Share2 className="h-4 w-4" /> Share on LinkedIn
-            </Button>
-          </Link>
-        </div>
-      </div>
-    </div>,
-    document.body,
-  );
+  return <CelebrationDialog code={code} title={title} onClose={close} />;
 }

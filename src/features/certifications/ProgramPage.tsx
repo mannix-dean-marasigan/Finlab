@@ -8,7 +8,8 @@ import { enrollProgram, getProgram } from '@/services/api/misc';
 import { getProgramLeaderboard } from '@/services/api/engage';
 import { CapstonePanel } from './CapstonePanel';
 import { CertificateCelebration } from './Celebration';
-import { useMyProfile } from '@/app/queries';
+import { useIsAdmin, useMyProfile } from '@/app/queries';
+import { AdminCertificatePreview } from './AdminCertificatePreview';
 import { CertificateDocument } from './VerifyCertificatePage';
 import type { ProgramModuleStatus } from '@/types/domain';
 import { DifficultyBadge, Markdown, ScorePill } from '@/components/common';
@@ -189,6 +190,7 @@ export default function ProgramPage() {
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['program', slug], queryFn: () => getProgram(slug) });
   const profile = useMyProfile();
+  const isAdmin = useIsAdmin();
   const enroll = useMutation({
     mutationFn: () => enrollProgram(q.data!.program.id),
     onSuccess: (r) => {
@@ -331,6 +333,11 @@ export default function ProgramPage() {
                   </>
                 )}
               </div>
+              {isAdmin.data && (
+                <div className="mt-3 border-t border-border pt-3">
+                  <AdminCertificatePreview detail={q.data} recipient={profile.data?.full_name || 'Your Name'} />
+                </div>
+              )}
             </Card>
             <Card>
               <CardHeader title="Cohort leaderboard" subtitle="Everyone enrolled in this program" icon={<Users className="h-3.5 w-3.5" />} />
