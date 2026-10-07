@@ -178,8 +178,8 @@ async function main() {
       (select count(*) from program_modules where kind = 'capstone')::int capstones,
       (select count(*) from daily_questions)::int dq, (select count(*) from daily_question_keys)::int dk,
       (select min(n)::int from (select count(*) n from flashcards group by lesson_id) t) min_per_lesson`)).rows[0];
-  ok(eng.cards === 120 && eng.min_per_lesson === 10 && eng.capstones === 3 && eng.dq === 40 && eng.dk === 40,
-    'seed_006 is idempotent: 10 flashcards per lesson, 3 capstones, 40 daily questions with keys', eng);
+  ok(eng.cards === 150 && eng.min_per_lesson === 10 && eng.capstones === 4 && eng.dq === 45 && eng.dk === 45,
+    'seed_006 is idempotent: 10 flashcards per lesson, 4 capstones, 45 daily questions with keys', eng);
 
   const counts = (await db.query(`select
       (select count(*) from challenges where is_published)::int as challenges,
@@ -194,8 +194,14 @@ async function main() {
       (select count(*) from program_modules where lesson_id is null and challenge_id is null and kind <> 'capstone')::int as broken_modules`)).rows[0];
   ok(counts.challenges >= 28 && counts.achievements === 22 && counts.securities === 16, 'seed counts', counts);
   ok(counts.keys === counts.task_challenges, 'answer keys for every task challenge', counts);
-  ok(counts.lessons === 12 && counts.lessons_with_checks === 12 && counts.lesson_keys === 12, 'every lesson has a knowledge check + key', counts);
-  ok(counts.programs === 7 && counts.broken_modules === 0, '7 programs, all modules resolved', counts);
+  const missingKeys = (await db.query(`select c.slug, t->>'id' as task from challenges c join challenge_answer_keys k on k.challenge_id = c.id,
+      jsonb_array_elements(c.content->'tasks') t where not (k.answers ? (t->>'id'))`)).rows;
+  ok(missingKeys.length === 0, 'every challenge task has an answer key entry', missingKeys);
+  const bank = (await db.query(`select m.kind from program_modules m join certification_programs p on p.id = m.program_id
+      where p.slug = 'banking-credit-analyst' order by m.position`)).rows.map((r) => r.kind);
+  ok(bank.length === 10 && bank[8] === 'exam' && bank[9] === 'capstone', 'Banking & Credit Analyst: 10 modules ending exam → capstone', bank);
+  ok(counts.lessons === 15 && counts.lessons_with_checks === 15 && counts.lesson_keys === 15, 'every lesson has a knowledge check + key', counts);
+  ok(counts.programs === 8 && counts.broken_modules === 0, '8 programs, all modules resolved', counts);
 
   // The main flow below submits many times in quick succession; relax the
   // anti-gaming limits here and test them explicitly later.
@@ -525,7 +531,7 @@ async function main() {
   ok((await q(carol, `select count(*)::int n from lesson_activity_keys`)).rows[0].n === 0, 'activity answer keys hidden from users');
   const actCounts = (await db.query(`select count(*)::int n, count(distinct lesson_id)::int lessons,
       count(*) filter (where kind = 'calculator')::int calc from lesson_activities`)).rows[0];
-  ok(actCounts.n === 24 && actCounts.lessons === 12 && actCounts.calc === 7, 'every lesson has practice (24 activities, 7 calculators)', actCounts);
+  ok(actCounts.n === 30 && actCounts.lessons === 15 && actCounts.calc === 7, 'every lesson has practice (30 activities, 7 calculators)', actCounts);
   const acts = (await db.query(`select a.id, a.kind, a.slug, a.content, k.key from lesson_activities a join lessons l on l.id = a.lesson_id
       join lesson_activity_keys k on k.activity_id = a.id where l.slug in ('three-statements','cash-flow-statement','credit-analysis')`)).rows;
   const matching = acts.find((a) => a.slug === 'which-statement');
@@ -586,7 +592,7 @@ async function main() {
   section('Certification programs & tracks');
   const track = (await q(carol, `select id from certification_programs where slug = 'track-accounting-foundations'`)).rows[0].id;
   const progs = await rpc(carol, 'list_programs');
-  ok(progs.length === 7 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
+  ok(progs.length === 8 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
   await rpc(carol, 'enroll_program', [track]);
   const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
   await rpc(carol, 'mark_lesson_video_watched', [cfsLesson, 'ended']);
@@ -697,7 +703,7 @@ async function main() {
 
   // ------------------------------------------------------------------
   section('Flashcards (spaced repetition)');
-  ok((await q(carol, `select count(*)::int n from flashcards`)).rows[0].n === 120, 'learners can read published flashcards');
+  ok((await q(carol, `select count(*)::int n from flashcards`)).rows[0].n === 150, 'learners can read published flashcards');
   await expectError(carol, `insert into flashcards (lesson_id, position, front, back) values ($1, 99, 'Front', 'Back')`, [lessonRow.id], 'learners cannot create flashcards', 'row-level security');
   const fq = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
   ok(fq.length === 20 && fq.every((c) => c.is_new), 'queue introduces 20 new cards per day', fq.length);
@@ -715,7 +721,7 @@ async function main() {
   const fq2 = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
   ok(fq2.length === 19 && !fq2.some((c) => c.card_id === card), 'reviewed card leaves the queue; it counts toward today\'s new cards', fq2.length);
   const fstats = await rpc(carol, 'flashcard_stats');
-  ok(Number(fstats.learned) === 1 && Number(fstats.reviewed_today) === 4 && Number(fstats.total) === 120, 'flashcard stats', fstats);
+  ok(Number(fstats.learned) === 1 && Number(fstats.reviewed_today) === 4 && Number(fstats.total) === 150, 'flashcard stats', fstats);
   const deck = (await q(carol, `select * from get_flashcard_queue($1, 50)`, [fq[0].lesson_id])).rows;
   ok(deck.length === 9 && deck.every((c) => c.lesson_id === fq[0].lesson_id), 'per-lesson deck', deck.length);
 
@@ -791,7 +797,7 @@ async function main() {
   const an = await rpc(bob, 'admin_analytics', [30]);
   ok(an.funnel.length === 6 && Number(an.funnel[0].users) === 3 && an.days.length >= 30, 'funnel + daily series', an.funnel.map((f) => f.users));
   ok(an.hardest_questions.length > 0 && an.hardest_questions[0].prompt, 'per-question item analysis from stored results', an.hardest_questions[0]);
-  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 7, 'activity + programs summary', [an.daily, an.active_7d]);
+  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 8, 'activity + programs summary', [an.daily, an.active_7d]);
 
   // ------------------------------------------------------------------
   section('Feedback & account deletion');
