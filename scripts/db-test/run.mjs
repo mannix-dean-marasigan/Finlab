@@ -201,7 +201,7 @@ async function main() {
       where p.slug = 'banking-credit-analyst' order by m.position`)).rows.map((r) => r.kind);
   ok(bank.length === 10 && bank[8] === 'exam' && bank[9] === 'capstone', 'Banking & Credit Analyst: 10 modules ending exam → capstone', bank);
   ok(counts.lessons === 15 && counts.lessons_with_checks === 15 && counts.lesson_keys === 15, 'every lesson has a knowledge check + key', counts);
-  ok(counts.programs === 8 && counts.broken_modules === 0, '8 programs, all modules resolved', counts);
+  ok(counts.programs === 9 && counts.broken_modules === 0, '9 programs, all modules resolved', counts);
 
   // The main flow below submits many times in quick succession; relax the
   // anti-gaming limits here and test them explicitly later.
@@ -593,7 +593,7 @@ async function main() {
   section('Certification programs & tracks');
   const track = (await q(carol, `select id from certification_programs where slug = 'track-accounting-foundations'`)).rows[0].id;
   const progs = await rpc(carol, 'list_programs');
-  ok(progs.length === 8 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
+  ok(progs.length === 9 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
   await rpc(carol, 'enroll_program', [track]);
   const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
   await rpc(carol, 'mark_lesson_video_watched', [cfsLesson, 'ended']);
@@ -798,7 +798,7 @@ async function main() {
   const an = await rpc(bob, 'admin_analytics', [30]);
   ok(an.funnel.length === 6 && Number(an.funnel[0].users) === 3 && an.days.length >= 30, 'funnel + daily series', an.funnel.map((f) => f.users));
   ok(an.hardest_questions.length > 0 && an.hardest_questions[0].prompt, 'per-question item analysis from stored results', an.hardest_questions[0]);
-  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 8, 'activity + programs summary', [an.daily, an.active_7d]);
+  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 9, 'activity + programs summary', [an.daily, an.active_7d]);
 
   // ------------------------------------------------------------------
   section('Invite codes (closed beta)');
@@ -841,6 +841,26 @@ async function main() {
   ok((await rpc(null, 'check_invite_code', [null])).required === false, 'form knows sign-up is open');
 
   // ------------------------------------------------------------------
+  section('Quick Start: 30-minute certificate');
+  const dana = await createUser('dana@example.com', 'Dana Cruz');
+  const quick = (await q(dana, `select id, estimated_hours from certification_programs where slug = 'quickstart-value-a-stock'`)).rows[0];
+  ok(quick && Number(quick.estimated_hours) === 0.5, 'Quick Start program is published at ~30 minutes', quick);
+  const quickDetail0 = await rpc(dana, 'get_program', ['quickstart-value-a-stock']);
+  ok(quickDetail0.modules.length === 2 && quickDetail0.modules[0].kind === 'lesson' && quickDetail0.modules[1].minutes === 10, 'one lesson + one 10-minute challenge');
+  await rpc(dana, 'enroll_program', [quick.id]);
+  const vmLesson = (await q(dana, `select id from lessons where slug = 'valuation-multiples'`)).rows[0].id;
+  await rpc(dana, 'mark_lesson_video_watched', [vmLesson, 'ended']);
+  await completeActivities(dana, 'valuation-multiples');
+  await rpc(dana, 'submit_lesson_check', [vmLesson, JSON.stringify(await lessonAnswers('valuation-multiples'))]);
+  const sprint = (await q(dana, `select id from challenges where slug = 'quickstart-valuation-sprint'`)).rows[0].id;
+  const sprintAttempt = await rpc(dana, 'start_challenge', [sprint, null]);
+  const sprintRes = await rpc(dana, 'submit_challenge', [sprintAttempt, JSON.stringify(await perfectResponses('quickstart-valuation-sprint'))]);
+  ok(sprintRes.status === 'scored' && Number(sprintRes.score) === 100, 'sprint is graded instantly', sprintRes.score);
+  const quickDetail = await rpc(dana, 'get_program', ['quickstart-value-a-stock']);
+  const quickCert = await rpc(null, 'verify_certificate', [quickDetail.certificate_code ?? '']);
+  ok(quickCert?.title === 'Quick Start Certificate — Stock Valuation Basics' && quickCert.issue_type === 'earned', 'Quick Start certificate issued automatically', quickCert?.title);
+
+  // ------------------------------------------------------------------
   section('Admin-awarded and test certificates');
   ok((await db.query(`select count(*)::int n from certificates where issue_type <> 'earned'`)).rows[0].n === 0, 'existing certificates are marked as earned');
   const evp = (await db.query(`select id from certification_programs where slug = 'equity-valuation-analyst'`)).rows[0].id;
@@ -868,7 +888,7 @@ async function main() {
   ok(!(await rpc(bob, 'get_user_certificates', [bobHandle])).some((c) => c.code === testCode), 'test certificates never appear on the passport');
   ok(Number((await db.query(`select public.user_metric($1, 'certificates_earned') v`, [bob])).rows[0].v) === 0, 'test certificates do not count toward achievements');
   ok((await rpc(bob, 'get_program', ['financial-statement-analyst'])).certificate_code === null, 'a test does not mark the program as earned');
-  ok(Number((await rpc(bob, 'admin_analytics', [30])).funnel.find((f) => f.step === 'Earned a certificate').users) === 2, 'analytics ignore test certificates');
+  ok(Number((await rpc(bob, 'admin_analytics', [30])).funnel.find((f) => f.step === 'Earned a certificate').users) === 3, 'analytics ignore test certificates');
   await expectError(carol, `select public.admin_delete_test_certificate($1)`, [testCode], 'learners cannot delete certificates', 'Admin access required');
   await expectError(bob, `select public.admin_delete_test_certificate($1)`, [awardCode], 'real certificates cannot be deleted (only revoked)', 'Only test certificates');
   await rpc(bob, 'admin_delete_test_certificate', [testCode]);

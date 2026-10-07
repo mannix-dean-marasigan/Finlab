@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Award, BadgeCheck, Clock, GraduationCap, Layers, Route } from 'lucide-react';
+import { Award, BadgeCheck, Clock, GraduationCap, Layers, Route, Zap } from 'lucide-react';
 import { useMyProfile } from '@/app/queries';
 import { getUserCertificates, listPrograms } from '@/services/api/misc';
 import type { ProgramSummary } from '@/types/domain';
@@ -10,7 +10,7 @@ import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress, Tabs } from '@/components/ui/misc';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/states';
-import { fmtDate } from '@/lib/format';
+import { fmtDate, fmtProgramHours } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 function ProgramCard({ p }: { p: ProgramSummary }) {
@@ -43,7 +43,7 @@ function ProgramCard({ p }: { p: ProgramSummary }) {
         <p className="mt-1 flex-1 text-sm text-fg-muted">{p.subtitle}</p>
         <div className="mt-4 flex items-center gap-4 text-xs text-fg-subtle">
           <span className="inline-flex items-center gap-1">
-            <Clock className="h-3.5 w-3.5" /> ~{p.estimated_hours} h
+            <Clock className="h-3.5 w-3.5" /> {fmtProgramHours(p.estimated_hours)}
           </span>
           <span className="inline-flex items-center gap-1">
             <Layers className="h-3.5 w-3.5" /> {p.modules} modules
@@ -76,6 +76,7 @@ export default function CertificationsPage() {
   if (programs.isPending) return <PageSkeleton />;
   if (programs.isError) return <ErrorState error={programs.error} onRetry={() => programs.refetch()} />;
   const list = programs.data.filter((p) => p.kind === tab);
+  const quick = programs.data.find((p) => p.slug === 'quickstart-value-a-stock' && !p.certificate_code);
 
   return (
     <div className="animate-fade-in">
@@ -84,6 +85,23 @@ export default function CertificationsPage() {
         title="Certifications"
         description="Structured programs of lessons, hands-on challenges and a timed final exam. Pass every module and a verifiable certificate is issued automatically — no shortcuts, no 'mark as done'."
       />
+      {quick && (
+        <Link to={`/certifications/${quick.slug}`} className="group mb-5 block">
+          <Card className="flex flex-col gap-3 border-accent/40 bg-gradient-to-r from-accent/[0.10] to-surface p-4 transition-colors group-hover:border-accent sm:flex-row sm:items-center">
+            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-accent/50 bg-accent-muted text-accent">
+              <Zap className="h-5 w-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold group-hover:text-accent">New here? Earn your first certificate in ~30 minutes</div>
+              <div className="text-sm text-fg-muted">
+                {quick.title}: one lesson and a 10-minute valuation case.{' '}
+                {quick.completed_modules > 0 ? `${quick.completed_modules}/${quick.modules} done.` : 'Instantly graded.'}
+              </div>
+            </div>
+            <span className="text-sm font-medium text-accent">{quick.enrolled ? 'Continue' : 'Start now'} →</span>
+          </Card>
+        </Link>
+      )}
       <Tabs
         className="mb-5"
         value={tab}

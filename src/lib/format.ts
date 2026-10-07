@@ -90,3 +90,10 @@ export function fmtMinutes(min: number | null | undefined): string {
   if (min < 60 * 24) return `${Math.round(min / 60)} h`;
   return `${Math.round(min / 60 / 24)} days`;
 }
+
+/** Program length: "~30 min" under an hour, otherwise "~4.5 h". */
+export function fmtProgramHours(hours: number | string | null | undefined): string {
+  const h = Number(hours ?? 0);
+  if (!h) return '—';
+  return h < 1 ? `~${Math.round(h * 60)} min` : `~${h} h`;
+}

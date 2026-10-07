@@ -148,6 +148,7 @@ src/
 13. `supabase/seed_005_lesson_activities.sql` (interactive practice: calculators, spot-the-error, drag & drop, branching cases, worked examples — safe to re-run)
 14. `supabase/seed_006_engagement.sql` (flashcards, capstone modules, daily-challenge bank, new achievements — safe to re-run)
 15. `supabase/seed_007_banking_certification.sql` (Banking & Credit Analyst certification — safe to re-run)
+16. `supabase/seed_008_quickstart.sql` (30-minute Quick Start certificate — safe to re-run)
 
 Upgrading an existing database: run only the files you haven't run yet, in the same order (migration 0005 must run before `seed_002`).
 

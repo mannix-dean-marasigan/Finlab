@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Check, Copy, ExternalLink, PenLine, Sparkles } from 'lucide-react';
+import { Check, Copy, Download, ExternalLink, Image as ImageIcon, PenLine, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { supabase } from '@/lib/supabase';
@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/form';
 import { Segmented } from '@/components/ui/misc';
 import { appUrl } from '@/lib/utils';
+import { renderShareImage, shareImageFileName } from './shareImage';
 import {
   linkedInAddCertUrl, linkedInPost, linkedInShareUrl, profileDescription, programCopy, resumeLine, type PostTone,
 } from './shareContent';
@@ -89,18 +90,70 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
     if (params.get('share')) ref.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }, [params]);
 
+  // Square certificate picture for the post (drawn in the browser).
+  const [image, setImage] = useState<{ blob: Blob; url: string } | null>(null);
+  // Content key: callers may pass a fresh object each render (e.g. the admin preview).
+  const imageKey = JSON.stringify(c);
+  useEffect(() => {
+    let url = '';
+    let cancelled = false;
+    renderShareImage(c, verifyUrl)
+      .then((blob) => {
+        if (cancelled) return;
+        url = URL.createObjectURL(blob);
+        setImage({ blob, url });
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+      if (url) URL.revokeObjectURL(url);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageKey, verifyUrl]);
+  const imageFile = image ? new File([image.blob], shareImageFileName(c), { type: 'image/png' }) : null;
+  const canShareFile = !!imageFile && typeof navigator.canShare === 'function' && navigator.canShare({ files: [imageFile] });
+
+  const downloadImage = () => {
+    if (!image) return;
+    const a = document.createElement('a');
+    a.href = image.url;
+    a.download = shareImageFileName(c);
+    a.click();
+  };
+
   const description = profileDescription(c, verifyUrl);
   // Skills are only suggested for certificates earned through the graded program.
   const skills = c.kind === 'competition' || c.issue_type === 'admin_award' ? [] : programCopy(c).skills;
   const resume = resumeLine(c);
 
   const openPost = async () => {
-    // LinkedIn usually pre-fills the composer from the URL; copying first means pasting always works.
-    try {
-      await navigator.clipboard.writeText(post);
-      toast.success('Post copied — if LinkedIn opens empty, just paste it.');
-    } catch {
-      /* clipboard blocked: the URL pre-fill still works in most browsers */
+    // Phones: the system share sheet attaches the picture and the text — pick LinkedIn.
+    if (canShareFile && imageFile) {
+      try {
+        await navigator.clipboard.writeText(post).catch(() => undefined);
+        await navigator.share({ files: [imageFile], text: post, title: c.title });
+        return;
+      } catch (e) {
+        if ((e as Error).name === 'AbortError') return;
+      }
+    }
+    // Computers: LinkedIn can't receive images from a link, so put the picture on the
+    // clipboard (paste with Ctrl+V) and open the composer with the text pre-filled.
+    let imageCopied = false;
+    if (image && typeof ClipboardItem !== 'undefined' && navigator.clipboard?.write) {
+      try {
+        await navigator.clipboard.write([new ClipboardItem({ 'image/png': image.blob })]);
+        imageCopied = true;
+      } catch {
+        /* not supported in this browser */
+      }
+    }
+    if (imageCopied) {
+      toast.success('Picture copied — in LinkedIn, click the post box and press Ctrl+V (⌘V on Mac) to add it.', { duration: 9000 });
+    } else {
+      await navigator.clipboard.writeText(post).catch(() => undefined);
+      downloadImage();
+      toast.success('Picture downloaded — attach it in LinkedIn with the image button. The text is pre-filled (and copied).', { duration: 9000 });
     }
     window.open(linkedInShareUrl(post), '_blank', 'noopener,noreferrer');
   };
@@ -162,6 +215,26 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
         </Step>
 
         <Step n={2} title="Announce it with a post">
+          <div className="flex flex-col gap-3 rounded-md border border-border bg-surface-2 p-3 sm:flex-row sm:items-center">
+            {image ? (
+              <img src={image.url} alt="Certificate picture for your post" className="w-full max-w-[220px] rounded-md border border-border sm:w-44" />
+            ) : (
+              <div className="flex aspect-square w-44 items-center justify-center rounded-md border border-border text-xs text-fg-subtle">Drawing picture…</div>
+            )}
+            <div className="space-y-2 text-xs text-fg-muted">
+              <div className="flex items-center gap-1.5 text-[0.7rem] font-semibold uppercase tracking-wider text-fg-subtle">
+                <ImageIcon className="h-3.5 w-3.5" /> Post picture
+              </div>
+              <p>
+                {canShareFile
+                  ? '"Post on LinkedIn" opens your share menu with this picture and your text attached — choose LinkedIn.'
+                  : '"Post on LinkedIn" copies this picture and opens LinkedIn with your text filled in — click the post box and press Ctrl+V to add the picture.'}
+              </p>
+              <Button size="xs" variant="outline" onClick={downloadImage} disabled={!image}>
+                <Download className="h-3.5 w-3.5" /> Download picture
+              </Button>
+            </div>
+          </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <Segmented
               value={tone}

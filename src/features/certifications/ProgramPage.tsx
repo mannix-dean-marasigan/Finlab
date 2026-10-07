@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/misc';
 import { EmptyState, ErrorState, PageSkeleton, Skeleton } from '@/components/ui/states';
-import { fmtDate, fmtMinutes } from '@/lib/format';
+import { fmtDate, fmtMinutes, fmtProgramHours } from '@/lib/format';
 import { cn } from '@/lib/utils';
 
 function moduleHref(m: ProgramModuleStatus) {
@@ -226,7 +226,7 @@ export default function ProgramPage() {
                 <Badge tone={p.kind === 'certification' ? 'accent' : 'info'}>{p.kind === 'certification' ? 'Certification' : 'Learning track'}</Badge>
                 <DifficultyBadge difficulty={p.level} />
                 <span className="inline-flex items-center gap-1 text-xs text-fg-subtle">
-                  <Clock className="h-3 w-3" /> ~{Number(p.estimated_hours)} hours
+                  <Clock className="h-3 w-3" /> {fmtProgramHours(p.estimated_hours)}
                 </span>
               </div>
               <h1 className="mt-3 text-2xl font-semibold tracking-tight">{p.title}</h1>
