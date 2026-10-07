@@ -1,6 +1,7 @@
 // Ready-to-use LinkedIn copy for a FINLAB certificate (profile description,
 // résumé line and post drafts). Pure functions so they can be unit-tested.
 import type { CertificateView } from '@/types/domain';
+import { ISSUER_NAME, LINKEDIN_ORG_ID } from '@/lib/brand';
 
 export type PostTone = 'professional' | 'story' | 'short';
 
@@ -121,7 +122,7 @@ export function programCopy(c: CertificateView): ProgramCopy {
 }
 
 function hashtags(c: CertificateView): string {
-  const tags = new Set(['#Finance', '#FINLAB']);
+  const tags = new Set(['#Finance', '#FINLABPH']);
   for (const s of programCopy(c).skills.slice(0, 3)) {
     const tag = s.replace(/\(.*?\)/g, '').replace(/[^A-Za-z0-9]+/g, '');
     if (tag && tag.length <= 30) tags.add(`#${tag}`);
@@ -151,9 +152,12 @@ function assessment(c: CertificateView, copy: ProgramCopy): string {
 
 /** Text for the "Description" field of the LinkedIn certification entry. */
 export function profileDescription(c: CertificateView, verifyUrl: string): string {
+  if (c.issue_type === 'admin_award') {
+    return [`Awarded by ${ISSUER_NAME}${c.award_reason ? `: ${c.award_reason}` : '.'}`, `Verify: ${verifyUrl}`].join('\n');
+  }
   if (c.kind === 'competition') {
     return [
-      `${c.subtitle} in ${c.competition?.name ?? c.title}, a FINLAB finance competition.`,
+      `${c.subtitle} in ${c.competition?.name ?? c.title}, a ${ISSUER_NAME} finance competition.`,
       'Competed on timed, scored finance cases against other analysts.',
       `Verify: ${verifyUrl}`,
     ].join('\n');
@@ -163,7 +167,7 @@ export function profileDescription(c: CertificateView, verifyUrl: string): strin
   const score = avgScore(c);
   if (score !== null) s.push(`average challenge score ${score}/100`);
   return [
-    `FINLAB ${c.kind === 'track' ? 'learning track' : 'certification'} in ${programName(c)}${s.length ? ` (${s.join(', ')})` : ''}.`,
+    `${ISSUER_NAME} ${c.kind === 'track' ? 'learning track' : 'certification'} in ${programName(c)}${s.length ? ` (${s.join(', ')})` : ''}.`,
     ...copy.highlights.map((h) => `• ${h}`),
     `Skills: ${copy.skills.join(', ')}`,
     `Verify: ${verifyUrl}`,
@@ -173,31 +177,38 @@ export function profileDescription(c: CertificateView, verifyUrl: string): strin
 /** One-line résumé bullet. */
 export function resumeLine(c: CertificateView): string {
   const year = new Date(c.issued_at).getFullYear();
-  if (c.kind === 'competition') return `${c.subtitle}, ${c.competition?.name ?? c.title} (FINLAB, ${year})`;
+  if (c.issue_type === 'admin_award') return `${c.title} (awarded by ${ISSUER_NAME}, ${year})${c.award_reason ? ` — ${c.award_reason}` : ''}.`;
+  if (c.kind === 'competition') return `${c.subtitle}, ${c.competition?.name ?? c.title} (${ISSUER_NAME}, ${year})`;
   const copy = programCopy(c);
   const parts = copy.highlights.slice(0, 3).map((h) => h.charAt(0).toLowerCase() + h.slice(1));
-  return `${credName(c)} ${c.kind === 'track' ? 'learning track ' : ''}(FINLAB, ${year}) — ${parts.join('; ')}.`;
+  return `${credName(c)} ${c.kind === 'track' ? 'learning track ' : ''}(${ISSUER_NAME}, ${year}) — ${parts.join('; ')}.`;
 }
 
 export function linkedInPost(c: CertificateView, verifyUrl: string, tone: PostTone): string {
   const tags = hashtags(c);
+  if (c.issue_type === 'admin_award') {
+    const why = c.award_reason ? `${c.award_reason}.` : '';
+    if (tone === 'short') return `Awarded the ${c.title} by ${ISSUER_NAME} 🎓 ${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    if (tone === 'story') return `Grateful to receive the ${c.title} from ${ISSUER_NAME}. 🎓\n\n${why}\n\nIt was a great chance to learn alongside other aspiring analysts — and I'm excited to keep building.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
+    return `I'm happy to share that I've been awarded the ${c.title} by ${ISSUER_NAME}! 🎓\n\n${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
+  }
   if (c.kind === 'competition') {
     const comp = c.competition?.name ?? c.title;
-    if (tone === 'short') return `${c.subtitle} at ${comp} on FINLAB! 🏆 Timed, scored finance cases against other analysts.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    if (tone === 'short') return `${c.subtitle} at ${comp} on ${ISSUER_NAME}! 🏆 Timed, scored finance cases against other analysts.\n\nVerify: ${verifyUrl}\n\n${tags}`;
     if (tone === 'story')
       return `I didn't expect to place when I signed up for ${comp}. 🏆\n\nThe cases were timed and scored on the work itself — numbers, judgment and writing — against analysts I'd never met. I finished: ${c.subtitle}.\n\nWhat it taught me: preparation compounds. The frameworks I'd practised were what I reached for under the clock.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
-    return `I'm proud to share that I placed ${c.subtitle} in ${comp}, a FINLAB finance competition. 🏆\n\nThe competition tested financial analysis, valuation and investment judgment on timed, scored cases.\n\nThank you to everyone who competed — I learned a lot from the challenge.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    return `I'm proud to share that I placed ${c.subtitle} in ${comp}, a ${ISSUER_NAME} finance competition. 🏆\n\nThe competition tested financial analysis, valuation and investment judgment on timed, scored cases.\n\nThank you to everyone who competed — I learned a lot from the challenge.\n\nVerify: ${verifyUrl}\n\n${tags}`;
   }
 
   const copy = programCopy(c);
   const s = stats(c);
   const what = c.kind === 'track' ? 'learning track' : 'certification';
   if (tone === 'short') {
-    return `Just earned the ${credName(c)} ${what} from FINLAB 🎓 — ${s.length ? `${s.join(' across ')} of ` : ''}hands-on ${copy.focus}${c.kind === 'certification' ? `, a timed exam${copy.capstone ? ' and a recorded capstone' : ''}` : ''}.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    return `Just earned the ${credName(c)} ${what} from ${ISSUER_NAME} 🎓 — ${s.length ? `${s.join(' across ')} of ` : ''}hands-on ${copy.focus}${c.kind === 'certification' ? `, a timed exam${copy.capstone ? ' and a recorded capstone' : ''}` : ''}.\n\nVerify: ${verifyUrl}\n\n${tags}`;
   }
   if (tone === 'story') {
     return [
-      `I wanted to get better at ${copy.focus} by actually doing it — so I took on the ${programName(c)} ${what} on FINLAB.`,
+      `I wanted to get better at ${copy.focus} by actually doing it — so I took on the ${programName(c)} ${what} on ${ISSUER_NAME}.`,
       '',
       `Today I earned it. 🎓 ${assessment(c, copy)}`,
       '',
@@ -212,7 +223,7 @@ export function linkedInPost(c: CertificateView, verifyUrl: string, tone: PostTo
     ].join('\n');
   }
   return [
-    `I'm happy to share that I've earned the ${credName(c)} ${what} from FINLAB! 🎓`,
+    `I'm happy to share that I've earned the ${credName(c)} ${what} from ${ISSUER_NAME}! 🎓`,
     '',
     `${s.length ? `Over ${s.join(' and ')}, I` : 'In the program, I'}:`,
     ...copy.highlights.map((h) => `✅ ${h}`),
@@ -238,11 +249,13 @@ export function linkedInAddCertUrl(c: CertificateView, verifyUrl: string): strin
   const params = new URLSearchParams({
     startTask: 'CERTIFICATION_NAME',
     name: c.kind === 'competition' ? `${c.subtitle} — ${c.competition?.name ?? c.title}` : c.title,
-    organizationName: 'FINLAB',
+    organizationName: ISSUER_NAME,
     issueYear: String(d.getFullYear()),
     issueMonth: String(d.getMonth() + 1),
     certUrl: verifyUrl,
     certId: c.code,
   });
+  // With the company ID, LinkedIn links the entry to the FINLAB PH page (logo included).
+  if (LINKEDIN_ORG_ID) params.set('organizationId', LINKEDIN_ORG_ID);
   return `https://www.linkedin.com/profile/add?${params.toString()}`;
 }

@@ -22,7 +22,7 @@ describe('LinkedIn share content', () => {
   it('fills the add-certification form', () => {
     const u = new URL(linkedInAddCertUrl(base, URL_));
     expect(u.searchParams.get('name')).toBe('Certified Banking & Credit Analyst');
-    expect(u.searchParams.get('organizationName')).toBe('FINLAB');
+    expect(u.searchParams.get('organizationName')).toBe('FINLAB PH');
     expect(u.searchParams.get('issueYear')).toBe('2026');
     expect(u.searchParams.get('issueMonth')).toBe('10');
     expect(u.searchParams.get('certId')).toBe('FLB-ABCD-1234');
@@ -40,7 +40,7 @@ describe('LinkedIn share content', () => {
     expect(linkedInPost(base, URL_, 'professional')).toContain('average challenge score of 88/100');
     expect(linkedInPost(base, URL_, 'story')).toContain('capstone');
     expect(profileDescription(base, URL_)).toContain('Skills: Credit Analysis');
-    expect(resumeLine(base)).toMatch(/^Certified Banking & Credit Analyst \(FINLAB, 2026\) — assessed corporate borrowers/);
+    expect(resumeLine(base)).toMatch(/^Certified Banking & Credit Analyst \(FINLAB PH, 2026\) — assessed corporate borrowers/);
   });
 
   it('reads naturally for learning tracks and competitions', () => {
@@ -50,6 +50,17 @@ describe('LinkedIn share content', () => {
     const comp = { ...base, kind: 'competition' as const, title: 'FINLAB Beta Cup', subtitle: 'Champion (1st Place)', program: null, competition: { name: 'FINLAB Beta Cup S1', ends_at: '2026-10-01' } };
     expect(linkedInPost(comp, URL_, 'professional')).toContain('Champion (1st Place) in FINLAB Beta Cup S1');
     expect(new URL(linkedInAddCertUrl(comp, URL_)).searchParams.get('name')).toBe('Champion (1st Place) — FINLAB Beta Cup S1');
+  });
+
+  it('uses honest wording for admin-awarded certificates', () => {
+    const award = { ...base, issue_type: 'admin_award' as const, award_reason: 'Completed the in-person UST valuation workshop' };
+    for (const tone of ['professional', 'story', 'short'] as const) {
+      const post = linkedInPost(award, URL_, tone);
+      expect(post).toContain('UST valuation workshop');
+      expect(post).not.toContain('graded on submitted work');
+    }
+    expect(profileDescription(award, URL_)).toMatch(/^Awarded by FINLAB PH: Completed/);
+    expect(resumeLine(award)).toContain('awarded by FINLAB PH');
   });
 
   it('encodes the post for the share composer', () => {

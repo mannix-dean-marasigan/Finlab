@@ -140,6 +140,7 @@ src/
    then `supabase/migrations/20261007000009_anon_function_lockdown.sql`
    then `supabase/migrations/20261007000010_engagement.sql` (flashcards, peer review, capstones, daily challenge, XP/streaks, analytics)
    then `supabase/migrations/20261008000011_invite_codes.sql` (closed-beta invite codes; sign-up requires a code by default — manage in Admin → Invites)
+   then `supabase/migrations/20261009000012_certificate_awards.sql` (admin-awarded and test certificates — Admin → Certificates)
 9. `supabase/seed.sql`
 10. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
 11. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)

@@ -90,7 +90,8 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
   }, [params]);
 
   const description = profileDescription(c, verifyUrl);
-  const skills = c.kind === 'competition' ? [] : programCopy(c).skills;
+  // Skills are only suggested for certificates earned through the graded program.
+  const skills = c.kind === 'competition' || c.issue_type === 'admin_award' ? [] : programCopy(c).skills;
   const resume = resumeLine(c);
 
   const openPost = async () => {
@@ -116,6 +117,12 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
         </div>
       </div>
 
+      {c.issue_type === 'test' && (
+        <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
+          This is a <strong>test certificate</strong>. Use the buttons to check how LinkedIn handles them, but don't publish the post or keep it on your
+          profile — its verification page says it is not a credential.
+        </div>
+      )}
       <div className="mt-5 space-y-6">
         <Step n={1} title="Add the certificate to your profile">
           <p className="text-xs text-fg-muted">Opens LinkedIn's "Add licence or certification" form with the name, issuer, date, credential ID and verification link filled in.</p>

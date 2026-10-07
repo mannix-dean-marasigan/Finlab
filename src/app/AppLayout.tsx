@@ -13,6 +13,7 @@ import { useIsAdmin, useMyProfile, useMyStats, useReference } from './queries';
 import { listNotifications, markNotificationsRead } from '@/services/api/misc';
 import { PageSkeleton } from '@/components/ui/states';
 import { FeedbackButton } from '@/features/feedback/FeedbackButton';
+import { LINKEDIN_PAGE_URL } from '@/lib/brand';
 
 interface NavItem {
   to: string;
@@ -375,6 +376,7 @@ export function AppLayout() {
           <span>FINLAB beta · Educational simulation — not investment advice</span>
           <Link to="/terms" className="hover:text-fg">Terms</Link>
           <Link to="/privacy" className="hover:text-fg">Privacy</Link>
+          <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>
         </footer>
         <FeedbackButton />
       </div>

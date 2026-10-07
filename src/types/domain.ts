@@ -804,6 +804,9 @@ export interface CertificateView {
   issued_at: string;
   revoked_at: string | null;
   revoked_reason: string | null;
+  /** earned = automatic from scored work; admin_award = issued by an admin; test = admin test, not a credential. */
+  issue_type?: 'earned' | 'admin_award' | 'test';
+  award_reason?: string | null;
   handle: string | null;
   program: { title: string; level: string; estimated_hours: number; description: string } | null;
   competition: { name: string; ends_at: string } | null;
@@ -814,6 +817,7 @@ export interface CertificateSummary {
   title: string;
   subtitle: string;
   issued_at: string;
+  issue_type?: CertificateView['issue_type'];
 }
 export interface FeedbackItem {
   id: string;

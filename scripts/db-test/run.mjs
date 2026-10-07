@@ -841,6 +841,41 @@ async function main() {
   ok((await rpc(null, 'check_invite_code', [null])).required === false, 'form knows sign-up is open');
 
   // ------------------------------------------------------------------
+  section('Admin-awarded and test certificates');
+  ok((await db.query(`select count(*)::int n from certificates where issue_type <> 'earned'`)).rows[0].n === 0, 'existing certificates are marked as earned');
+  const evp = (await db.query(`select id from certification_programs where slug = 'equity-valuation-analyst'`)).rows[0].id;
+  await expectError(carol, `select public.admin_award_certificate($1, $2, null, 'Workshop attendance award')`, [alice, evp], 'learners cannot award certificates', 'Admin access required');
+  await expectError(bob, `select public.admin_award_certificate($1, $2, null, 'short')`, [alice, evp], 'an award needs a real reason', 'at least 10 characters');
+  const awardCode = await rpc(bob, 'admin_award_certificate', [alice, evp, null, 'Completed the in-person UST valuation workshop']);
+  ok(/^FLB-[A-Z0-9]{4}-[A-Z0-9]{4}$/.test(awardCode ?? ''), 'admin awards a program certificate', awardCode);
+  const awardView = await rpc(null, 'verify_certificate', [awardCode]);
+  ok(awardView.issue_type === 'admin_award' && /UST valuation workshop/.test(awardView.award_reason), 'verification page states it was awarded, with the reason', awardView.issue_type);
+  await expectError(bob, `select public.admin_award_certificate($1, $2, null, 'Completed the in-person workshop again')`, [alice, evp], 'no duplicate certificate for the same program', 'already holds');
+  const customCode = await rpc(bob, 'admin_award_certificate', [alice, null, 'UST Valuation Workshop 2026', 'Attended and presented at the UST valuation workshop']);
+  const customView = await rpc(null, 'verify_certificate', [customCode]);
+  ok(customView.title === 'UST Valuation Workshop 2026' && customView.subtitle === 'Awarded by FINLAB PH', 'custom-titled award (e.g. a workshop)', customView.title);
+  const aliceHandle = (await db.query(`select handle from profiles where id = $1`, [alice])).rows[0].handle;
+  const aliceCerts = await rpc(null, 'get_user_certificates', [aliceHandle]);
+  ok(aliceCerts.some((c) => c.code === awardCode && c.issue_type === 'admin_award'), 'awarded certificates appear on the passport, labelled');
+  ok((await db.query(`select 1 from user_achievements where user_id = $1 and achievement_id = 'first_certificate'`, [alice])).rows.length === 1, 'awards count toward the Certified badge');
+  ok((await db.query(`select count(*)::int n from notifications where user_id = $1 and title like 'Certificate awarded:%'`, [alice])).rows[0].n === 2, 'recipient is notified');
+
+  await expectError(carol, `select public.admin_create_test_certificate($1)`, [evp], 'learners cannot create test certificates', 'Admin access required');
+  const testCode = await rpc(bob, 'admin_create_test_certificate', [cert]);
+  const testView = await rpc(null, 'verify_certificate', [testCode]);
+  ok(testView.issue_type === 'test' && testView.program?.title === 'Financial Statement Analyst' && testView.handle === null, 'test certificate verifies, clearly marked, without linking a passport', testView);
+  const bobHandle = (await db.query(`select handle from profiles where id = $1`, [bob])).rows[0].handle;
+  ok(!(await rpc(bob, 'get_user_certificates', [bobHandle])).some((c) => c.code === testCode), 'test certificates never appear on the passport');
+  ok(Number((await db.query(`select public.user_metric($1, 'certificates_earned') v`, [bob])).rows[0].v) === 0, 'test certificates do not count toward achievements');
+  ok((await rpc(bob, 'get_program', ['financial-statement-analyst'])).certificate_code === null, 'a test does not mark the program as earned');
+  ok(Number((await rpc(bob, 'admin_analytics', [30])).funnel.find((f) => f.step === 'Earned a certificate').users) === 2, 'analytics ignore test certificates');
+  await expectError(carol, `select public.admin_delete_test_certificate($1)`, [testCode], 'learners cannot delete certificates', 'Admin access required');
+  await expectError(bob, `select public.admin_delete_test_certificate($1)`, [awardCode], 'real certificates cannot be deleted (only revoked)', 'Only test certificates');
+  await rpc(bob, 'admin_delete_test_certificate', [testCode]);
+  ok((await rpc(null, 'verify_certificate', [testCode])) === null, 'test certificate deleted');
+  await expectError(null, `select public.admin_award_certificate($1, $2, null, 'Anonymous award attempt here')`, [alice, evp], 'anon cannot award certificates', 'permission denied');
+
+  // ------------------------------------------------------------------
   section('Feedback & account deletion');
   await q(carol, `insert into feedback (category, message, page) values ('bug', 'The chart overlaps on mobile', '/dashboard')`);
   ok((await q(alice, `select count(*)::int n from feedback`)).rows[0].n === 0, "users can't read others' feedback");

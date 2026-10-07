@@ -331,12 +331,25 @@ export interface AdminCertificate {
   issued_at: string;
   revoked_at: string | null;
   revoked_reason: string | null;
+  issue_type: 'earned' | 'admin_award' | 'test';
+  award_reason: string | null;
 }
 export async function adminListCertificates(): Promise<AdminCertificate[]> {
   return unwrap(await supabase.from('certificates').select('*').order('issued_at', { ascending: false }).limit(500)) as AdminCertificate[];
 }
 export async function adminRevokeCertificate(code: string, reason: string) {
   unwrap(await supabase.rpc('admin_revoke_certificate', { p_code: code, p_reason: reason }));
+}
+/** Award a program certificate (programId) or a custom-titled one (title), with a public reason. */
+export async function adminAwardCertificate(userId: string, programId: string | null, title: string | null, reason: string): Promise<string> {
+  return unwrap(await supabase.rpc('admin_award_certificate', { p_user: userId, p_program: programId, p_title: title, p_reason: reason })) as string;
+}
+/** A clearly-marked test certificate for the signed-in admin. */
+export async function adminCreateTestCertificate(programId: string): Promise<string> {
+  return unwrap(await supabase.rpc('admin_create_test_certificate', { p_program: programId })) as string;
+}
+export async function adminDeleteTestCertificate(code: string) {
+  unwrap(await supabase.rpc('admin_delete_test_certificate', { p_code: code }));
 }
 
 // ------------------------------------------------------------ Feedback

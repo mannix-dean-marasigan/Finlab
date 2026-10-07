@@ -1,7 +1,7 @@
 import { useParams } from 'react-router';
 import { Link } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
-import { BadgeCheck, Copy, ExternalLink, Printer, ShieldAlert, ShieldCheck } from 'lucide-react';
+import { BadgeCheck, Copy, ExternalLink, FlaskConical, Printer, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { verifyCertificate } from '@/services/api/misc';
 import type { CertificateView } from '@/types/domain';
@@ -10,6 +10,7 @@ import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/states';
 import { PublicShell } from '@/features/passport/PublicPassportPage';
 import { fmtDate } from '@/lib/format';
 import { appUrl } from '@/lib/utils';
+import { ISSUER_NAME, LINKEDIN_PAGE_URL } from '@/lib/brand';
 import { linkedInAddCertUrl } from './shareContent';
 import { ShareKit } from './ShareKit';
 
@@ -18,6 +19,8 @@ const KIND_LABEL = { certification: 'Professional Certification', track: 'Learni
 /** Paper-style certificate; prints cleanly on A4 landscape. */
 export function CertificateDocument({ c, preview }: { c: CertificateView; preview?: boolean }) {
   const revoked = !!c.revoked_at;
+  const isTest = c.issue_type === 'test';
+  const isAward = c.issue_type === 'admin_award';
   const detail =
     c.kind === 'competition'
       ? c.subtitle
@@ -28,6 +31,13 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
     <div className="certificate-paper relative mx-auto aspect-[1.414/1] w-full max-w-4xl overflow-hidden rounded-md bg-[#fbf8f1] text-[#1a1d23] shadow-2xl print:max-w-none print:rounded-none print:shadow-none">
       <div className="absolute inset-3 rounded-sm border-2 border-[#c8922a] sm:inset-5" />
       <div className="absolute inset-[18px] rounded-sm border border-[#c8922a]/50 sm:inset-[28px]" />
+      {isTest && !revoked && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+          <span className="rotate-[-14deg] select-none whitespace-nowrap rounded border-4 border-amber-600/50 px-4 py-1.5 text-base font-bold tracking-[0.2em] text-amber-600/55 sm:px-6 sm:py-2 sm:text-3xl">
+            TEST · NOT A CREDENTIAL
+          </span>
+        </div>
+      )}
       {preview && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
           <span className="rotate-[-18deg] select-none rounded border-4 border-[#c8922a]/40 px-6 py-2 text-3xl font-bold tracking-[0.3em] text-[#c8922a]/40 sm:text-6xl">PREVIEW</span>
@@ -59,7 +69,7 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
           </div>
           <div className="mx-auto mt-2 h-px w-2/3 bg-[#c8922a]/60 sm:mt-4" />
           <div className="mt-2 text-[0.6rem] text-[#6b6f78] sm:mt-4 sm:text-sm">
-            {c.kind === 'competition' ? 'achieved the following result in' : 'has successfully completed all requirements of'}
+            {c.kind === 'competition' ? 'achieved the following result in' : isAward ? 'has been awarded' : 'has successfully completed all requirements of'}
           </div>
           <div className="mt-1 text-base font-semibold sm:mt-2 sm:text-3xl">{c.title}</div>
           {detail && <div className="mt-1 text-[0.6rem] text-[#6b6f78] sm:mt-2 sm:text-sm">{detail}</div>}
@@ -71,7 +81,7 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
           </div>
           <div className="flex flex-col items-center">
             <BadgeCheck className="h-6 w-6 text-[#c8922a] sm:h-10 sm:w-10" />
-            <div className="mt-1 uppercase tracking-wider">Verified by FINLAB</div>
+            <div className="mt-1 uppercase tracking-wider">Verified by {ISSUER_NAME}</div>
           </div>
           <div className="text-right">
             <div className="uppercase tracking-wider">Verification code</div>
@@ -97,17 +107,35 @@ export default function VerifyCertificatePage() {
         <EmptyState icon={<ShieldAlert className="h-5 w-5" />} title="Certificate not found" description={`No FINLAB certificate matches the code "${code}". Check the code and try again.`} />
       ) : (
         <div className="space-y-6">
-          <div className={`no-print flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${q.data.revoked_at ? 'border-down/40 bg-down-muted' : 'border-up/40 bg-up-muted'}`}>
+          <div
+            className={`no-print flex flex-col gap-3 rounded-lg border p-4 sm:flex-row sm:items-center sm:justify-between ${
+              q.data.revoked_at ? 'border-down/40 bg-down-muted' : q.data.issue_type === 'test' ? 'border-amber-500/40 bg-amber-500/10' : 'border-up/40 bg-up-muted'
+            }`}
+          >
             <div className="flex items-start gap-3">
-              {q.data.revoked_at ? <ShieldAlert className="h-6 w-6 shrink-0 text-down" /> : <ShieldCheck className="h-6 w-6 shrink-0 text-up" />}
+              {q.data.revoked_at ? (
+                <ShieldAlert className="h-6 w-6 shrink-0 text-down" />
+              ) : q.data.issue_type === 'test' ? (
+                <FlaskConical className="h-6 w-6 shrink-0 text-amber-400" />
+              ) : (
+                <ShieldCheck className="h-6 w-6 shrink-0 text-up" />
+              )}
               <div>
-                <div className={`font-semibold ${q.data.revoked_at ? 'text-down' : 'text-up'}`}>
-                  {q.data.revoked_at ? 'This certificate has been revoked' : 'Verified FINLAB certificate'}
+                <div className={`font-semibold ${q.data.revoked_at ? 'text-down' : q.data.issue_type === 'test' ? 'text-amber-400' : 'text-up'}`}>
+                  {q.data.revoked_at
+                    ? 'This certificate has been revoked'
+                    : q.data.issue_type === 'test'
+                      ? 'Test certificate — not a credential'
+                      : `Verified ${ISSUER_NAME} certificate`}
                 </div>
                 <div className="text-sm text-fg-muted">
                   {q.data.revoked_at
                     ? `Revoked ${fmtDate(q.data.revoked_at)}${q.data.revoked_reason ? ` — ${q.data.revoked_reason}` : ''}.`
-                    : `Issued to ${q.data.recipient_name} on ${fmtDate(q.data.issued_at)}. Issued automatically from scored work; it cannot be edited by its holder.`}
+                    : q.data.issue_type === 'test'
+                      ? 'Created by a FINLAB PH administrator to test certificates and sharing. It does not represent completed work.'
+                      : q.data.issue_type === 'admin_award'
+                        ? `Awarded to ${q.data.recipient_name} by a ${ISSUER_NAME} administrator on ${fmtDate(q.data.issued_at)}${q.data.award_reason ? ` — ${q.data.award_reason}` : ''}. It cannot be edited by its holder.`
+                        : `Issued to ${q.data.recipient_name} on ${fmtDate(q.data.issued_at)}. Issued automatically from scored work; it cannot be edited by its holder.`}
                   {q.data.handle && (
                     <>
                       {' '}
@@ -150,6 +178,11 @@ export default function VerifyCertificatePage() {
             Tip: in the print dialog choose "Save as PDF", landscape orientation, and turn off headers/footers.
           </p>
           <ShareKit c={q.data} />
+          <p className="no-print text-center text-xs text-fg-subtle">
+            <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-accent">
+              Follow {ISSUER_NAME} on LinkedIn
+            </a>
+          </p>
         </div>
       )}
     </PublicShell>
