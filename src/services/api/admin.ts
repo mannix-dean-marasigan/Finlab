@@ -366,3 +366,39 @@ export async function adminUpdateSecurityPrice(id: string, price: number, prevCl
       .eq('id', id),
   );
 }
+
+// ------------------------------------------------------------ Invite codes (closed beta)
+export interface AdminInvite {
+  code: string;
+  label: string;
+  max_uses: number | null;
+  uses: number;
+  expires_at: string | null;
+  is_active: boolean;
+  created_at: string;
+  /** 'ok' or the reason the code can't be used right now. */
+  status: string;
+  redeemed_by: { full_name: string | null; handle: string | null; redeemed_at: string }[];
+}
+export async function adminListInvites(): Promise<AdminInvite[]> {
+  return unwrap(await supabase.rpc('admin_list_invites')) as AdminInvite[];
+}
+export async function adminCreateInvite(input: { code: string; label: string; max_uses: number | null; expires_at: string | null }) {
+  const res = await supabase.from('invite_codes').insert(input);
+  if (res.error?.code === '23505') throw new Error('That code already exists — pick another.');
+  if (res.error?.code === '23514') throw new Error('Codes use 4–40 capital letters, numbers or hyphens.');
+  unwrap(res);
+}
+export async function adminSetInviteActive(code: string, active: boolean) {
+  unwrap(await supabase.from('invite_codes').update({ is_active: active }).eq('code', code));
+}
+export async function adminDeleteInvite(code: string) {
+  unwrap(await supabase.from('invite_codes').delete().eq('code', code));
+}
+export async function fetchInviteRequired(): Promise<boolean> {
+  const rows = unwrap(await supabase.from('app_settings').select('value').eq('key', 'require_invite_code')) as { value: unknown }[];
+  return Number(rows[0]?.value ?? 0) >= 1;
+}
+export async function adminSetInviteRequired(required: boolean) {
+  unwrap(await supabase.from('app_settings').update({ value: required ? 1 : 0 }).eq('key', 'require_invite_code'));
+}

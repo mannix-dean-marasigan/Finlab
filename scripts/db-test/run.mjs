@@ -206,7 +206,8 @@ async function main() {
   // The main flow below submits many times in quick succession; relax the
   // anti-gaming limits here and test them explicitly later.
   await db.exec(`update app_settings set value = '0' where key in ('retry_cooldown_minutes', 'lesson_retry_seconds', 'activity_retry_seconds');
-                 update app_settings set value = '1000' where key = 'max_daily_submissions';`);
+                 update app_settings set value = '1000' where key = 'max_daily_submissions';
+                 update app_settings set value = '0' where key = 'require_invite_code';`);
 
   // ------------------------------------------------------------------
   section('1. Register → profile bootstrap');
@@ -798,6 +799,46 @@ async function main() {
   ok(an.funnel.length === 6 && Number(an.funnel[0].users) === 3 && an.days.length >= 30, 'funnel + daily series', an.funnel.map((f) => f.users));
   ok(an.hardest_questions.length > 0 && an.hardest_questions[0].prompt, 'per-question item analysis from stored results', an.hardest_questions[0]);
   ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 8, 'activity + programs summary', [an.daily, an.active_7d]);
+
+  // ------------------------------------------------------------------
+  section('Invite codes (closed beta)');
+  const signUp = (email, code) =>
+    db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)`, [randomUUID(), email, JSON.stringify({ full_name: 'Invitee', ...(code ? { invite_code: code } : {}) })]);
+  const signUpError = async (email, code, name, pattern) => {
+    try {
+      await signUp(email, code);
+      ok(false, name, 'sign-up unexpectedly succeeded');
+    } catch (e) {
+      ok(new RegExp(pattern, 'i').test(e.message), name, e.message);
+    }
+  };
+  await db.exec(`update app_settings set value = '1' where key = 'require_invite_code'`);
+  await signUpError('nocode@example.com', null, 'closed beta: sign-up without a code is rejected', 'invite code is required');
+  await signUpError('badcode@example.com', 'NOPE-1234', 'unknown code rejected', "doesn't exist");
+  const chk0 = await rpc(null, 'check_invite_code', ['nope-1234']);
+  ok(chk0.required === true && chk0.valid === false && /exist/.test(chk0.message), 'anon form check explains a bad code', chk0);
+  await expectError(carol, `insert into invite_codes (code) values ('HACK-0001')`, [], 'learners cannot create invite codes', 'row-level security');
+  await q(bob, `insert into invite_codes (code, label, max_uses) values ('BETA-UST1', 'UST pilot', 1)`);
+  await q(bob, `insert into invite_codes (code, expires_at) values ('OLD-CODE1', now() - interval '1 day')`);
+  ok((await rpc(null, 'check_invite_code', ['  beta-ust1 '])).valid === true, 'code check is case- and space-insensitive');
+  await signUp('invitee1@example.com', 'beta-ust1');
+  const red = (await db.query(`select r.code, c.uses from invite_redemptions r join invite_codes c on c.code = r.code join auth.users u on u.id = r.user_id where u.email = 'invitee1@example.com'`)).rows[0];
+  ok(red?.code === 'BETA-UST1' && red.uses === 1, 'valid code signs up, records redemption and counts the use', red);
+  ok((await db.query(`select count(*)::int n from profiles p join auth.users u on u.id = p.id where u.email = 'invitee1@example.com'`)).rows[0].n === 1, 'invited user gets a profile');
+  await signUpError('invitee2@example.com', 'BETA-UST1', 'usage limit enforced', 'maximum number');
+  await signUpError('invitee3@example.com', 'OLD-CODE1', 'expired code rejected', 'expired');
+  await q(bob, `update invite_codes set is_active = false where code = 'BETA-UST1'`);
+  ok(/switched off/.test((await rpc(null, 'check_invite_code', ['BETA-UST1'])).message), 'switched-off code reported');
+  const invites = await rpc(bob, 'admin_list_invites');
+  const ust = invites.find((i) => i.code === 'BETA-UST1');
+  ok(ust && ust.redeemed_by.length === 1 && ust.redeemed_by[0].full_name === 'Invitee' && ust.status !== 'ok', 'admin sees codes, status and who joined', ust);
+  await expectError(carol, `select public.admin_list_invites()`, [], 'invite list is admin-only', 'Admin access required');
+  await expectError(null, `select public.admin_list_invites()`, [], 'anon cannot list invites', 'permission denied');
+  ok((await q(carol, `select count(*)::int n from invite_codes`)).rows[0].n === 0, 'learners cannot read invite codes');
+  await db.exec(`update app_settings set value = '0' where key = 'require_invite_code'`);
+  await signUp('open@example.com', null);
+  ok(true, 'open sign-up works when the requirement is off');
+  ok((await rpc(null, 'check_invite_code', [null])).required === false, 'form knows sign-up is open');
 
   // ------------------------------------------------------------------
   section('Feedback & account deletion');
