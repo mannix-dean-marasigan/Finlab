@@ -2,9 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link } from 'react-router';
 import { BadgeCheck, Share2, X } from 'lucide-react';
-import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
-import { appUrl } from '@/lib/utils';
 
 const COLORS = ['#f5a524', '#ffb84d', '#22c55e', '#3b82f6', '#a78bfa', '#e6edf3'];
 const seenKey = (code: string) => `finlab:celebrated:${code}`;
@@ -75,18 +73,6 @@ export function CertificateCelebration({ code, title }: { code: string | null; t
   });
 
   if (!open || !code) return null;
-  const verifyUrl = appUrl(`/verify/${code}`);
-  const share = async () => {
-    try {
-      if (navigator.share) await navigator.share({ title, text: `I just earned "${title}" on FINLAB`, url: verifyUrl });
-      else {
-        await navigator.clipboard.writeText(verifyUrl);
-        toast.success('Verification link copied');
-      }
-    } catch {
-      /* user cancelled */
-    }
-  };
 
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-label="Certificate earned">
@@ -110,9 +96,11 @@ export function CertificateCelebration({ code, title }: { code: string | null; t
               <BadgeCheck className="h-4 w-4" /> View certificate
             </Button>
           </Link>
-          <Button onClick={share}>
-            <Share2 className="h-4 w-4" /> Share
-          </Button>
+          <Link to={`/verify/${code}?share=1`} onClick={close}>
+            <Button className="w-full justify-center">
+              <Share2 className="h-4 w-4" /> Share on LinkedIn
+            </Button>
+          </Link>
         </div>
       </div>
     </div>,

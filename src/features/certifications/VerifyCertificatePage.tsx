@@ -10,6 +10,8 @@ import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/states';
 import { PublicShell } from '@/features/passport/PublicPassportPage';
 import { fmtDate } from '@/lib/format';
 import { appUrl } from '@/lib/utils';
+import { linkedInAddCertUrl } from './shareContent';
+import { ShareKit } from './ShareKit';
 
 const KIND_LABEL = { certification: 'Professional Certification', track: 'Learning Track Certificate', competition: 'Competition Certificate' } as const;
 
@@ -82,20 +84,6 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
   );
 }
 
-function linkedInUrl(c: CertificateView) {
-  const d = new Date(c.issued_at);
-  const params = new URLSearchParams({
-    startTask: 'CERTIFICATION_NAME',
-    name: c.title,
-    organizationName: 'FINLAB',
-    issueYear: String(d.getFullYear()),
-    issueMonth: String(d.getMonth() + 1),
-    certUrl: appUrl(`/verify/${c.code}`),
-    certId: c.code,
-  });
-  return `https://www.linkedin.com/profile/add?${params.toString()}`;
-}
-
 export default function VerifyCertificatePage() {
   const { code = '' } = useParams();
   const q = useQuery({ queryKey: ['certificate', code], queryFn: () => verifyCertificate(code) });
@@ -147,13 +135,11 @@ export default function VerifyCertificatePage() {
                 >
                   <Copy className="h-4 w-4" /> Copy link
                 </Button>
-                {q.data.kind !== 'competition' && (
-                  <a href={linkedInUrl(q.data)} target="_blank" rel="noreferrer noopener">
-                    <Button size="sm">
-                      <ExternalLink className="h-4 w-4" /> Add to LinkedIn
-                    </Button>
-                  </a>
-                )}
+                <a href={linkedInAddCertUrl(q.data, appUrl(`/verify/${q.data.code}`))} target="_blank" rel="noreferrer noopener">
+                  <Button size="sm">
+                    <ExternalLink className="h-4 w-4" /> Add to LinkedIn
+                  </Button>
+                </a>
               </div>
             )}
           </div>
@@ -163,6 +149,7 @@ export default function VerifyCertificatePage() {
           <p className="no-print text-center text-xs text-fg-subtle">
             Tip: in the print dialog choose "Save as PDF", landscape orientation, and turn off headers/footers.
           </p>
+          <ShareKit c={q.data} />
         </div>
       )}
     </PublicShell>
