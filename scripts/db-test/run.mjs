@@ -1091,6 +1091,91 @@ async function main() {
   ok(!(await db.query(`select 1 from user_achievements where user_id = $1 and achievement_id = 'tutorial_complete'`, [fresh])).rows.length, 'automatic achievement checks never grant it');
   await expectError(null, `select public.complete_tutorial()`, [], 'anon cannot complete the tutorial', 'permission denied');
 
+  // ------------------------------------------------------------------
+  section('Trading Floor');
+  const trader = await createUser('trader@example.com', 'Tina Trader');
+  const rival = await createUser('rival@example.com', 'Rico Rival');
+  const path = (await db.query(`select public.tf_path('test-seed', 260) as p`)).rows[0].p;
+  const path2 = (await db.query(`select public.tf_path('test-seed', 260) as p`)).rows[0].p;
+  ok(JSON.stringify(path) === JSON.stringify(path2) && path.length === 260, 'price paths are deterministic');
+  ok(path.every(([o, h, l, c, v]) => +h >= Math.max(+o, +c) && +l <= Math.min(+o, +c) && +l > 0 && v > 0), 'every candle is valid (high ≥ open/close ≥ low > 0)');
+
+  let tr = await rpc(trader, 'tf_start_round', ['practice']);
+  ok(tr.candles.length === 120 && tr.cursor === 119 && !('series' in tr), 'a round shows 120 candles and never the hidden rest');
+  ok((await rpc(trader, 'tf_start_round', ['practice'])).id === tr.id, 'starting again resumes the unfinished practice round');
+  ok(!(await q(trader, `select * from tf_rounds`)).rows.length, 'players cannot read round rows (future prices) directly');
+  await expectError(rival, `select public.tf_get_round($1)`, [tr.id], "others cannot open someone else's round", 'not found');
+
+  const px0 = +tr.price;
+  tr = await rpc(trader, 'tf_order', [tr.id, 'buy', 100]);
+  ok(+tr.qty === 100 && Math.abs(+tr.cash - (100000 - 100 * px0 - Math.round(100 * px0 * 0.1) / 100)) < 0.02, 'market buy fills at the current close with a 0.1% fee', [tr.cash]);
+  await expectError(trader, `select public.tf_order($1, 'buy', $2)`, [tr.id, Math.ceil(100000 / px0) + 10], 'no leverage: cannot buy past 100% of equity', 'buying power');
+  await expectError(trader, `select public.tf_order($1, 'buy', 1.5)`, [tr.id], 'whole shares only', 'whole number');
+  await expectError(trader, `select public.tf_set_exits($1, $2, null)`, [tr.id, px0 * 1.1], 'a long stop must be below the price', 'below the price');
+  tr = await rpc(trader, 'tf_set_exits', [tr.id, Math.round(px0 * 0.9 * 100) / 100, Math.round(px0 * 1.2 * 100) / 100]);
+  ok(tr.stop_price !== null && tr.take_price !== null, 'stop-loss and take-profit set');
+  const adv = await rpc(trader, 'tf_advance', [tr.id, 5]);
+  ok(adv.cursor === 124 && adv.from === 120 && adv.candles.length === 5, 'advancing reveals only the new candles');
+  tr = await rpc(trader, 'tf_order', [tr.id, 'sell', 300]);
+  ok(+tr.qty === -200 && tr.stop_price === null, 'selling past the position goes short and clears old exits');
+  tr = await rpc(trader, 'tf_finish', [tr.id]);
+  ok(tr.status === 'finished' && +tr.qty === 0 && Math.abs(+tr.score - (+tr.return_pct - 0.5 * +tr.max_drawdown)) < 0.011, 'finishing closes the position and scores return minus half the drawdown', [tr.return_pct, tr.max_drawdown, tr.score]);
+  await expectError(trader, `select public.tf_order($1, 'buy', 1)`, [tr.id], 'no trading after a round ends', 'over');
+
+  // Stops: a tight stop on a long triggers and closes the position at or below the stop.
+  let tr2 = await rpc(trader, 'tf_start_round', ['practice']);
+  ok(tr2.id !== tr.id, 'a new practice round after finishing');
+  tr2 = await rpc(trader, 'tf_order', [tr2.id, 'buy', 50]);
+  const tight = Math.round(+tr2.price * 0.999 * 1000) / 1000;
+  tr2 = await rpc(trader, 'tf_set_exits', [tr2.id, tight, null]);
+  for (let guard = 0; guard < 140 && +tr2.qty !== 0 && tr2.status === 'active'; guard++) tr2 = await rpc(trader, 'tf_advance', [tr2.id, 1]);
+  const full = await rpc(trader, 'tf_get_round', [tr2.id]);
+  const stopFill = full.fills.find((f) => f.reason === 'stop');
+  ok(stopFill && +stopFill.price <= tight + 1e-9 && +full.qty === 0, 'a stop-loss triggers inside a candle (gaps fill at the open)', stopFill);
+  for (let guard = 0; guard < 20 && tr2.status === 'active'; guard++) tr2 = await rpc(trader, 'tf_advance', [tr2.id, 20]);
+  ok(tr2.status === 'finished' && tr2.cursor === 259, 'a round ends itself on the last candle');
+  ok((await rpc(trader, 'tf_my_rounds', [10])).length === 2, 'round history');
+
+  // Weekly challenge: same chart for everyone, one attempt, ranked.
+  const w1 = await rpc(trader, 'tf_start_round', ['weekly']);
+  const w2 = await rpc(rival, 'tf_start_round', ['weekly']);
+  ok(w1.symbol === w2.symbol && JSON.stringify(w1.candles) === JSON.stringify(w2.candles), 'the weekly chart is identical for everyone');
+  await rpc(trader, 'tf_order', [w1.id, 'buy', 100]);
+  await rpc(trader, 'tf_advance', [w1.id, 20]);
+  await rpc(trader, 'tf_finish', [w1.id]);
+  await rpc(rival, 'tf_finish', [w2.id]);
+  const again = await rpc(trader, 'tf_start_round', ['weekly']);
+  ok(again.id === w1.id && again.status === 'finished', 'one weekly attempt per person');
+  const tlb = (await q(trader, `select * from tf_weekly_leaderboard(50)`)).rows;
+  ok(tlb.length === 2 && tlb.some((x) => x.is_me) && !JSON.stringify(tlb).includes('@'), 'weekly trading leaderboard ranks finished attempts without emails');
+  await expectError(null, `select public.tf_start_round('practice')`, [], 'anon cannot trade', 'permission denied');
+  await expectError(trader, `select public.tf_path('x', 10)`, [], 'internal price functions are not callable', 'permission denied');
+
+  // Live market
+  const tick = await rpc(trader, 'tf_live_tickers');
+  ok(tick.length === 6 && tick.every((t) => +t.price > 0), 'six live tickers with prices');
+  const lc = await rpc(trader, 'tf_live_candles', ['MNLX', 200]);
+  const nowIdx = (await db.query(`select public.tf_now_index() as n`)).rows[0].n;
+  ok(lc.candles.length === 200 && lc.candles.at(-1)[0] === nowIdx, 'live candles end at the current hour, never later');
+  const cached = (await db.query(`select o, h, l, c from tf_candles where symbol = 'MNLX' and i = 100`)).rows[0];
+  await db.query(`delete from tf_candles where symbol = 'MNLX'`);
+  await rpc(trader, 'tf_live_candles', ['MNLX', 50]);
+  const again100 = (await db.query(`select o, h, l, c from tf_candles where symbol = 'MNLX' and i = 100`)).rows[0];
+  ok(JSON.stringify(cached) === JSON.stringify(again100), 'live candles rebuild identically (the table is only a cache)');
+  let acct = await rpc(trader, 'tf_live_account');
+  ok(+acct.cash === 1000000 && acct.positions.length === 0, 'a live account starts with ₱1,000,000');
+  acct = await rpc(trader, 'tf_live_trade', ['MNLX', 'buy', 100]);
+  ok(acct.positions.length === 1 && +acct.positions[0].qty === 100, 'live buy opens a position');
+  await expectError(trader, `select public.tf_live_trade('KAWI', 'buy', 1000000)`, [], 'live account has no leverage either', 'buying power');
+  const liveMn = +acct.positions[0].price;
+  acct = await rpc(trader, 'tf_live_set_exits', ['MNLX', Math.round(liveMn * 0.8 * 100) / 100, null]);
+  ok(acct.positions[0].stop_price !== null, 'live stop-loss set');
+  acct = await rpc(trader, 'tf_live_trade', ['MNLX', 'sell', 100]);
+  ok(acct.positions.length === 0 && acct.trades.length === 2, 'selling closes the live position');
+  acct = await rpc(trader, 'tf_live_trade', ['ARAW', 'sell', 10]);
+  ok(+acct.positions[0].qty === -10, 'live shorting works');
+  ok(!(await q(rival, `select * from tf_positions`)).rows.length && !(await q(rival, `select * from tf_accounts`)).rows.length, "players cannot read anyone's live account directly");
+
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {
     console.log('Failures:\n - ' + failures.join('\n - '));
