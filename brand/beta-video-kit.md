@@ -1,7 +1,10 @@
 # FINLAB PH beta intro video kit
 
-Free tools only: Higgsfield (free credits), Clipchamp (built into Windows 11).
-Screen clips are already recorded in `recordings/` (01–08).
+Free tools only: Clipchamp (built into Windows 11). Everything else is already recorded in `recordings/`:
+`00-intro` (animated hook + logo), `01`–`08` (the app), `09-outro` (call to action).
+Re-record the cards with `node scripts/record-cards.mjs`, the app clips with `node scripts/record-demo.mjs`.
+
+Higgsfield is optional: its free plan has 10 credits and a video costs about 60, so the intro and outro are code-made instead.
 
 ## 1. Higgsfield clips (5 seconds each, never ask for text in the video)
 
@@ -18,7 +21,9 @@ If the logo comes out warped, skip B and animate the PNG in Clipchamp (zoom + fa
 
 ## 2. Timeline order in Clipchamp
 
-A → B → 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → C → end card
+00-intro → 01 → 02 → 03 → 04 → 05 → 06 → 07 → 08 → 09-outro
+
+(Optional: a free Pexels clip such as "student studying night laptop" before 00-intro.)
 
 Each screen clip ends with a 3–4 second hold; trim it.
 
@@ -26,8 +31,8 @@ Each screen clip ends with a 3–4 second hold; trim it.
 
 | Clip | Line |
 |---|---|
-| A | Finance classes teach you the theory. Very few let you practice it. |
-| B | This is FINLAB PH, the flight simulator for finance. |
+| 00-intro (text part) | Finance classes teach you the theory. Very few let you practice it. |
+| 00-intro (logo part) | This is FINLAB PH, the flight simulator for finance. |
 | 01 | Choose a certification: accounting, valuation, corporate finance, interview prep, and more. |
 | 02–03 | Each lesson has a short video, hands-on practice, and a ten-question check. |
 | 04 | Then you work through real-style cases, like building a trial balance or valuing a company. Every answer is scored. |
@@ -35,13 +40,12 @@ Each screen clip ends with a 3–4 second hold; trim it.
 | 06 | You can also bring your class or org and compete on your own private leaderboard. |
 | 07 | Pass the final exam and earn a certificate anyone can verify online, ready to add to LinkedIn. |
 | 08 | We're in closed beta. Finish five tasks on your dashboard to earn the Founding Beta Tester certificate. |
-| C | It's free. Message me for an invite code. |
+| 09-outro | It's free. Message me for an invite code. |
 
 ## 4. Finishing
 
 - Turn on auto captions (most people watch muted) and fix any spelling of FINLAB.
 - Music from the free Content library, volume about 15%.
-- End card, 3 seconds: dark background, logo, "Message me for an invite code".
 - Export 1080p.
 
 ## 5. LinkedIn post (upload the MP4 directly)
