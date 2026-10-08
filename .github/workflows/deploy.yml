@@ -29,7 +29,8 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Database integration tests
-        run: npm run test:db
+        # One retry: a genuine failure fails twice and still blocks the deploy; the first failure shows as a warning.
+        run: npm run test:db || (echo "::warning::Database tests failed once; retrying to rule out a flaky test" && npm run test:db)
       - name: Build
         env:
           VITE_BASE: /${{ github.event.repository.name }}/

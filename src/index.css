@@ -87,6 +87,8 @@
   .print-area { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
   .certificate-paper { width: 297mm !important; height: 210mm !important; aspect-ratio: auto !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .no-print { display: none !important; }
+  .print-report, .print-report * { visibility: visible; }
+  .print-report { position: absolute; left: 0; top: 0; width: 100%; margin: 0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
 
 /* Markdown rendering (lessons, briefs, reports) */

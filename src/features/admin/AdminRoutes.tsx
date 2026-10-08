@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router';
-import { Award, BadgeCheck, CalendarCheck, Layers, BarChart3, BookOpen, ClipboardCheck, Database, FlaskConical, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
+import { Award, BadgeCheck, CalendarCheck, FileText, Layers, BarChart3, BookOpen, ClipboardCheck, Database, FlaskConical, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AdminOverviewPage from './AdminOverviewPage';
 import AdminChallengesPage from './AdminChallengesPage';
@@ -22,10 +22,12 @@ import AdminBetaTestersPage from './AdminBetaTestersPage';
 import AdminFlashcardsPage from './AdminFlashcardsPage';
 import AdminDailyPage from './AdminDailyPage';
 import AdminClassesPage from './AdminClassesPage';
+import AdminReportPage from './AdminReportPage';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
   { to: '/admin/analytics', label: 'Analytics', icon: LineChart },
+  { to: '/admin/report', label: 'Weekly report', icon: FileText },
   { to: '/admin/challenges', label: 'Challenges', icon: Target },
   { to: '/admin/submissions', label: 'Review', icon: ClipboardCheck },
   { to: '/admin/capstones', label: 'Capstones', icon: MonitorPlay },
@@ -53,7 +55,7 @@ export default function AdminRoutes() {
         <BarChart3 className="h-5 w-5 text-violet" />
         <span className="font-mono text-xs uppercase tracking-[0.25em] text-violet">Admin console</span>
       </div>
-      <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-border">
+      <nav className="no-print mb-6 flex gap-1 overflow-x-auto border-b border-border">
         {LINKS.map((l) => (
           <NavLink
             key={l.to}
@@ -74,6 +76,7 @@ export default function AdminRoutes() {
         <Route path="challenges/:id" element={<AdminChallengeEditor />} />
         <Route path="submissions" element={<AdminSubmissionsPage />} />
         <Route path="analytics" element={<AdminAnalyticsPage />} />
+        <Route path="report" element={<AdminReportPage />} />
         <Route path="capstones" element={<AdminCapstonesPage />} />
         <Route path="competitions" element={<AdminCompetitionsPage />} />
         <Route path="achievements" element={<AdminAchievementsPage />} />

@@ -366,7 +366,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   const ref = useReference();
   const level = ref.data?.careerLevels.find((l) => l.id === stats.data?.career_level_id);
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur">
+    <header className="no-print sticky top-0 z-30 flex h-14 items-center gap-3 border-b border-border bg-bg/85 px-4 backdrop-blur">
       <button className="rounded-md p-2 text-fg-muted hover:bg-surface-3 lg:hidden" onClick={onMenu} aria-label="Open navigation">
         <Menu className="h-5 w-5" />
       </button>
@@ -421,7 +421,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <aside data-tour="sidebar" className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-surface lg:block">
+      <aside data-tour="sidebar" className="no-print fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-surface lg:block">
         <Sidebar />
       </aside>
       {drawer && (

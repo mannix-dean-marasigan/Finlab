@@ -56,6 +56,69 @@ function ManualAward({ tester, onClose }: { tester: AdminBetaTester; onClose: ()
   );
 }
 
+/** Testers who stopped before finishing: who they are, where they're stuck, and a reminder you can paste. */
+function NeedsNudge({ rows }: { rows: AdminBetaTester[] }) {
+  const DAY = 864e5;
+  const quiet = rows
+    .filter((r) => r.done < 5 && !r.certificate_code)
+    .map((r) => ({ r, days: Math.floor((Date.now() - new Date(r.last_sign_in_at ?? r.joined_at).getTime()) / DAY), next: r.items.find((i) => !i.done) }))
+    .filter((x) => x.days >= 3)
+    .sort((a, b) => b.days - a.days);
+  const stuck = rows
+    .filter((r) => r.done < 5)
+    .map((r) => r.items.find((i) => !i.done)?.label)
+    .filter(Boolean)
+    .reduce<Record<string, number>>((acc, l) => ((acc[l as string] = (acc[l as string] ?? 0) + 1), acc), {});
+  const top = Object.entries(stuck).sort((a, b) => b[1] - a[1])[0];
+  const message = (name: string, next?: string) =>
+    `Hi ${name.split(' ')[0]}! Thanks for joining the FINLAB PH beta. You're close to your Founding Beta Tester certificate.` +
+    (next ? ` Next up: ${next.toLowerCase()}.` : '') +
+    ` It only takes a few minutes: ${window.location.origin}${import.meta.env.BASE_URL}dashboard`;
+  return (
+    <Card className="p-4">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <div className="font-semibold">Needs a nudge</div>
+        {top && (
+          <span className="text-xs text-fg-muted">
+            Most common sticking point: <span className="text-fg">{top[0]}</span> ({top[1]} tester{top[1] === 1 ? '' : 's'})
+          </span>
+        )}
+      </div>
+      {!quiet.length ? (
+        <p className="mt-2 text-sm text-fg-muted">Nobody has gone quiet. Everyone unfinished signed in within the last 3 days.</p>
+      ) : (
+        <ul className="mt-3 divide-y divide-border">
+          {quiet.map(({ r, days, next }) => (
+            <li key={r.user_id} className="flex flex-wrap items-center gap-3 py-2.5">
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-medium">{r.full_name}</div>
+                <div className="text-xs text-fg-muted">
+                  {r.done}/5 done · quiet for {days} days{next ? ` · stuck on: ${next.label}` : ''}
+                </div>
+              </div>
+              <Button
+                size="xs"
+                variant="outline"
+                onClick={() =>
+                  navigator.clipboard
+                    .writeText(message(r.full_name, next?.label))
+                    .then(() => toast.success('Reminder copied. Paste it in Messenger or an email.'))
+                    .catch(() => toast.error('Could not copy'))
+                }
+              >
+                Copy reminder
+              </Button>
+              <a href={`mailto:${r.email}?subject=${encodeURIComponent('Your FINLAB PH beta certificate')}&body=${encodeURIComponent(message(r.full_name, next?.label))}`}>
+                <Button size="xs" variant="ghost">Email</Button>
+              </a>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export default function AdminBetaTestersPage() {
   const qc = useQueryClient();
   const list = useQuery({ queryKey: ['admin', 'beta-testers'], queryFn: adminBetaTesters });
@@ -67,7 +130,7 @@ export default function AdminBetaTestersPage() {
     onSuccess: (_, v) => {
       qc.invalidateQueries({ queryKey: ['admin', 'beta-open'] });
       qc.invalidateQueries({ queryKey: ['settings'] });
-      toast.success(v ? 'Beta checklist is open — testers can claim certificates' : 'Beta checklist closed — issued certificates stay valid');
+      toast.success(v ? 'Beta checklist is open. Testers can claim certificates.' : 'Beta checklist closed. Issued certificates stay valid.');
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -107,6 +170,8 @@ export default function AdminBetaTestersPage() {
           {isOpen ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />} {isOpen ? 'Close the beta checklist' : 'Open the beta checklist'}
         </Button>
       </Card>
+
+      <NeedsNudge rows={rows} />
 
       <Card>
         <div className="flex items-center justify-between gap-3 px-4 py-3">
