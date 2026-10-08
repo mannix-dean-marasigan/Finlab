@@ -408,7 +408,7 @@ export function AppLayout() {
           </Suspense>
         </main>
         <footer className="no-print mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 pb-16 pt-4 text-xs text-fg-subtle sm:px-6 lg:px-8">
-          <span>FINLAB beta · Educational simulation — not investment advice</span>
+          <span>FINLAB PH beta · Educational simulation — not investment advice</span>
           <Link to="/terms" className="hover:text-fg">Terms</Link>
           <Link to="/privacy" className="hover:text-fg">Privacy</Link>
           <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>

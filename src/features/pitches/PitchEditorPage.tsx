@@ -380,7 +380,7 @@ export default function PitchEditorPage() {
   useEffect(() => {
     if (pitch.data?.ticker) document.title = `${pitch.data.ticker} pitch · FINLAB`;
     return () => {
-      document.title = 'FINLAB — The flight simulator for finance';
+      document.title = 'FINLAB PH — The flight simulator for finance';
     };
   }, [pitch.data?.ticker]);
 

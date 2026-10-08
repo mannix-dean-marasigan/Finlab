@@ -12,3 +12,6 @@ coverage
 Thumbs.db
 supabase/.temp
 supabase/.branches
+
+# demo video clips
+recordings/
