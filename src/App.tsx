@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router';
+import { BrowserRouter, Route, Routes } from 'react-router';
 import { AppLayout } from './app/AppLayout';
 import { RedirectIfAuthed, RequireAdmin, RequireAuth } from './app/guards';
 import { FullScreenLoader } from './app/FullScreenLoader';
@@ -9,6 +9,7 @@ import { SetupRequired } from './features/system/SetupRequired';
 import { NotFoundPage } from './features/system/NotFoundPage';
 
 // Route-level code splitting keeps the initial bundle small.
+const LandingPage = lazy(() => import('./features/landing/LandingPage'));
 const LoginPage = lazy(() => import('./features/auth/LoginPage'));
 const RegisterPage = lazy(() => import('./features/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./features/auth/ForgotPasswordPage'));
@@ -43,6 +44,7 @@ const ProgramPage = lazy(() => import('./features/certifications/ProgramPage'));
 const VerifyCertificatePage = lazy(() => import('./features/certifications/VerifyCertificatePage'));
 const TermsPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.TermsPage })));
 const PrivacyPage = lazy(() => import('./features/legal/LegalPages').then((m) => ({ default: m.PrivacyPage })));
+const WhatsNewPage = lazy(() => import('./features/whatsnew/WhatsNewPage'));
 const FlashcardsPage = lazy(() => import('./features/flashcards/FlashcardsPage'));
 const ReviewsPage = lazy(() => import('./features/reviews/ReviewsPage'));
 const AdminRoutes = lazy(() => import('./features/admin/AdminRoutes'));
@@ -53,7 +55,7 @@ export default function App() {
     <BrowserRouter basename={ROUTER_BASENAME}>
       <Suspense fallback={<FullScreenLoader />}>
         <Routes>
-          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<RedirectIfAuthed><LoginPage /></RedirectIfAuthed>} />
           <Route path="/register" element={<RedirectIfAuthed><RegisterPage /></RedirectIfAuthed>} />
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -71,6 +73,7 @@ export default function App() {
             <Route path="/learn/:slug" element={<LessonPage />} />
             <Route path="/certifications" element={<CertificationsPage />} />
             <Route path="/certifications/:slug" element={<ProgramPage />} />
+            <Route path="/whats-new" element={<WhatsNewPage />} />
             <Route path="/flashcards" element={<FlashcardsPage />} />
             <Route path="/reviews" element={<ReviewsPage />} />
             <Route path="/reviews/:pitchId" element={<ReviewsPage />} />

@@ -2,8 +2,8 @@ import { Suspense, useEffect, useRef, useState, type ComponentType } from 'react
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, Layers, LayoutDashboard, LineChart,
-  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Swords, Target, Trophy, User, X, Zap,
+  Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard, LineChart,
+  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn, initials } from '@/lib/utils';
@@ -14,6 +14,8 @@ import { listNotifications, markNotificationsRead } from '@/services/api/misc';
 import { PageSkeleton } from '@/components/ui/states';
 import { FeedbackButton } from '@/features/feedback/FeedbackButton';
 import { LINKEDIN_PAGE_URL } from '@/lib/brand';
+import { WelcomeTour, OPEN_TOUR_EVENT } from '@/features/tour/WelcomeTour';
+import { CHANGELOG_SEEN_KEY, LATEST_CHANGELOG_ID } from '@/lib/changelog';
 
 interface NavItem {
   to: string;
@@ -260,8 +262,26 @@ function NotificationsMenu() {
   );
 }
 
+function useUnseenChangelog() {
+  const read = () => {
+    try {
+      return localStorage.getItem(CHANGELOG_SEEN_KEY) !== LATEST_CHANGELOG_ID;
+    } catch {
+      return false;
+    }
+  };
+  const [unseen, setUnseen] = useState(read);
+  useEffect(() => {
+    const update = () => setUnseen(read());
+    window.addEventListener('finlab:changelog-seen', update);
+    return () => window.removeEventListener('finlab:changelog-seen', update);
+  }, []);
+  return unseen;
+}
+
 function UserMenu() {
   const { signOut } = useAuth();
+  const unseen = useUnseenChangelog();
   const profile = useMyProfile();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
@@ -273,11 +293,12 @@ function UserMenu() {
   }, []);
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className="flex items-center gap-2 rounded-md p-1 pr-2 hover:bg-surface-3" aria-label="Account menu">
+      <button onClick={() => setOpen((o) => !o)} className="relative flex items-center gap-2 rounded-md p-1 pr-2 hover:bg-surface-3" aria-label="Account menu">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted text-xs font-semibold text-accent">
           {initials(profile.data?.full_name)}
         </span>
         <ChevronDown className="h-3.5 w-3.5 text-fg-muted" />
+        {unseen && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-accent" aria-label="New updates" />}
       </button>
       {open && (
         <div className="absolute right-0 top-10 z-40 w-56 rounded-lg border border-border-strong bg-surface py-1 shadow-2xl animate-fade-in">
@@ -293,6 +314,19 @@ function UserMenu() {
               <i.icon className="h-4 w-4" /> {i.label}
             </Link>
           ))}
+          <Link to="/whats-new" onClick={() => setOpen(false)} className="flex items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-2 hover:text-fg">
+            <Sparkles className="h-4 w-4" /> What's new
+            {unseen && <span className="ml-auto rounded bg-accent px-1.5 py-0.5 text-[0.6rem] font-bold text-black">NEW</span>}
+          </Link>
+          <button
+            onClick={() => {
+              setOpen(false);
+              window.dispatchEvent(new Event(OPEN_TOUR_EVENT));
+            }}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-2 hover:text-fg"
+          >
+            <Compass className="h-4 w-4" /> Welcome tour
+          </button>
           <button
             onClick={async () => {
               await signOut();
@@ -379,6 +413,7 @@ export function AppLayout() {
           <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>
         </footer>
         <FeedbackButton />
+        <WelcomeTour />
       </div>
     </div>
   );

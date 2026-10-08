@@ -1,0 +1,48 @@
+export interface ChangelogEntry {
+  /** ISO date; also used to detect what the user has not seen yet. */
+  id: string;
+  title: string;
+  items: string[];
+}
+
+/** Newest first. Add an entry whenever something worth announcing ships. */
+export const CHANGELOG: ChangelogEntry[] = [
+  {
+    id: '2026-10-08',
+    title: 'More certifications, interview prep and a beta checklist',
+    items: [
+      'New certifications: Accounting Fundamentals, Corporate Finance & FP&A, Financial Modeling and Finance Interview Prep.',
+      'New track: Personal Finance Essentials (budgeting, compounding, investing basics).',
+      'A 30-minute Quick Start certificate — the fastest way to earn your first one.',
+      'Beta tester checklist on your dashboard: finish five tasks to claim a Founding Beta Tester certificate.',
+      '45 more daily challenge questions, so the daily question stays fresh for months.',
+      'Share any certificate on LinkedIn with a ready-made post, picture, description and skills list.',
+      'A welcome tour for new analysts, and this What’s new page.',
+    ],
+  },
+  {
+    id: '2026-10-07',
+    title: 'Flashcards, peer review, capstones and streaks',
+    items: [
+      'Flashcards with spaced repetition for every lesson.',
+      'Peer review: get anonymous feedback on your stock pitches and review others.',
+      'Capstone presentations at the end of certifications, scored against a rubric.',
+      'Daily streaks, XP, weekly leaderboards and a leaderboard for each certification.',
+      'A daily challenge and a Today’s plan card on your dashboard.',
+      'Invite codes for the closed beta.',
+    ],
+  },
+  {
+    id: '2026-10-06',
+    title: 'FINLAB PH beta opens',
+    items: [
+      'Lessons with videos, interactive practice and 10-question knowledge checks.',
+      'Real-style challenges, the Stock Pitch Arena, Research Studio and valuation tools.',
+      'Portfolio simulator, market events, competitions and leaderboards.',
+      'Finance Passport and verifiable certificates.',
+    ],
+  },
+];
+
+export const LATEST_CHANGELOG_ID = CHANGELOG[0].id;
+export const CHANGELOG_SEEN_KEY = 'finlab:changelog-seen';

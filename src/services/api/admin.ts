@@ -429,3 +429,108 @@ export async function fetchBetaOpen(): Promise<boolean> {
 export async function adminSetBetaOpen(open: boolean) {
   unwrap(await supabase.from('app_settings').update({ value: open ? 1 : 0 }).eq('key', 'beta_program_open'));
 }
+
+// ------------------------------------------------------------ Flashcards (admin)
+export interface AdminFlashcard {
+  id: string;
+  lesson_id: string;
+  position: number;
+  front: string;
+  back: string;
+}
+export async function adminListFlashcards(lessonId: string): Promise<AdminFlashcard[]> {
+  return unwrap(await supabase.from('flashcards').select('id, lesson_id, position, front, back').eq('lesson_id', lessonId).order('position')) as AdminFlashcard[];
+}
+export async function adminFlashcardCounts(): Promise<Record<string, number>> {
+  const rows = unwrap(await supabase.from('flashcards').select('lesson_id')) as { lesson_id: string }[];
+  const out: Record<string, number> = {};
+  for (const r of rows) out[r.lesson_id] = (out[r.lesson_id] ?? 0) + 1;
+  return out;
+}
+export async function adminSaveFlashcard(input: { id?: string; lesson_id: string; front: string; back: string }, nextPosition: number) {
+  const front = input.front.trim();
+  const back = input.back.trim();
+  if (front.length < 2 || front.length > 500) throw new Error('The front needs 2–500 characters.');
+  if (back.length < 1 || back.length > 1500) throw new Error('The back needs 1–1500 characters.');
+  if (input.id) unwrap(await supabase.from('flashcards').update({ front, back }).eq('id', input.id));
+  else unwrap(await supabase.from('flashcards').insert({ lesson_id: input.lesson_id, position: nextPosition, front, back }));
+}
+export async function adminDeleteFlashcard(id: string) {
+  unwrap(await supabase.from('flashcards').delete().eq('id', id));
+}
+
+// ------------------------------------------------------------ Daily questions (admin)
+export interface AdminDailyQuestion {
+  id: string;
+  slug: string;
+  category_id: string | null;
+  type: 'mcq' | 'numeric';
+  prompt: string;
+  options: { id: string; label: string }[] | null;
+  unit: string | null;
+  explanation: string;
+  is_active: boolean;
+}
+export type DailyAnswerKey = { answer: string | number; tolerance_pct?: number; tolerance_abs?: number };
+export async function adminListDailyQuestions(): Promise<AdminDailyQuestion[]> {
+  return unwrap(await supabase.from('daily_questions').select('*').order('slug')) as AdminDailyQuestion[];
+}
+export async function adminGetDailyKey(questionId: string): Promise<DailyAnswerKey | null> {
+  const row = unwrap(await supabase.from('daily_question_keys').select('answer').eq('question_id', questionId).maybeSingle()) as { answer: DailyAnswerKey } | null;
+  return row?.answer ?? null;
+}
+export async function adminSaveDailyQuestion(q: Omit<AdminDailyQuestion, 'id'> & { id?: string }, key: DailyAnswerKey): Promise<void> {
+  const { id, ...fields } = q;
+  const res = id
+    ? await supabase.from('daily_questions').update(fields).eq('id', id).select('id').single()
+    : await supabase.from('daily_questions').insert(fields).select('id').single();
+  if (res.error?.code === '23505') throw new Error('A question with this slug already exists.');
+  const saved = unwrap(res) as { id: string };
+  unwrap(await supabase.from('daily_question_keys').upsert({ question_id: saved.id, answer: key }));
+}
+export async function adminSetDailyActive(id: string, active: boolean) {
+  unwrap(await supabase.from('daily_questions').update({ is_active: active }).eq('id', id));
+}
+export async function adminDeleteDailyQuestion(id: string) {
+  unwrap(await supabase.from('daily_questions').delete().eq('id', id));
+}
+
+// ------------------------------------------------------------ Data backup (admin)
+const BACKUP_TABLES = [
+  'profiles', 'user_preferences', 'user_stats', 'user_skills', 'skill_evidence', 'user_achievements', 'lesson_progress', 'lesson_attempts', 'lesson_video_views',
+  'activity_attempts', 'challenge_attempts', 'challenge_submissions', 'challenge_scores', 'stock_pitches', 'research_projects', 'research_sections', 'sources',
+  'valuation_models', 'financial_models', 'portfolios', 'portfolio_positions', 'portfolio_transactions', 'market_event_decisions', 'competition_participants',
+  'competition_results', 'program_enrollments', 'certificates', 'flashcard_state', 'flashcard_review_log', 'daily_answers', 'peer_reviews', 'capstone_submissions',
+  'invite_codes', 'invite_redemptions', 'feedback', 'user_roles', 'app_settings',
+] as const;
+
+/** Downloads every table the admin can read as one JSON object. Tables that cannot be read are listed under `errors`. */
+export async function adminBackup(onProgress?: (table: string, done: number, total: number) => void): Promise<{ data: Record<string, unknown>; errors: Record<string, string>; rows: number }> {
+  const data: Record<string, unknown> = { _meta: { exported_at: new Date().toISOString(), app: 'FINLAB PH' } };
+  const errors: Record<string, string> = {};
+  let rows = 0;
+  try {
+    data.users_with_email = await adminListUsers('');
+  } catch (e) {
+    errors.users_with_email = (e as Error).message;
+  }
+  for (const [i, table] of BACKUP_TABLES.entries()) {
+    onProgress?.(table, i, BACKUP_TABLES.length);
+    const all: unknown[] = [];
+    for (let from = 0; from < 50000; from += 1000) {
+      const res = await supabase.from(table).select('*').range(from, from + 999);
+      if (res.error) {
+        errors[table] = res.error.message;
+        break;
+      }
+      all.push(...(res.data ?? []));
+      if ((res.data ?? []).length < 1000) break;
+    }
+    if (!errors[table]) {
+      data[table] = all;
+      rows += all.length;
+    }
+  }
+  onProgress?.('done', BACKUP_TABLES.length, BACKUP_TABLES.length);
+  return { data, errors, rows };
+}

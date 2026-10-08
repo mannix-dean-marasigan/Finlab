@@ -997,6 +997,35 @@ async function main() {
     ok(problems.length === 0 && !!after.certificate_code, `${pr.slug}: every module completable, certificate issued`, problems.length ? problems : after.modules.filter((m) => !m.complete).map((m) => m.title));
   }
 
+  // ------------------------------------------------------------------
+  section('Admin content editing and backup (RLS)');
+  const anyLesson = (await db.query(`select id from lessons limit 1`)).rows[0].id;
+  await expectError(finisher, `insert into flashcards (lesson_id, position, front, back) values ($1, 999, 'Front?', 'Back.')`, [anyLesson], 'learners cannot add flashcards', 'row-level security');
+  const newCard = (await q(bob, `insert into flashcards (lesson_id, position, front, back) values ($1, 999, 'Admin card front?', 'Admin card back.') returning id`, [anyLesson])).rows[0].id;
+  await q(bob, `update flashcards set back = 'Edited back.' where id = $1`, [newCard]);
+  ok((await q(finisher, `select back from flashcards where id = $1`, [newCard])).rows[0].back === 'Edited back.', 'admin adds and edits a flashcard; learners see it');
+  await q(bob, `delete from flashcards where id = $1`, [newCard]);
+  ok((await q(finisher, `select count(*)::int n from flashcards where id = $1`, [newCard])).rows[0].n === 0, 'admin deletes a flashcard');
+  await expectError(finisher, `insert into daily_questions (slug, type, prompt, explanation) values ('learner-q', 'numeric', 'A question a learner wrote', 'x')`, [], 'learners cannot add daily questions', 'row-level security');
+  const dqId = (await q(bob, `insert into daily_questions (slug, category_id, type, prompt, unit, explanation) values ('admin-q1', 'valuation', 'numeric', 'What is 2 + 2? (numeric)', '', 'Basic arithmetic.') returning id`)).rows[0].id;
+  await q(bob, `insert into daily_question_keys (question_id, answer) values ($1, '{"answer":4,"tolerance_pct":0.5}') on conflict (question_id) do update set answer = excluded.answer`, [dqId]);
+  ok((await q(bob, `select answer->>'answer' a from daily_question_keys where question_id = $1`, [dqId])).rows[0].a === '4', 'admin writes a daily question and its answer key');
+  ok((await q(finisher, `select count(*)::int n from daily_question_keys where question_id = $1`, [dqId])).rows[0].n === 0, 'learners cannot read the new answer key');
+  await q(bob, `delete from daily_questions where id = $1`, [dqId]);
+  const backupTables = ['profiles', 'user_preferences', 'user_stats', 'user_skills', 'skill_evidence', 'user_achievements', 'lesson_progress', 'lesson_attempts', 'lesson_video_views',
+    'activity_attempts', 'challenge_attempts', 'challenge_submissions', 'challenge_scores', 'stock_pitches', 'research_projects', 'research_sections', 'sources', 'valuation_models',
+    'financial_models', 'portfolios', 'portfolio_positions', 'portfolio_transactions', 'market_event_decisions', 'competition_participants', 'competition_results', 'program_enrollments',
+    'certificates', 'flashcard_state', 'flashcard_review_log', 'daily_answers', 'peer_reviews', 'capstone_submissions', 'invite_codes', 'invite_redemptions', 'feedback', 'user_roles', 'app_settings'];
+  const unreadable = [];
+  for (const t of backupTables) {
+    try {
+      await q(bob, `select * from public.${t} limit 1`);
+    } catch (e) {
+      unreadable.push(`${t}: ${e.message}`);
+    }
+  }
+  ok(unreadable.length === 0, 'an admin can read every table the backup export includes', unreadable);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {
     console.log('Failures:\n - ' + failures.join('\n - '));

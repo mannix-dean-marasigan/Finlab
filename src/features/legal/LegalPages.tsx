@@ -2,7 +2,7 @@ import { Markdown } from '@/components/common';
 import { Card } from '@/components/ui/card';
 import { PublicShell } from '@/features/passport/PublicPassportPage';
 
-const UPDATED = 'October 7, 2026';
+const UPDATED = 'October 8, 2026';
 
 const TERMS = `
 # Terms of Use
@@ -32,7 +32,13 @@ Scores, ranks, achievements and certificates must reflect your own work. You mus
 We may adjust scores, revoke achievements or certificates, or suspend accounts that break these rules.
 
 ## 5. Certificates
-FINLAB certificates attest that the holder completed FINLAB's own programs or competitions. They are **not** accredited professional qualifications (such as the CFA designation) and are not endorsed by any regulator, university or employer.
+FINLAB PH certificates attest that the holder completed FINLAB's own programs or competitions, or (where the certificate says so) was **awarded** it by a FINLAB administrator for the reason shown on its verification page. They are **not** accredited professional qualifications (such as the CFA designation) and are not endorsed by any regulator, university or employer. Certificates marked **TEST** are created by administrators to test the platform and are **not credentials**. We may revoke a certificate that was obtained unfairly.
+
+## 5a. Invitations
+During the closed beta, accounts require an invite code. Do not share your code publicly; codes may be limited, switched off or expire.
+
+## 5b. Peer review
+When you review another analyst's pitch you must be honest, constructive and respectful. Reviews are anonymous to the author but visible to administrators.
 
 ## 6. Your content
 You keep ownership of pitches, reports and models you create. You grant FINLAB permission to store and display them as needed to run the service, and to show content you mark **public** on your Finance Passport.
@@ -59,9 +65,12 @@ This notice explains what FINLAB collects and why, in line with the Philippine *
 |---|---|
 | Name, email, password (stored hashed by our auth provider) | To create and secure your account |
 | Country, university, specialization, interests, experience, goal | Onboarding, recommendations and leaderboards |
-| Your work: answers, pitches, reports, models, trades, decisions | To score your work and build your track record |
+| Invite code used to join | To run the closed beta and see which invitations are used |
+| Your work: answers, pitches, reports, models, trades, decisions, flashcard progress, daily challenge answers, capstone links and summaries | To score your work and build your track record |
+| Peer reviews you write or receive | To provide anonymous peer feedback |
 | Calculated data: scores, skills, ranks, achievements, certificates | Core features of the platform |
 | Feedback you send, including the page and browser type | To fix bugs and improve FINLAB |
+| Activity such as streaks, XP and sign-in time | To show your progress and to understand how the platform is used |
 
 We do **not** collect payment information, and we do **not** sell your data or use it for advertising.
 
@@ -69,13 +78,14 @@ We do **not** collect payment information, and we do **not** sell your data or u
 - **Public profile on** (default): your name, school, level, scores, ranks, achievements, certificates and work you mark public appear on your Finance Passport and leaderboards.
 - **Public profile off:** you are hidden from other users on leaderboards and your passport link stops working.
 - **Certificates** can be verified by anyone who has the code, so that employers can check them.
-- **Administrators** can see account and submission data to review work, run competitions and provide support.
+- **Administrators** can see account and submission data (including your email address, invite code, feedback, peer reviews you wrote and capstone links) to review work, run competitions, give awards and provide support. Administrators may export data to keep backups.
+- **Peer reviews** are anonymous to the pitch's author; the author sees "Peer analyst #N", not your name.
 
 ## Where data is stored
 FINLAB uses **Supabase** (database and authentication) and **GitHub Pages** (website hosting). Data may be processed outside the Philippines by these providers.
 
 ## Your rights
-You can view and edit your profile in **Settings**, control your visibility, and **permanently delete your account** in Settings, which deletes your profile and all associated work, scores and certificates. For other requests, use the Feedback button.
+Under the Data Privacy Act you have the right to be informed, to access and correct your data, to object, to ask for blocking or erasure, to data portability and to claim damages. In practice you can view and edit your profile in **Settings**, control your visibility, and **permanently delete your account** in Settings, which deletes your profile and all associated work, scores and certificates. For other requests (for example a copy of your data), use the Feedback button and an administrator will respond. You may also lodge a complaint with the **National Privacy Commission** (privacy.gov.ph).
 
 ## Retention
 Data is kept while your account exists. When you delete your account it is removed from the live database; backups, if any, expire on the provider's schedule.

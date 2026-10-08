@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router';
-import { Award, BadgeCheck, BarChart3, BookOpen, ClipboardCheck, Database, FlaskConical, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
+import { Award, BadgeCheck, CalendarCheck, Layers, BarChart3, BookOpen, ClipboardCheck, Database, FlaskConical, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AdminOverviewPage from './AdminOverviewPage';
 import AdminChallengesPage from './AdminChallengesPage';
@@ -19,6 +19,8 @@ import AdminAnalyticsPage from './AdminAnalyticsPage';
 import AdminCapstonesPage from './AdminCapstonesPage';
 import AdminInvitesPage from './AdminInvitesPage';
 import AdminBetaTestersPage from './AdminBetaTestersPage';
+import AdminFlashcardsPage from './AdminFlashcardsPage';
+import AdminDailyPage from './AdminDailyPage';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -28,6 +30,8 @@ const LINKS = [
   { to: '/admin/capstones', label: 'Capstones', icon: MonitorPlay },
   { to: '/admin/feedback', label: 'Feedback', icon: MessageSquare },
   { to: '/admin/lessons', label: 'Lessons', icon: BookOpen },
+  { to: '/admin/flashcards', label: 'Flashcards', icon: Layers },
+  { to: '/admin/daily', label: 'Daily questions', icon: CalendarCheck },
   { to: '/admin/programs', label: 'Certifications', icon: GraduationCap },
   { to: '/admin/certificates', label: 'Certificates', icon: BadgeCheck },
   { to: '/admin/competitions', label: 'Competitions', icon: Swords },
@@ -79,6 +83,8 @@ export default function AdminRoutes() {
         <Route path="beta" element={<AdminBetaTestersPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />
         <Route path="lessons" element={<AdminLessonsPage />} />
+        <Route path="flashcards" element={<AdminFlashcardsPage />} />
+        <Route path="daily" element={<AdminDailyPage />} />
         <Route path="programs" element={<AdminProgramsPage />} />
         <Route path="certificates" element={<AdminCertificatesPage />} />
       </Routes>
