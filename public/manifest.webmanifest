@@ -1,0 +1,15 @@
+{
+  "name": "FINLAB PH",
+  "short_name": "FINLAB PH",
+  "description": "The flight simulator for finance: learn, practice, compete and earn verifiable certificates.",
+  "start_url": "./dashboard",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07090d",
+  "theme_color": "#07090d",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

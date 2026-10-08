@@ -11,6 +11,8 @@ export const CHANGELOG: ChangelogEntry[] = [
     id: '2026-10-11',
     title: 'A cleaner FINLAB PH',
     items: [
+      'A "Continue where you left off" card at the top of your dashboard.',
+      'Install FINLAB PH as an app: on your phone, use "Add to Home screen".',
       'A simpler menu: Learn, Practice, Tools, Compete and Profile. Competitions and market events show up when one is running.',
       'New About and FAQ pages.',
       'Clearer wording across the app, a new heading font, and friendlier empty pages.',

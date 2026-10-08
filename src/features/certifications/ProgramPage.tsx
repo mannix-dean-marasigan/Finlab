@@ -1,4 +1,7 @@
+import { useEffect } from 'react';
 import { Link, useParams } from 'react-router';
+import { useAuth } from '@/app/auth';
+import { rememberProgram } from '@/features/dashboard/ContinueCard';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft, ArrowRight, Award, BadgeCheck, BookOpen, CheckCircle2, Circle, Clock, FileCheck2, GraduationCap, Lock, MonitorPlay, Target, Users,
@@ -189,6 +192,10 @@ export default function ProgramPage() {
   const { slug = '' } = useParams();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['program', slug], queryFn: () => getProgram(slug) });
+  const { user } = useAuth();
+  useEffect(() => {
+    if (user && slug) rememberProgram(user.id, slug);
+  }, [user, slug]);
   const profile = useMyProfile();
   const isAdmin = useIsAdmin();
   const enroll = useMutation({

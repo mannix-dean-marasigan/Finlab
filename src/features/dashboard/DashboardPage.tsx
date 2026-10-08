@@ -22,6 +22,7 @@ import { fmtDate, fmtMinutes, fmtScore, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { DailyChallengeCard, StreakCard, TodayPlanCard, WeeklyPodCard } from './EngagementCards';
 import { BetaChecklistCard } from './BetaChecklistCard';
+import { ContinueCard } from './ContinueCard';
 
 function greeting() {
   const h = new Date().getHours();
@@ -108,6 +109,8 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      <ContinueCard />
 
       {/* KPI strip */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
