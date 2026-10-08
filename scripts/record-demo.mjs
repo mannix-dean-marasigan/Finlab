@@ -87,6 +87,24 @@ async function open(page, path) {
   await wait(1000);
 }
 
+const CLASS_NAME = 'FINLAB PH Beta Batch 1';
+async function setupClass(page) {
+  await open(page, '/admin/classes');
+  await wait(1500);
+  if (!(await page.getByText(CLASS_NAME, { exact: true }).count())) {
+    await page.getByPlaceholder('e.g. UST JFINEX Batch 2026').fill(CLASS_NAME);
+    await page.getByRole('button', { name: 'Create', exact: true }).click();
+    await page.getByText(CLASS_NAME, { exact: true }).first().waitFor({ timeout: 15000 });
+    console.log(`   created the class "${CLASS_NAME}"`);
+  }
+  const card = page.locator('div', { has: page.getByText(CLASS_NAME, { exact: true }) }).filter({ hasText: 'Join link' }).last();
+  const code = (await card.getByRole('button', { name: /^CLASS-/ }).first().innerText()).trim();
+  await open(page, `/classes?join=${code}`);
+  await wait(4000);
+  console.log(`   joined ${code}`);
+}
+const SETUP = { '06-classes': setupClass };
+
 const SCENES = [
   ['01-certifications', async (p) => {
     await open(p, '/certifications');
@@ -95,23 +113,33 @@ const SCENES = [
     await wait(800);
   }],
   ['02-lesson', async (p) => {
+    // Skip past the embedded YouTube video (another creator's content) straight to the briefing.
     await open(p, '/learn/accounting-equation-journal');
+    await scrollToText(p, /Step 2 · Read the briefing/i, 300);
     await wait(1500);
-    await scrollToText(p, /Step 2 · Read the briefing/i, 3000);
+    await scroll(p, 650, 4500);
     await wait(1200);
-    await scroll(p, 500, 3000);
-    await wait(800);
   }],
-  ['03-practice-and-check', async (p) => {
+  ['03-practice', async (p) => {
+    // Sort the 9 accounts into debit/credit (tap item, then tap category), then Check: all green.
     await open(p, '/learn/accounting-equation-journal');
-    await scrollToText(p, /Practice · \d+ activities/, 1500);
-    await wait(1500);
-    await scroll(p, 350, 2000);
-    await wait(800);
-    await scrollToText(p, /Knowledge check · \d+ questions/, 2500);
+    await scrollToText(p, /Practice · \d+ activities/, 300);
+    await scroll(p, 40, 300);
     await wait(1200);
-    await scroll(p, 300, 2000);
-    await wait(1200);
+    const KEY = { 'Cash': 'debit', 'Accounts payable': 'credit', 'Rent expense': 'debit', 'Service revenue': 'credit', 'Equipment': 'debit',
+      "Owner's capital": 'credit', 'Supplies': 'debit', 'Bank loan': 'credit', 'Utilities expense': 'debit' };
+    for (const [item, side] of Object.entries(KEY)) {
+      const btn = p.getByRole('button', { name: item, exact: true }).first();
+      if (!(await btn.count())) continue;
+      await btn.click();
+      await wait(220);
+      await p.getByText(`Increases with a ${side}`, { exact: true }).first().click();
+      await wait(380);
+    }
+    await wait(500);
+    const check = p.getByRole('button', { name: 'Check', exact: true }).first();
+    if (await check.count()) await check.click();
+    await wait(3000);
   }],
   ['04-case', async (p) => {
     await open(p, '/challenges');
@@ -133,23 +161,23 @@ const SCENES = [
   ['06-classes', async (p) => {
     await open(p, '/classes');
     await wait(1500);
-    await scroll(p, 500, 2500);
-    await wait(1000);
+    await loaded(p);
+    await wait(1500);
+    await scroll(p, 400, 2500);
+    await wait(1500);
   }],
   ['07-certificate', async (p) => {
-    await open(p, '/passport');
-    const cert = p.locator('a[href*="/verify/"]').first();
-    if (await cert.count()) {
-      await click(p, cert);
-      await wait(1500);
-      await scroll(p, 500, 2500);
-      const li = p.getByText(/linkedin/i).first();
-      if (await li.count()) await glideTo(p, li);
-      await wait(1500);
-    } else {
-      console.log('   (no certificate found on your passport — scene 7 shows the passport instead)');
-      await scroll(p, 600, 3000);
-    }
+    // Admin preview of a certificate (nothing is issued), then the celebration + share screen.
+    await open(p, '/certifications/accounting-fundamentals');
+    await wait(1000);
+    const preview = p.getByRole('button', { name: /Preview as earned/ }).first();
+    await preview.scrollIntoViewIfNeeded().catch(() => {});
+    await wait(600);
+    await preview.click();
+    await wait(4500);
+    const celebrate = p.locator('[role="dialog"] button').filter({ hasNotText: /close|cancel/i }).last();
+    if (await celebrate.count()) await celebrate.click();
+    await wait(5000);
   }],
   ['08-beta-checklist', async (p) => {
     await open(p, '/dashboard');
@@ -209,6 +237,12 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 // 2. Each scene gets its own recording context that shares your login.
 for (const [i, [name, run]] of SCENES.entries()) {
   if (only.length && !only.includes(i + 1)) continue;
+  if (SETUP[name]) {
+    const sctx = await browser.newContext({ viewport: VIEW, storageState: storage });
+    const sp = await sctx.newPage();
+    try { await SETUP[name](sp); } catch (e) { console.log(`   setup for ${name} failed: ${e.message.split(String.fromCharCode(10))[0]}`); }
+    await sctx.close();
+  }
   console.log(`Recording ${name}…`);
   const ctx = await browser.newContext({ viewport: VIEW, storageState: storage, recordVideo: { dir: OUT, size: VIDEO } });
   if (process.env.WITH_CURSOR) await ctx.addInitScript(CURSOR); // off by default: the drawn pointer freezes headless recordings

@@ -5,22 +5,36 @@
 <title>FINLAB PH video frame</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@600;700;800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet" />
 <style>
-  /* A 1920×1080 overlay with a transparent rounded "window" where the app clip shows through. */
+  /* Video overlay layers. ?shape=wide (1920×1080) | square (1080×1080); ?part=bg (background with a transparent
+     window for the app clip, plus the logo) | title (only the headline, transparent, animated in by ffmpeg). */
   * { box-sizing: border-box; margin: 0; }
-  html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; font-family: Inter, system-ui, sans-serif; }
+  html, body { overflow: hidden; background: transparent; font-family: Inter, system-ui, sans-serif; }
   canvas { position: absolute; inset: 0; }
-  .eyebrow { position: absolute; left: 240px; top: 64px; font: 700 22px 'JetBrains Mono', monospace; letter-spacing: 6px; color: #f5a524; text-transform: uppercase; }
+  .eyebrow { position: absolute; font: 700 22px 'JetBrains Mono', monospace; letter-spacing: 6px; color: #f5a524; text-transform: uppercase; }
   .eyebrow b { color: #5d6978; font-weight: 700; margin-right: 18px; }
-  .title { position: absolute; left: 240px; top: 100px; width: 1180px; font-weight: 800; font-size: 50px; letter-spacing: -1px; color: #e6edf3; white-space: nowrap; line-height: 1.15; }
+  .title { position: absolute; font-weight: 800; letter-spacing: -1px; color: #e6edf3; line-height: 1.12; }
   .title em { font-style: normal; color: #f5a524; }
-  .logo { position: absolute; right: 240px; top: 92px; display: flex; align-items: center; gap: 12px; }
+  .logo { position: absolute; display: flex; align-items: center; gap: 12px; }
   .logo svg { width: 64px; height: 56px; }
   .logo .w { font: 600 28px 'JetBrains Mono', monospace; letter-spacing: 5px; color: #e6edf3; line-height: 1; }
   .logo .p { font: 600 9px 'JetBrains Mono', monospace; letter-spacing: 5px; color: #8b98a8; margin-top: 6px; }
+
+  .wide { width: 1920px; height: 1080px; }
+  .wide .eyebrow { left: 240px; top: 64px; }
+  .wide .title { left: 240px; top: 100px; width: 1180px; font-size: 50px; white-space: nowrap; }
+  .wide .logo { right: 240px; top: 92px; }
+
+  .square { width: 1080px; height: 1080px; }
+  .square .eyebrow { left: 40px; top: 56px; font-size: 24px; }
+  .square .title { left: 40px; top: 96px; width: 1000px; font-size: 62px; }
+  .square .logo { left: 50%; transform: translateX(-50%); bottom: 64px; }
+  .square .logo svg { width: 80px; height: 70px; }
+  .square .logo .w { font-size: 34px; }
+  .square .logo .p { font-size: 11px; }
 </style>
 </head>
 <body>
-  <canvas id="bg" width="1920" height="1080"></canvas>
+  <canvas id="bg"></canvas>
   <div class="eyebrow"><b id="num"></b><span id="eyebrow"></span></div>
   <div class="title" id="title"></div>
   <div class="logo">
@@ -37,46 +51,59 @@
     <div><div class="w">FIN<span style="color:#f5a524">LAB</span></div><div class="p">PHILIPPINES</div></div>
   </div>
   <script>
-    // ?num=02&eyebrow=Learn&title=Short%20lessons.%20<em>Clear.</em>
     const q = new URLSearchParams(location.search);
+    const shape = q.get('shape') || 'wide';
+    const part = q.get('part') || 'bg';
+    document.body.classList.add(shape);
+    const W = shape === 'square' ? 1080 : 1920, H = 1080;
+    // Where the app clip goes. Keep in sync with WINDOW in scripts/build-video.mjs.
+    const WIN = shape === 'square' ? { x: 40, y: 300, w: 1000, h: 562, r: 18 } : { x: 240, y: 215, w: 1440, h: 810, r: 20 };
+
     document.getElementById('num').textContent = q.get('num') || '';
     document.getElementById('eyebrow').textContent = q.get('eyebrow') || '';
     document.getElementById('title').innerHTML = q.get('title') || '';
-    const WIN = { x: 240, y: 215, w: 1440, h: 810, r: 20 };
+    const cv = document.getElementById('bg');
+    cv.width = W; cv.height = H;
 
-    const c = document.getElementById('bg').getContext('2d');
-    c.fillStyle = '#07090d';
-    c.fillRect(0, 0, 1920, 1080);
-    const glow = c.createRadialGradient(960, 760, 50, 960, 760, 900);
-    glow.addColorStop(0, 'rgba(245,165,36,0.10)');
-    glow.addColorStop(1, 'rgba(245,165,36,0)');
-    c.fillStyle = glow;
-    c.fillRect(0, 0, 1920, 1080);
-    c.strokeStyle = 'rgba(255,255,255,0.025)';
-    c.lineWidth = 1;
-    for (let x = 0.5; x < 1920; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, 1080); c.stroke(); }
-    for (let y = 0.5; y < 1080; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(1920, y); c.stroke(); }
-    // Soft amber halo behind the window.
-    c.save();
-    c.shadowColor = 'rgba(245,165,36,0.18)';
-    c.shadowBlur = 70;
-    c.fillStyle = '#0b0f15';
-    c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
-    c.restore();
-    // Punch the window out so the clip shows through.
-    c.globalCompositeOperation = 'destination-out';
-    c.fillStyle = '#000'; // must be fully opaque, or the hole is only partly cut
-    c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
-    c.globalCompositeOperation = 'source-over';
-    c.strokeStyle = '#2a3443';
-    c.lineWidth = 2;
-    c.beginPath(); c.roundRect(WIN.x - 1, WIN.y - 1, WIN.w + 2, WIN.h + 2, WIN.r + 1); c.stroke();
+    if (part === 'title') {
+      document.querySelector('.logo').remove();
+      cv.remove();
+    } else {
+      document.querySelector('.eyebrow').remove();
+      document.getElementById('title').remove();
+      const c = cv.getContext('2d');
+      c.fillStyle = '#07090d';
+      c.fillRect(0, 0, W, H);
+      const glow = c.createRadialGradient(W / 2, WIN.y + WIN.h * 0.68, 50, W / 2, WIN.y + WIN.h * 0.68, W * 0.48);
+      glow.addColorStop(0, 'rgba(245,165,36,0.10)');
+      glow.addColorStop(1, 'rgba(245,165,36,0)');
+      c.fillStyle = glow;
+      c.fillRect(0, 0, W, H);
+      c.strokeStyle = 'rgba(255,255,255,0.025)';
+      c.lineWidth = 1;
+      for (let x = 0.5; x < W; x += 64) { c.beginPath(); c.moveTo(x, 0); c.lineTo(x, H); c.stroke(); }
+      for (let y = 0.5; y < H; y += 64) { c.beginPath(); c.moveTo(0, y); c.lineTo(W, y); c.stroke(); }
+      c.save();
+      c.shadowColor = 'rgba(245,165,36,0.18)';
+      c.shadowBlur = 70;
+      c.fillStyle = '#0b0f15';
+      c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
+      c.restore();
+      c.globalCompositeOperation = 'destination-out';
+      c.fillStyle = '#000'; // must be fully opaque, or the hole is only partly cut
+      c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
+      c.globalCompositeOperation = 'source-over';
+      c.strokeStyle = '#2a3443';
+      c.lineWidth = 2;
+      c.beginPath(); c.roundRect(WIN.x - 1, WIN.y - 1, WIN.w + 2, WIN.h + 2, WIN.r + 1); c.stroke();
+    }
 
     document.fonts.ready.then(() => {
-      // Shrink the headline until it fits beside the logo.
-      const t = document.getElementById('title');
-      let size = 50;
-      while (t.scrollWidth > 1180 && size > 30) t.style.fontSize = (size -= 2) + 'px';
+      if (part === 'title' && shape === 'wide') {
+        const t = document.getElementById('title');
+        let size = 50;
+        while (t.scrollWidth > 1180 && size > 30) t.style.fontSize = (size -= 2) + 'px';
+      }
       document.body.dataset.ready = '1';
     });
   </script>

@@ -1,5 +1,12 @@
 # FINLAB PH beta intro video kit
 
+**Finished videos (built automatically):** `recordings/finlab-ph-beta-video.mp4` (1920×1080) and
+`recordings/finlab-ph-beta-video-square.mp4` (1080×1080, best for the LinkedIn feed), covers `recordings/cover.png` and
+`cover-square.png`. Rebuild: `node scripts/record-demo.mjs` (app clips, needs a login) → `node scripts/record-cards.mjs`
+(intro/outro/covers) → `node scripts/build-video.mjs`. Needs the full ffmpeg in `%USERPROFILE%inlab-toolsfmpeg`.
+
+The sections below were the original manual (Clipchamp) plan.
+
 Free tools only: Clipchamp (built into Windows 11). Everything else is already recorded in `recordings/`:
 `00-intro` (animated hook + logo), `01`–`08` (the app), `09-outro` (call to action).
 Re-record the cards with `node scripts/record-cards.mjs`, the app clips with `node scripts/record-demo.mjs`.
