@@ -154,18 +154,18 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
 
   const cx = SIZE / 2;
   const inner = pw - 160;
-  mark(g, cx - 120, py + 70, 1.6);
+  mark(g, cx - 128, py + 54, 2.3);
   g.textAlign = 'left';
-  g.font = `600 34px ${MONO}`;
+  g.font = `600 46px ${MONO}`;
   g.fillStyle = TEXT;
-  g.fillText('FIN', cx - 60, py + 108);
+  g.fillText('FIN', cx - 42, py + 104);
   const finW = g.measureText('FIN').width;
   g.fillStyle = GOLD;
-  g.fillText('LAB', cx - 60 + finW, py + 108);
+  g.fillText('LAB', cx - 42 + finW, py + 104);
   g.fillStyle = SUB;
-  g.font = `600 11px ${MONO}`;
+  g.font = `600 14px ${MONO}`;
   if ('letterSpacing' in g) g.letterSpacing = '5px';
-  g.fillText('PHILIPPINES', cx - 60, py + 126);
+  g.fillText('PHILIPPINES', cx - 42, py + 128);
   if ('letterSpacing' in g) g.letterSpacing = '0px';
 
   g.textAlign = 'center';
@@ -180,7 +180,7 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
         : c.kind === 'track'
           ? 'LEARNING TRACK CERTIFICATE'
           : 'PROFESSIONAL CERTIFICATION';
-  g.fillText(kindLabel, cx, py + 165);
+  g.fillText(kindLabel, cx, py + 180);
   g.fillText('THIS CERTIFIES THAT', cx, py + 250);
   if ('letterSpacing' in g) g.letterSpacing = '0px';
 

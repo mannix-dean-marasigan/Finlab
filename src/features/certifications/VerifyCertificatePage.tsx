@@ -84,13 +84,13 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
       <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ padding: `${cq(5.6)} ${cq(8)} ${cq(5)}` }}>
         {/* Header */}
         <div className="flex flex-col items-center">
-          <div className="flex items-center" style={{ gap: cq(1.1) }}>
-            <PaperMark style={{ width: cq(5.2), height: cq(4.5) }} />
+          <div className="flex items-center" style={{ gap: cq(1.5) }}>
+            <PaperMark style={{ width: cq(7.8), height: cq(6.8) }} />
             <div className="text-left leading-none">
-              <div className="font-mono font-semibold" style={{ fontSize: cq(2.3), letterSpacing: '0.28em' }}>
+              <div className="font-mono font-semibold" style={{ fontSize: cq(3.4), letterSpacing: '0.26em' }}>
                 FIN<span className="text-[#c8922a]">LAB</span>
               </div>
-              <div className="font-mono font-semibold text-[#6b6f78]" style={{ fontSize: cq(0.78), letterSpacing: '0.42em', marginTop: cq(0.45) }}>
+              <div className="font-mono font-semibold text-[#6b6f78]" style={{ fontSize: cq(1.12), letterSpacing: '0.42em', marginTop: cq(0.6) }}>
                 PHILIPPINES
               </div>
             </div>
