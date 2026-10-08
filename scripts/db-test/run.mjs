@@ -1026,6 +1026,56 @@ async function main() {
   }
   ok(unreadable.length === 0, 'an admin can read every table the backup export includes', unreadable);
 
+  // ------------------------------------------------------------------
+  section('Classes (cohorts) and weekly pods');
+  await expectError(finisher, `insert into cohorts (name, join_code) values ('Hack Class', 'HACK-1')`, [], 'learners cannot create classes', 'row-level security');
+  const cohortId = (await q(bob, `insert into cohorts (name, description, join_code, created_by) values ('UST Finance Org 2026', 'Pilot class', 'UST-FIN-26', $1) returning id`, [bob])).rows[0].id;
+  await expectError(finisher, `select public.join_cohort('NOPE-CODE')`, [], 'unknown class code rejected', "doesn't exist");
+  const joined = await rpc(finisher, 'join_cohort', ['  ust-fin-26 ']);
+  ok(joined.name === 'UST Finance Org 2026', 'learner joins a class with its code (case/space-insensitive)', joined);
+  await rpc(finisher, 'join_cohort', ['UST-FIN-26']);
+  ok((await db.query(`select count(*)::int n from cohort_members where cohort_id = $1`, [cohortId])).rows[0].n === 1, 'joining twice does not duplicate membership');
+  const myC = await rpc(finisher, 'get_my_cohorts');
+  ok(myC.length === 1 && Number(myC[0].members) === 1 && myC[0].join_code === null && myC[0].is_manager === false, 'my classes: members counted, join code hidden from non-managers', myC[0]);
+  const classBoard = (await q(finisher, `select * from get_cohort_leaderboard($1, null)`, [cohortId])).rows;
+  ok(classBoard.length === 1 && classBoard[0].is_me, 'class leaderboard lists the members');
+  await expectError(alice, `select * from public.get_cohort_leaderboard($1, null)`, [cohortId], 'non-members cannot see a class leaderboard', 'not a member');
+  await expectError(finisher, `select public.get_cohort_roster($1)`, [cohortId], 'members cannot see the manager roster', 'Only class managers');
+  await expectError(finisher, `select public.admin_set_cohort_manager($1, 'alice@example.com', true)`, [cohortId], 'learners cannot assign managers', 'Admin access required');
+  await rpc(bob, 'admin_set_cohort_manager', [cohortId, 'ALICE@example.com', true]);
+  const roster = await rpc(alice, 'get_cohort_roster', [cohortId]);
+  ok(roster.length === 1 && roster[0].full_name === 'Fin Isher' && Number(roster[0].lessons_passed) > 5 && Number(roster[0].certificates) >= 1 && !JSON.stringify(roster).includes('@'), 'a class manager sees the roster with progress and no emails', roster[0]);
+  const aliceClasses = await rpc(alice, 'get_my_cohorts');
+  ok(aliceClasses.length === 1 && aliceClasses[0].is_manager === true && aliceClasses[0].join_code === 'UST-FIN-26', 'managers see their class and its join code');
+  ok((await q(alice, `select * from get_cohort_leaderboard($1, 0)`, [cohortId])).rows.length === 1, 'managers can view the class leaderboard');
+  await rpc(bob, 'admin_set_cohort_manager', [cohortId, 'alice@example.com', false]);
+  await expectError(alice, `select public.get_cohort_roster($1)`, [cohortId], 'removed managers lose roster access', 'Only class managers');
+  await q(bob, `update cohorts set is_open = false where id = $1`, [cohortId]);
+  await expectError(alice, `select public.join_cohort('UST-FIN-26')`, [], 'closed classes reject new members', 'closed');
+  await q(bob, `update cohorts set is_open = true where id = $1`, [cohortId]);
+  await rpc(finisher, 'leave_cohort', [cohortId]);
+  ok((await rpc(finisher, 'get_my_cohorts')).length === 0, 'a learner can leave a class');
+  await expectError(null, `select public.join_cohort('UST-FIN-26')`, [], 'anon cannot join classes', 'permission denied');
+
+  // Invite codes linked to a class add members at sign-up.
+  await q(bob, `insert into invite_codes (code, label, max_uses, cohort_id) values ('UST-CLASS-1', 'UST class invite', 5, $1)`, [cohortId]);
+  await db.exec(`update app_settings set value = '1' where key = 'require_invite_code'`);
+  const newbie = randomUUID();
+  await db.query(`insert into auth.users (id, email, raw_user_meta_data) values ($1, 'newbie@example.com', $2)`, [newbie, JSON.stringify({ full_name: 'Nina Newbie', invite_code: 'ust-class-1' })]);
+  await db.exec(`update app_settings set value = '0' where key = 'require_invite_code'`);
+  ok((await db.query(`select count(*)::int n from cohort_members where cohort_id = $1 and user_id = $2`, [cohortId, newbie])).rows[0].n === 1, 'signing up with a class-linked invite code joins the class automatically');
+  const invList = await rpc(bob, 'admin_list_invites');
+  ok(invList.find((i) => i.code === 'UST-CLASS-1')?.cohort_name === 'UST Finance Org 2026', 'admin invite list names the class');
+  const adminClasses = await rpc(bob, 'admin_list_cohorts');
+  ok(adminClasses.length === 1 && Number(adminClasses[0].members) === 1, 'admin class list with member counts', adminClasses[0]);
+
+  // Weekly pods
+  const pod = await rpc(finisher, 'get_weekly_pod');
+  ok(pod.in_pod === true && pod.rows.some((r) => r.is_me) && pod.pod_size >= 1 && pod.pod_size <= 20, 'weekly pod includes me and holds at most 20', [pod.pod_size]);
+  ok(!JSON.stringify(pod).includes('@') && pod.rows.every((r, i, a) => i === 0 || Number(r.rank) >= Number(a[i - 1].rank)), 'pod is ranked and exposes no emails');
+  ok((await rpc(bob, 'get_weekly_pod')).in_pod === false, 'admins are not placed in pods');
+  await expectError(null, `select public.get_weekly_pod()`, [], 'anon cannot read pods', 'permission denied');
+
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {
     console.log('Failures:\n - ' + failures.join('\n - '));
