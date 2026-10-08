@@ -8,6 +8,16 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-10',
+    title: 'Trading Floor',
+    items: [
+      'A virtual trading game on simulated stocks: candlestick charts with SMA, EMA, Bollinger Bands, VWAP, RSI and MACD.',
+      'Draw support and resistance lines, trend lines and Fibonacci retracements, or switch on automatic support and resistance.',
+      'Go long or short with stop-loss and take-profit orders. No leverage, 0.1% fee per trade.',
+      'Fast practice rounds, a weekly challenge with the same chart for everyone, and a live market that moves every hour.',
+    ],
+  },
+  {
     id: '2026-10-09',
     title: 'A guided tutorial',
     items: [

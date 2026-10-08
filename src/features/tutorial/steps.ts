@@ -113,6 +113,11 @@ export const STEPS: TutorialStep[] = [
     body: 'Prices and charts for Philippine and global stocks. During the beta these use sample data.',
   },
   {
+    id: 'trading', chapter: 'Markets', route: '/trading', target: 'page-header',
+    title: 'Trading Floor',
+    body: 'Trade simulated stocks on real charts with indicators, support and resistance, trend lines and Fibonacci. Play fast practice rounds, take the weekly challenge, or run a live account.',
+  },
+  {
     id: 'portfolio', chapter: 'Markets', route: '/portfolio', target: 'page-header',
     title: 'Portfolio Simulator',
     body: 'Manage a ₱10M practice portfolio. Every trade needs a written reason. No real money is involved.',

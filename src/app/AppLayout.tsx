@@ -2,7 +2,7 @@ import { Suspense, useEffect, useRef, useState, type ComponentType } from 'react
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard, LineChart,
+  Bell, BookOpen, Briefcase, Calculator, CandlestickChart, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard, LineChart,
   LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
@@ -56,6 +56,7 @@ const NAV: NavItem[] = [
     icon: LineChart,
     children: [
       { to: '/markets', label: 'Markets', icon: LineChart },
+      { to: '/trading', label: 'Trading Floor', icon: CandlestickChart },
       { to: '/portfolio', label: 'Portfolio Simulator', icon: PieChart },
       { to: '/events', label: 'Market Events', icon: Zap },
     ],
