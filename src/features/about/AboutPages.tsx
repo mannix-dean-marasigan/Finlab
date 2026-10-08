@@ -3,7 +3,7 @@ import { Link } from 'react-router';
 import { BadgeCheck, BookOpen, ChevronDown, Target, Trophy } from 'lucide-react';
 import { PublicShell } from '@/features/passport/PublicPassportPage';
 import { Button } from '@/components/ui/button';
-import { CONTACT_EMAIL, FOUNDER, LINKEDIN_PAGE_URL } from '@/lib/brand';
+import { CONTACT_EMAIL, LINKEDIN_PAGE_URL } from '@/lib/brand';
 import { cn } from '@/lib/utils';
 
 const STEPS = [
@@ -87,21 +87,6 @@ export function AboutPage() {
             </li>
           </ul>
         </section>
-
-        {FOUNDER && (
-          <section className="flex flex-col gap-5 rounded-xl border border-border bg-surface p-6 sm:flex-row">
-            {FOUNDER.photo && <img src={FOUNDER.photo} alt={FOUNDER.name} className="h-24 w-24 shrink-0 rounded-full object-cover" />}
-            <div>
-              <h2 className="text-xl font-bold tracking-tight">{FOUNDER.name}</h2>
-              <div className="text-sm text-accent">{FOUNDER.role}</div>
-              {FOUNDER.story.map((p) => (
-                <p key={p} className="mt-3 text-sm leading-relaxed text-fg-muted">
-                  {p}
-                </p>
-              ))}
-            </div>
-          </section>
-        )}
 
         <section className="space-y-4 border-t border-border pt-8">
           <Contact />
