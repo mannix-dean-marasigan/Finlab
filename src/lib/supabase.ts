@@ -1,6 +1,17 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 
 const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
+
+// Open the connection to the database early, while the page is still loading.
+if (url && typeof document !== 'undefined') {
+  for (const rel of ['preconnect', 'dns-prefetch']) {
+    const link = document.createElement('link');
+    link.rel = rel;
+    link.href = new URL(url).origin;
+    if (rel === 'preconnect') link.crossOrigin = 'anonymous';
+    document.head.appendChild(link);
+  }
+}
 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
 /** True when the public Supabase credentials are present. */

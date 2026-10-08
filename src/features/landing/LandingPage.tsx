@@ -82,7 +82,7 @@ export default function LandingPage() {
           </div>
           <p className="mt-4 text-sm text-fg-subtle">
             Don't have a code? The beta is invite-only while we test with a small group.{' '}
-            <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="text-accent hover:underline">
+            <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="text-accent underline underline-offset-2 hover:text-accent-strong">
               Message us on LinkedIn
             </a>{' '}
             to ask for one.

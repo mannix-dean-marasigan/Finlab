@@ -135,8 +135,8 @@ export default function RegisterPage() {
           <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-[#f5a524]" />
           <span>
             I agree to the{' '}
-            <Link to="/terms" target="_blank" className="text-accent hover:underline">Terms of Use</Link> and{' '}
-            <Link to="/privacy" target="_blank" className="text-accent hover:underline">Privacy Notice</Link>, and understand FINLAB is an educational simulation, not investment advice.
+            <Link to="/terms" target="_blank" className="text-accent underline underline-offset-2 hover:text-accent-strong">Terms of Use</Link> and{' '}
+            <Link to="/privacy" target="_blank" className="text-accent underline underline-offset-2 hover:text-accent-strong">Privacy Notice</Link>, and understand FINLAB is an educational simulation, not investment advice.
           </span>
         </label>
         <InlineError message={error} />
@@ -146,7 +146,7 @@ export default function RegisterPage() {
       </form>
       <p className="mt-6 text-center text-sm text-fg-muted">
         Already have an account?{' '}
-        <Link to="/login" className="text-accent hover:underline">
+        <Link to="/login" className="text-accent underline underline-offset-2 hover:text-accent-strong">
           Sign in
         </Link>
       </p>

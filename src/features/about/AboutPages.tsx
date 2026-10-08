@@ -19,11 +19,11 @@ function Contact() {
       Questions or ideas? Use the Feedback button inside the app
       {CONTACT_EMAIL && (
         <>
-          , email <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent hover:underline">{CONTACT_EMAIL}</a>
+          , email <a href={`mailto:${CONTACT_EMAIL}`} className="text-accent underline underline-offset-2 hover:text-accent-strong">{CONTACT_EMAIL}</a>
         </>
       )}
       , or message us on{' '}
-      <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer" className="text-accent hover:underline">
+      <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer" className="text-accent underline underline-offset-2 hover:text-accent-strong">
         LinkedIn
       </a>
       .
@@ -161,11 +161,11 @@ export function FaqPage() {
           <Contact />
           <p className="text-sm text-fg-muted">
             See also our{' '}
-            <Link to="/terms" className="text-accent hover:underline">
+            <Link to="/terms" className="text-accent underline underline-offset-2 hover:text-accent-strong">
               Terms
             </Link>{' '}
             and{' '}
-            <Link to="/privacy" className="text-accent hover:underline">
+            <Link to="/privacy" className="text-accent underline underline-offset-2 hover:text-accent-strong">
               Privacy Policy
             </Link>
             .

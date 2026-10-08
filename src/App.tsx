@@ -15,6 +15,21 @@ const RegisterPage = lazy(() => import('./features/auth/RegisterPage'));
 const ForgotPasswordPage = lazy(() => import('./features/auth/ForgotPasswordPage'));
 const ResetPasswordPage = lazy(() => import('./features/auth/ResetPasswordPage'));
 const OnboardingPage = lazy(() => import('./features/onboarding/OnboardingPage'));
+// The pages people open most, loaded in the background once the app is idle so the first click feels instant.
+const PREFETCH = [
+  () => import('./features/dashboard/DashboardPage'),
+  () => import('./features/certifications/CertificationsPage'),
+  () => import('./features/learn/LearnPage'),
+  () => import('./features/learn/LessonPage'),
+  () => import('./features/challenges/ChallengesPage'),
+  () => import('./features/challenges/ChallengePage'),
+  () => import('./features/trading/TradingFloorPage'),
+];
+if (typeof window !== 'undefined') {
+  const idle = (cb: () => void) => (typeof window.requestIdleCallback === 'function' ? window.requestIdleCallback(cb, { timeout: 4000 }) : setTimeout(cb, 2500));
+  window.addEventListener('load', () => idle(() => PREFETCH.forEach((load) => load().catch(() => {}))), { once: true });
+}
+
 const DashboardPage = lazy(() => import('./features/dashboard/DashboardPage'));
 const LearnPage = lazy(() => import('./features/learn/LearnPage'));
 const LessonPage = lazy(() => import('./features/learn/LessonPage'));

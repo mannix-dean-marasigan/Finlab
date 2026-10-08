@@ -14,7 +14,7 @@
   --color-border-strong: #2a3443;
   --color-fg: #e6edf3;
   --color-fg-muted: #8b98a8;
-  --color-fg-subtle: #5d6978;
+  --color-fg-subtle: #7d8899; /* WCAG AA contrast on the dark background */
 
   --color-accent: #f5a524;
   --color-accent-strong: #ffb84d;
