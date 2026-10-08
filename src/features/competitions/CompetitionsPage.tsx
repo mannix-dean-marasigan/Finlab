@@ -32,7 +32,7 @@ export default function CompetitionsPage() {
       <PageHeader
         eyebrow="Compete"
         title="Competitions"
-        description="Timed, ranked events built from FINLAB challenges. Register, then start each challenge from the competition page — only those attempts count toward the standings."
+        description="Timed, ranked events. Register, then start each challenge from the competition page. Only those attempts count toward the standings."
       />
       <Tabs
         className="mb-4"

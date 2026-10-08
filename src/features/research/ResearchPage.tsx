@@ -104,7 +104,7 @@ export default function ResearchPage() {
       <PageHeader
         eyebrow="Research Studio"
         title="Equity research"
-        description="Structured reports in the format the sell-side uses: thesis, company, industry, competition, financials, forecast, valuation, catalysts, risks, conclusion and sources."
+        description="Write a research report the way analysts do: thesis, company and industry, financials, forecast, valuation, catalysts and risks."
         actions={
           <Button variant="primary" onClick={() => setCreating(true)}>
             <FilePlus2 className="h-4 w-4" /> New report

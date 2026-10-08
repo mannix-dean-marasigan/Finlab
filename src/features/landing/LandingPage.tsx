@@ -9,14 +9,14 @@ import { Button } from '@/components/ui/button';
 import { LINKEDIN_PAGE_URL } from '@/lib/brand';
 
 const FEATURES = [
-  { icon: BookOpen, t: 'Lessons that make you do it', d: 'Short videos, hands-on practice and a knowledge check — no "mark as finished".' },
+  { icon: BookOpen, t: 'Lessons that make you do it', d: 'Short videos, hands-on practice and a quick check. No "mark as finished" button.' },
   { icon: Target, t: 'Real-style cases', d: 'Value a company, analyze a bank, build a cash flow, pitch a stock. Every answer is scored.' },
   { icon: Briefcase, t: 'A career ladder', d: 'Build your FINLAB Score and earn promotions from Junior Analyst upward.' },
-  { icon: Swords, t: 'Competitions & leaderboards', d: 'Compete in timed cases and rank by school, country and specialty.' },
-  { icon: LineChart, t: 'Market simulator', d: 'Trade a ₱10M practice portfolio and react to market events.' },
-  { icon: MessageSquareText, t: 'Peer review', d: 'Pitch a stock and get anonymous feedback from fellow analysts.' },
-  { icon: Flame, t: 'Daily challenge & streaks', d: 'One question a day, flashcards with spaced repetition, and XP leagues.' },
-  { icon: BadgeCheck, t: 'Verifiable certificates', d: 'Free certificates with a public link — ready for LinkedIn.' },
+  { icon: Swords, t: 'Leaderboards', d: 'See how you rank nationwide, at your school and each week.' },
+  { icon: LineChart, t: 'Trading Floor', d: 'Trade simulated stocks on real charts with indicators and support and resistance.' },
+  { icon: MessageSquareText, t: 'Classes', d: 'A private leaderboard for your class or org, with progress for your professor.' },
+  { icon: Flame, t: 'Daily challenge & streaks', d: 'One question a day, flashcards that come back when you need them, and weekly XP races.' },
+  { icon: BadgeCheck, t: 'Verifiable certificates', d: 'Free certificates with a public link, ready for LinkedIn.' },
 ];
 
 const CERTS = [
@@ -67,8 +67,8 @@ export default function LandingPage() {
             Don't just study finance. <span className="text-accent">Run the desk.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-fg-muted">
-            FINLAB PH is the flight simulator for finance. Learn with short lessons, then do the work — real-style cases, scored instantly — and prove it with
-            certificates employers can verify.
+            FINLAB PH is the flight simulator for finance. Learn a concept in a short lesson, use it right away on a realistic case, and prove it with a
+            certificate employers can verify. Free for students and young professionals.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/register">
@@ -165,8 +165,10 @@ export default function LandingPage() {
 
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-xs text-fg-subtle">
-          <span>FINLAB PH beta · Educational simulation — not investment advice</span>
+          <span>FINLAB PH · Practice platform, not investment advice</span>
           <span className="flex gap-4">
+            <Link to="/about" className="hover:text-fg">About</Link>
+            <Link to="/faq" className="hover:text-fg">FAQ</Link>
             <Link to="/terms" className="hover:text-fg">Terms</Link>
             <Link to="/privacy" className="hover:text-fg">Privacy</Link>
             <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>

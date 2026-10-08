@@ -349,7 +349,7 @@ export default function TradingFloorPage() {
       <PageHeader
         eyebrow="Markets"
         title="Trading Floor"
-        description="Trade simulated stocks with real chart tools: indicators, support and resistance, trend lines and Fibonacci. Practise in fast rounds, compete in the weekly challenge, or run a live account. Virtual money only."
+        description="Trade simulated stocks on real charts with indicators, support and resistance, trend lines and Fibonacci. Play quick rounds, take the weekly challenge, or run a live account. Practice money only."
       />
       <Tabs
         className="mb-5"

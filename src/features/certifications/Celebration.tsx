@@ -66,7 +66,7 @@ export function CelebrationDialog({ code, title, onClose, preview }: { code: str
         <div className="mt-5 text-xs font-semibold uppercase tracking-widest text-accent">Certificate earned{preview ? ' · admin preview' : ''}</div>
         <h2 className="mt-2 text-2xl font-semibold tracking-tight">{title}</h2>
         <p className="mt-2 text-sm text-fg-muted">
-          Issued with verification code <span className="font-mono text-fg">{code}</span>. Anyone can verify it — add it to your LinkedIn and résumé.
+          Issued with verification code <span className="font-mono text-fg">{code}</span>. Anyone can verify it, so add it to your LinkedIn and résumé.
         </p>
         {preview ? (
           <div className="mt-6">

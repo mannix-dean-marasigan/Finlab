@@ -38,7 +38,7 @@ function ReviewCard({ r, canRate, pitchId }: { r: PeerReview; canRate: boolean; 
     mutationFn: (v: number) => ratePeerReview(r.id, v),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['pitch-reviews', pitchId] });
-      toast.success('Thanks — the reviewer earns credit for helpful feedback.');
+      toast.success('Thanks. Helpful reviews earn the reviewer credit.');
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -94,7 +94,7 @@ export function PeerReviewPanel({ pitch, isOwner }: { pitch: StockPitch; isOwner
     mutationFn: (open: boolean) => setPeerReviewOpen(pitch.id, open),
     onSuccess: (_, open) => {
       qc.invalidateQueries({ queryKey: ['pitch', pitch.id] });
-      toast.success(open ? 'Open for peer review — other analysts can now review it anonymously.' : 'Closed to new peer reviews.');
+      toast.success(open ? 'Open for peer review. Other analysts can now review it anonymously.' : 'Closed to new peer reviews.');
     },
     onError: (e) => toast.error((e as Error).message),
   });

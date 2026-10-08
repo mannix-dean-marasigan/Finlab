@@ -113,7 +113,7 @@ export default function ProfilePage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader eyebrow="Profile" title="Settings" description="Your public identity, preferences and account. Scores, ranks, levels and achievements are calculated and cannot be edited." />
+      <PageHeader eyebrow="Profile" title="Settings" description="Your profile, preferences and account." />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_400px]">
         <Card>
           <CardHeader title="Public profile" icon={<User className="h-3.5 w-3.5" />} />

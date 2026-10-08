@@ -48,7 +48,7 @@ export default function RegisterPage() {
     if (Object.keys(errors).length) return;
     if (!agreed) return setError('Please accept the Terms of Use and Privacy Notice to continue.');
     const code = invite.trim().toUpperCase();
-    if (inviteRequired && !code) return setError('FINLAB is in closed beta — enter the invite code you were given.');
+    if (inviteRequired && !code) return setError('FINLAB PH is in closed beta. Enter the invite code you were given.');
     setLoading(true);
     if (code) {
       try {
@@ -75,7 +75,7 @@ export default function RegisterPage() {
         /already registered/i.test(err.message)
           ? 'An account with this email already exists. Try signing in.'
           : /database error saving new user/i.test(err.message)
-            ? 'Sign-up was blocked — the invite code is missing, used up or expired. Check it, or ask whoever invited you for a new one.'
+            ? 'That invite code is missing, used up or expired. Check it, or ask whoever invited you for a new one.'
             : toErrorMessage(err),
       );
       return;

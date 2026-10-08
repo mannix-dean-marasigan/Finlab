@@ -21,7 +21,7 @@ export function SubmissionResult({ submission, passingScore }: { submission: Sub
       <Card className="border-info/30">
         <CardHeader title="Awaiting review" icon={<Hourglass className="h-3.5 w-3.5 text-info" />} subtitle={`Submitted ${fmtDateTime(submission.submitted_at)}`} />
         <CardContent className="text-sm text-fg-muted">
-          This challenge is scored by a reviewer. Your skills and FINLAB Score update as soon as it is scored — you'll get a notification.
+          This challenge is scored by a reviewer. Your skills and FINLAB Score update as soon as it is scored, and you'll get a notification.
         </CardContent>
       </Card>
     );

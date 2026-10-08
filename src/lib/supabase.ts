@@ -29,7 +29,7 @@ export function toErrorMessage(error: unknown): string {
   const e = error as { message?: string; details?: string; hint?: string; code?: string };
   let msg = e.message ?? 'Something went wrong';
   if (e.code === '42501' || /permission denied/i.test(msg)) msg = 'You do not have permission to do that.';
-  if (/Failed to fetch|NetworkError/i.test(msg)) msg = 'Network error — check your connection and try again.';
+  if (/Failed to fetch|NetworkError/i.test(msg)) msg = 'Network error. Check your connection and try again.';
   if (/JWT expired/i.test(msg)) msg = 'Your session expired. Please sign in again.';
   return msg;
 }

@@ -87,7 +87,7 @@ export default function SecurityPage() {
         <Card>
           <CardHeader
             title="Price history"
-            subtitle="Illustrative sample series — not actual historical prices."
+            subtitle="Illustrative sample prices, not real history."
             action={
               <Segmented
                 value={range}

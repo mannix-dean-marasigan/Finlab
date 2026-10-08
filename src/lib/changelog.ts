@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-11',
+    title: 'A cleaner FINLAB PH',
+    items: [
+      'A simpler menu: Learn, Practice, Tools, Compete and Profile. Competitions and market events show up when one is running.',
+      'New About and FAQ pages.',
+      'Clearer wording across the app, a new heading font, and friendlier empty pages.',
+    ],
+  },
+  {
     id: '2026-10-10',
     title: 'Trading Floor',
     items: [
@@ -32,7 +41,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       'New certifications: Accounting Fundamentals, Corporate Finance & FP&A, Financial Modeling and Finance Interview Prep.',
       'New track: Personal Finance Essentials (budgeting, compounding, investing basics).',
-      'A 30-minute Quick Start certificate — the fastest way to earn your first one.',
+      'A 30-minute Quick Start certificate, the fastest way to earn your first one.',
       'Beta tester checklist on your dashboard: finish five tasks to claim a Founding Beta Tester certificate.',
       '45 more daily challenge questions, so the daily question stays fresh for months.',
       'Share any certificate on LinkedIn with a ready-made post, picture, description and skills list.',

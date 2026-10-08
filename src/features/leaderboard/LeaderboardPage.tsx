@@ -19,16 +19,15 @@ const BOARDS: { value: LeaderboardBoard; label: string; metric: string; desc: st
   { value: 'philippines', label: 'Philippines', metric: 'FINLAB Score', desc: 'Analysts based in the Philippines.' },
   { value: 'university', label: 'University', metric: 'FINLAB Score', desc: 'Compare with analysts from the same school.' },
   { value: 'specialization', label: 'Specialization', metric: 'FINLAB Score', desc: 'Ranked within a primary specialization.' },
-  { value: 'stock_pitch', label: 'Stock Pitch', metric: 'Avg of top 3 pitches', desc: 'Average rubric score of your three best submitted pitches.' },
-  { value: 'equity_research', label: 'Equity Research', metric: 'Avg of top 3', desc: 'Best research reports and equity research challenges.' },
-  { value: 'portfolio', label: 'Portfolio Mgmt', metric: 'Simulated return %', desc: 'Return of the simulated portfolio since start or last reset (sample prices).' },
+  { value: 'stock_pitch', label: 'Stock pitch', metric: 'Avg of top 3 pitches', desc: 'Average rubric score of your three best submitted pitches.' },
+  { value: 'equity_research', label: 'Research', metric: 'Avg of top 3', desc: 'Best research reports and equity research challenges.' },
 ];
 
 type XpBoard = 'xp_pod' | 'xp_week' | 'xp_30';
 const XP_BOARDS: { value: XpBoard; label: string; desc: string }[] = [
-  { value: 'xp_pod', label: 'My weekly pod', desc: 'Each week everyone is placed in a random group of about 20 and competes on the XP earned that week. A fresh pod every Monday (Manila time).' },
-  { value: 'xp_week', label: 'This week (XP)', desc: 'XP earned since Monday (Manila time) from lessons, practice, challenges, pitches, reviews, flashcards and daily challenges. Resets weekly.' },
-  { value: 'xp_30', label: '30 days (XP)', desc: 'XP earned over the last 30 days.' },
+  { value: 'xp_pod', label: 'My pod', desc: 'Each week everyone is placed in a random group of about 20 and competes on the XP earned that week. A fresh pod every Monday (Manila time).' },
+  { value: 'xp_week', label: 'XP this week', desc: 'XP earned since Monday (Manila time) from lessons, practice, challenges, pitches, reviews, flashcards and daily challenges. Resets weekly.' },
+  { value: 'xp_30', label: 'XP 30 days', desc: 'XP earned over the last 30 days.' },
 ];
 
 function XpLeaderboard({ board }: { board: XpBoard }) {
@@ -101,7 +100,7 @@ export default function LeaderboardPage() {
       <PageHeader
         eyebrow="Compete"
         title="Leaderboards"
-        description="Every ranking is calculated in the database from scored work. Nobody — including you — can edit a ranking. Private profiles are hidden from others."
+        description="Rankings come only from scored work, so they can't be gamed. Private profiles are hidden from others."
       />
       <Tabs
         className="mb-4"

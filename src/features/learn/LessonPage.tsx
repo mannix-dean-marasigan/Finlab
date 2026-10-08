@@ -46,12 +46,12 @@ function KnowledgeCheck({ lesson, completed }: { lesson: Lesson; completed: bool
       qc.invalidateQueries({ queryKey: ['programs'] });
       qc.invalidateQueries({ queryKey: ['program'] });
       invalidateProgress(qc);
-      if (r.passed) toast.success(r.first_completion ? 'Briefing completed — knowledge check passed' : 'Passed again');
+      if (r.passed) toast.success(r.first_completion ? 'Lesson complete. You passed the check.' : 'Passed again');
     },
   });
 
   if (!questions.length) {
-    return <p className="text-sm text-fg-muted">This briefing has no knowledge check yet, so completion isn't tracked.</p>;
+    return <p className="text-sm text-fg-muted">This lesson has no knowledge check yet, so completion isn't tracked.</p>;
   }
 
   const byKey = new Map(result?.questions.map((q) => [q.key, q.correct]));
@@ -85,8 +85,8 @@ function KnowledgeCheck({ lesson, completed }: { lesson: Lesson; completed: bool
           </div>
           <p className="mt-1 text-sm text-fg-muted">
             {result.passed
-              ? 'This briefing now counts as completed toward your certifications.'
-              : 'Questions marked ✗ are incorrect. Re-read the briefing above — answers are never revealed, so you have to understand it.'}
+              ? 'This lesson now counts toward your certifications.'
+              : 'Questions marked ✗ are incorrect. Re-read the lesson above. Answers are never shown, so you need to understand it.'}
           </p>
         </div>
       )}
@@ -145,7 +145,7 @@ export default function LessonPage() {
     mutationFn: (method: 'ended' | 'manual') => markVideoWatched(lessonId!, method),
     onSuccess: (_, method) => {
       qc.setQueryData(['videoWatched', lessonId], true);
-      toast.success(method === 'ended' ? 'Video complete — knowledge check unlocked' : 'Knowledge check unlocked');
+      toast.success(method === 'ended' ? 'Video done. The knowledge check is unlocked.' : 'Knowledge check unlocked');
     },
     onError: (e) => toast.error((e as Error).message),
   });
@@ -205,7 +205,7 @@ export default function LessonPage() {
               </div>
             )}
             {hasVideo && (
-              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Step 2 · Read the briefing</div>
+              <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Step 2 · Read the lesson</div>
             )}
             <Markdown>{l.body}</Markdown>
           </Card>
@@ -213,7 +213,7 @@ export default function LessonPage() {
             <Card>
               <CardHeader
                 title={`${stepNo(3)}Practice · ${activities.data.length} activities`}
-                subtitle="Hands-on exercises. Attempt every required activity to unlock the knowledge check — scores here are for practice."
+                subtitle="Try every required activity to unlock the knowledge check. Scores here are just for practice."
                 icon={<Puzzle className="h-3.5 w-3.5" />}
                 action={
                   requiredLeft > 0 ? <Badge tone="warn">{requiredLeft} required left</Badge> : <Badge tone="up">Practice done</Badge>
@@ -227,7 +227,7 @@ export default function LessonPage() {
           <Card>
             <CardHeader
               title={`${stepNo(activities.data?.length ? 4 : 3)}Knowledge check · ${l.check_questions?.length ?? 0} questions`}
-              subtitle="Pass to complete this briefing. Answers are checked on the server and never shown."
+              subtitle="Pass to complete this lesson. Answers are never shown."
               icon={<ListChecks className="h-3.5 w-3.5" />}
             />
             <CardContent>
@@ -276,7 +276,7 @@ export default function LessonPage() {
               <Layers className="h-5 w-5 text-accent" />
               <div className="text-sm">
                 <div className="font-medium">Study the flashcards</div>
-                <div className="text-xs text-fg-muted">Spaced repetition for this briefing's key formulas and ideas.</div>
+                <div className="text-xs text-fg-muted">Review this lesson's key formulas and ideas.</div>
               </div>
             </Card>
           </Link>
@@ -285,7 +285,7 @@ export default function LessonPage() {
               <GraduationCap className="h-5 w-5 text-accent" />
               <div className="text-sm">
                 <div className="font-medium">Earn a certificate</div>
-                <div className="text-xs text-fg-muted">This briefing counts toward certifications and tracks.</div>
+                <div className="text-xs text-fg-muted">This lesson counts toward certifications.</div>
               </div>
             </Card>
           </Link>

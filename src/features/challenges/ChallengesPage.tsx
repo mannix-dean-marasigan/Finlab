@@ -62,7 +62,7 @@ export default function ChallengesPage() {
       <PageHeader
         eyebrow="Challenges"
         title="Do the work"
-        description="Case-based tasks, stock pitches, research reports and investment committee cases. Every submission is scored and feeds your skills."
+        description="Finance cases based on real situations. Every answer is scored and builds your skill profile."
         actions={
           <div className="rounded-md border border-border bg-surface px-3 py-1.5 text-sm">
             <span className="font-mono tabular text-accent">{passed}</span>

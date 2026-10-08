@@ -40,7 +40,7 @@ export default function PitchesPage() {
       <PageHeader
         eyebrow="Stock Pitch Arena"
         title="Pitch ideas. Defend them."
-        description="Quick pitches (15–30 min) and professional pitches (2–7 day window). Scored by a deterministic beta rubric: Thesis 20 · Financial Analysis 20 · Valuation 20 · Risk 15 · Catalysts 10 · Communication 10 · Sources 5."
+        description="Pitch a stock in 15 to 30 minutes, or take up to a week for a full pitch. Scored on thesis, financials, valuation, risks, catalysts, communication and sources."
         actions={
           <>
             <Button variant="outline" onClick={() => setNewFormat('quick')}>

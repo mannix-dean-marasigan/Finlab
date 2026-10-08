@@ -83,7 +83,7 @@ export default function CertificationsPage() {
       <PageHeader
         eyebrow="Learn"
         title="Certifications"
-        description="Structured programs of lessons, hands-on challenges and a timed final exam. Pass every module and a verifiable certificate is issued automatically — no shortcuts, no 'mark as done'."
+        description="Lessons, hands-on cases and a final exam. Finish every part and you get a certificate anyone can verify online."
       />
       {quick && (
         <Link to={`/certifications/${quick.slug}`} className="group mb-5 block">

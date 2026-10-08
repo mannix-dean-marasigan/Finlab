@@ -30,6 +30,14 @@ function greeting() {
 
 const COUNTRY_NAMES: Record<string, string> = { PH: 'Philippines' };
 
+/** Friendly rank caption: early on, "#1 of 1" just looks empty, so say how many are ranked so far instead. */
+function rankNote(rank: number | null | undefined, total: number | null | undefined, unranked: string) {
+  if (!rank) return unranked;
+  const n = total ?? 0;
+  if (n < 10) return `Early days: ${n} analyst${n === 1 ? '' : 's'} ranked so far`;
+  return `Top ${Math.max(1, Math.ceil((rank / n) * 100))}% of ${n} analysts`;
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
   const qc = useQueryClient();
@@ -87,7 +95,7 @@ export default function DashboardPage() {
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
             {greeting()}, {profile.data?.full_name.split(' ')[0] ?? 'Analyst'}.
           </h1>
-          <p className="mt-1 text-sm text-fg-muted">Your desk, your track record. Everything here is calculated from work you've actually submitted.</p>
+          <p className="mt-1 text-sm text-fg-muted">Here is where you stand and what to do next.</p>
         </div>
         <div className="flex gap-2">
           <Link to="/challenges">
@@ -143,7 +151,7 @@ export default function DashboardPage() {
             <>
               <div className="mt-2 font-mono text-2xl font-semibold tabular">{ranks.data?.global.rank ? `#${ranks.data.global.rank}` : 'Unranked'}</div>
               <div className="mt-1 text-xs text-fg-muted">
-                {ranks.data?.global.rank ? `of ${ranks.data.global.total} ranked analysts` : `${ranks.data?.global.total ?? 0} ranked so far · score something to enter`}
+                {rankNote(ranks.data?.global.rank, ranks.data?.global.total, 'Score a challenge to get ranked')}
               </div>
             </>
           )}
@@ -158,7 +166,7 @@ export default function DashboardPage() {
             <>
               <div className="mt-2 font-mono text-2xl font-semibold tabular">{ranks.data?.country.rank ? `#${ranks.data.country.rank}` : 'Unranked'}</div>
               <div className="mt-1 text-xs text-fg-muted">
-                {ranks.data?.country.rank ? `of ${ranks.data.country.total} in your country` : 'Ranks are calculated from scored work'}
+                {rankNote(ranks.data?.country.rank, ranks.data?.country.total, 'Score a challenge to get ranked')}
               </div>
             </>
           )}

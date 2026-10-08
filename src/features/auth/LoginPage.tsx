@@ -21,7 +21,7 @@ export default function LoginPage() {
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setLoading(false);
     if (err) {
-      setError(/Email not confirmed/i.test(err.message) ? 'Please confirm your email first — check your inbox for the link.' : /Invalid login/i.test(err.message) ? 'Incorrect email or password.' : toErrorMessage(err));
+      setError(/Email not confirmed/i.test(err.message) ? 'Please confirm your email first. Check your inbox for the link.' : /Invalid login/i.test(err.message) ? 'Incorrect email or password.' : toErrorMessage(err));
       return;
     }
     const next = params.get('next');

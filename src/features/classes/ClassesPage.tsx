@@ -57,7 +57,7 @@ export default function ClassesPage() {
       <PageHeader
         eyebrow="Compete"
         title="Classes"
-        description="Join your class or organization with its code to see a private leaderboard. Class managers (for example your professor or org officers) can see members' progress."
+        description="Join your class or org with its code for a private leaderboard. Your class managers, like your professor or org officers, can see your progress."
       />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-w-0 space-y-4">

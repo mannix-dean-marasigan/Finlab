@@ -37,7 +37,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
             setDone(true);
             setTimeout(() => setDone(false), 1500);
           })
-          .catch(() => toast.error('Could not copy — select the text and copy it manually'))
+          .catch(() => toast.error('Could not copy. Select the text and copy it yourself.'))
       }
     >
       {done ? <Check className="h-3.5 w-3.5 text-up" /> : <Copy className="h-3.5 w-3.5" />} {done ? 'Copied' : label}
@@ -149,11 +149,11 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
       }
     }
     if (imageCopied) {
-      toast.success('Picture copied — in LinkedIn, click the post box and press Ctrl+V (⌘V on Mac) to add it.', { duration: 9000 });
+      toast.success('Picture copied. In LinkedIn, click the post box and press Ctrl+V (⌘V on Mac) to add it.', { duration: 9000 });
     } else {
       await navigator.clipboard.writeText(post).catch(() => undefined);
       downloadImage();
-      toast.success('Picture downloaded — attach it in LinkedIn with the image button. The text is pre-filled (and copied).', { duration: 9000 });
+      toast.success('Picture downloaded. Attach it in LinkedIn with the image button. The text is already filled in and copied.', { duration: 9000 });
     }
     window.open(linkedInShareUrl(post), '_blank', 'noopener,noreferrer');
   };
@@ -166,14 +166,14 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
         </span>
         <div>
           <h2 className="font-semibold">Share it on LinkedIn</h2>
-          <p className="text-sm text-fg-muted">Only you see this panel. Everything is pre-written from what you actually completed — edit freely.</p>
+          <p className="text-sm text-fg-muted">Only you see this panel. Everything is written from what you actually completed. Edit it however you like.</p>
         </div>
       </div>
 
       {c.issue_type === 'test' && (
         <div className="mt-4 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-300">
           This is a <strong>test certificate</strong>. Use the buttons to check how LinkedIn handles them, but don't publish the post or keep it on your
-          profile — its verification page says it is not a credential.
+          profile. Its verification page says it is not a credential.
         </div>
       )}
       <div className="mt-5 space-y-6">
@@ -227,8 +227,8 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
               </div>
               <p>
                 {canShareFile
-                  ? '"Post on LinkedIn" opens your share menu with this picture and your text attached — choose LinkedIn.'
-                  : '"Post on LinkedIn" copies this picture and opens LinkedIn with your text filled in — click the post box and press Ctrl+V to add the picture.'}
+                  ? '"Post on LinkedIn" opens your share menu with this picture and your text attached. Choose LinkedIn.'
+                  : '"Post on LinkedIn" copies this picture and opens LinkedIn with your text filled in. Click the post box and press Ctrl+V to add the picture.'}
               </p>
               <Button size="xs" variant="outline" onClick={downloadImage} disabled={!image}>
                 <Download className="h-3.5 w-3.5" /> Download picture

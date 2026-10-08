@@ -25,7 +25,7 @@ export default function MyPassportPage() {
       <PageHeader
         eyebrow="Profile"
         title="Finance Passport"
-        description="Your recruiter-facing proof of work. Share the public link; control visibility of individual pitches and reports from their pages."
+        description="Your public proof of work for recruiters. Share the link, and choose which pitches and reports to show from their own pages."
         actions={
           <>
             {profile.data?.is_public ? (

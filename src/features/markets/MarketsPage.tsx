@@ -27,7 +27,7 @@ export default function MarketsPage() {
       <PageHeader
         eyebrow="Markets"
         title="Market monitor"
-        description={`Curated sample data for the Philippine Stock Exchange and US markets via the ${marketData.label}. Figures are illustrative and static — never live quotes.`}
+        description={`Curated sample data for the Philippine Stock Exchange and US markets via the ${marketData.label}. Figures are illustrative and do not update.`}
         actions={<SampleDataBadge asOf={asOf} />}
       />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

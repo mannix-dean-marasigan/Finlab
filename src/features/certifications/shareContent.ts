@@ -27,7 +27,7 @@ const PROGRAMS: Record<string, ProgramCopy> = {
       'Passed a timed final exam and presented a recorded financial health review of a listed company',
     ],
     skills: ['Financial Statement Analysis', 'Financial Analysis', 'Ratio Analysis', 'Cash Flow Analysis', 'Credit Analysis', 'Accounting'],
-    takeaway: 'profit is an opinion, cash is a fact — always check whether earnings turn into cash',
+    takeaway: 'profit is an opinion and cash is a fact, so always check whether earnings turn into cash',
     focus: 'financial statement analysis',
     capstone: true,
   },
@@ -40,7 +40,7 @@ const PROGRAMS: Record<string, ProgramCopy> = {
       'Passed a timed final exam and defended a blended target price in a recorded presentation',
     ],
     skills: ['Equity Valuation', 'Discounted Cash Flow (DCF)', 'Comparable Company Analysis', 'Weighted Average Cost of Capital (WACC)', 'Financial Modeling', 'Corporate Finance'],
-    takeaway: 'a valuation is a range, not a number — the skill is knowing which assumption moves it most',
+    takeaway: 'a valuation is a range, not a number, and the real skill is knowing which assumption moves it most',
     focus: 'valuation work',
     capstone: true,
   },
@@ -53,7 +53,7 @@ const PROGRAMS: Record<string, ProgramCopy> = {
       'Passed a timed exam writing a full investment thesis and pitched a stock to a mock investment committee',
     ],
     skills: ['Equity Research', 'Investment Thesis Development', 'Stock Pitching', 'Financial Analysis', 'Valuation', 'Financial Writing'],
-    takeaway: 'a good pitch says what the market is missing and what event will prove it — not just that a company is "good"',
+    takeaway: 'a good pitch says what the market is missing and what event will prove it, not just that a company is "good"',
     focus: 'equity research',
     capstone: true,
   },
@@ -66,7 +66,7 @@ const PROGRAMS: Record<string, ProgramCopy> = {
       'Passed a timed final exam and presented a full review of a listed bank',
     ],
     skills: ['Credit Analysis', 'Bank Analysis', 'Credit Risk', 'Financial Analysis', 'Basel III', 'Risk Management'],
-    takeaway: 'banks fail on liquidity and credit, not on headline profit — capital and asset quality tell you more than earnings',
+    takeaway: 'banks fail on liquidity and credit, not headline profit, so capital and asset quality tell you more than earnings',
     focus: 'bank and credit analysis',
     capstone: true,
   },
@@ -80,14 +80,14 @@ const PROGRAMS: Record<string, ProgramCopy> = {
   'Portfolio Management Essentials': {
     highlights: ['Built diversified portfolios to a mandate', 'Measured risk with volatility, beta and concentration', 'Applied CAPM to set expected returns'],
     skills: ['Portfolio Management', 'Asset Allocation', 'Risk Management', 'CAPM'],
-    takeaway: 'diversification is the only free lunch — but only when correlations are genuinely low',
+    takeaway: 'diversification is the only free lunch, but only when correlations are genuinely low',
     focus: 'portfolio management',
     capstone: false,
   },
   'Deal Analysis': {
     highlights: ['Modelled accretion/dilution for M&A deals', 'Priced an IPO with a valuation discount and dilution analysis', 'Assessed synergies and deal structure'],
     skills: ['Mergers & Acquisitions (M&A)', 'Accretion/Dilution Analysis', 'IPO Valuation', 'Investment Banking'],
-    takeaway: 'an accretive deal is not automatically a good deal — returns on capital decide that',
+    takeaway: 'an accretive deal is not automatically a good deal; returns on capital decide that',
     focus: 'deal analysis',
     capstone: false,
   },
@@ -144,10 +144,10 @@ function avgScore(c: CertificateView): number | null {
 }
 
 function assessment(c: CertificateView, copy: ProgramCopy): string {
-  if (c.kind === 'track') return 'Every module is scored on submitted work — no "mark as complete".';
+  if (c.kind === 'track') return 'Every module is scored on submitted work. There is no "mark as complete" button.';
   return copy.capstone
-    ? 'It ends with a timed final exam and a recorded capstone presentation scored against a rubric — every module is graded on submitted work.'
-    : 'It ends with a timed final exam — every module is graded on submitted work.';
+    ? 'It ends with a timed final exam and a recorded capstone presentation scored against a rubric. Every module is graded on submitted work.'
+    : 'It ends with a timed final exam, and every module is graded on submitted work.';
 }
 
 /** Text for the "Description" field of the LinkedIn certification entry. */
@@ -188,29 +188,29 @@ export function linkedInPost(c: CertificateView, verifyUrl: string, tone: PostTo
   const tags = hashtags(c);
   if (isAwardedCertificate(c)) {
     const why = c.award_reason ? `${c.award_reason}.` : '';
-    if (tone === 'short') return `Awarded the ${c.title} by ${ISSUER_NAME} 🎓 ${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
-    if (tone === 'story') return `Grateful to receive the ${c.title} from ${ISSUER_NAME}. 🎓\n\n${why}\n\nIt was a great chance to learn alongside other aspiring analysts — and I'm excited to keep building.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
-    return `I'm happy to share that I've been awarded the ${c.title} by ${ISSUER_NAME}! 🎓\n\n${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    if (tone === 'short') return `Awarded the ${c.title} by ${ISSUER_NAME}. ${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    if (tone === 'story') return `Grateful to receive the ${c.title} from ${ISSUER_NAME}.\n\n${why}\n\nIt was a great chance to learn alongside other aspiring analysts, and I'm excited to keep building.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
+    return `I'm happy to share that I've been awarded the ${c.title} by ${ISSUER_NAME}!\n\n${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
   }
   if (c.kind === 'competition') {
     const comp = c.competition?.name ?? c.title;
-    if (tone === 'short') return `${c.subtitle} at ${comp} on ${ISSUER_NAME}! 🏆 Timed, scored finance cases against other analysts.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    if (tone === 'short') return `${c.subtitle} at ${comp} on ${ISSUER_NAME}. Timed, scored finance cases against other analysts.\n\nVerify: ${verifyUrl}\n\n${tags}`;
     if (tone === 'story')
-      return `I didn't expect to place when I signed up for ${comp}. 🏆\n\nThe cases were timed and scored on the work itself — numbers, judgment and writing — against analysts I'd never met. I finished: ${c.subtitle}.\n\nWhat it taught me: preparation compounds. The frameworks I'd practised were what I reached for under the clock.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
-    return `I'm proud to share that I placed ${c.subtitle} in ${comp}, a ${ISSUER_NAME} finance competition. 🏆\n\nThe competition tested financial analysis, valuation and investment judgment on timed, scored cases.\n\nThank you to everyone who competed — I learned a lot from the challenge.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+      return `I didn't expect to place when I signed up for ${comp}.\n\nThe cases were timed and scored on the work itself (numbers, judgment and writing) against analysts I'd never met. I finished: ${c.subtitle}.\n\nWhat it taught me: preparation compounds. The frameworks I'd practised were what I reached for under the clock.\n\nCertificate: ${verifyUrl}\n\n${tags}`;
+    return `I'm proud to share that I placed ${c.subtitle} in ${comp}, a ${ISSUER_NAME} finance competition.\n\nThe competition tested financial analysis, valuation and investment judgment on timed, scored cases.\n\nThank you to everyone who competed. I learned a lot.\n\nVerify: ${verifyUrl}\n\n${tags}`;
   }
 
   const copy = programCopy(c);
   const s = stats(c);
   const what = c.kind === 'track' ? 'learning track' : 'certification';
   if (tone === 'short') {
-    return `Just earned the ${credName(c)} ${what} from ${ISSUER_NAME} 🎓 — ${s.length ? `${s.join(' across ')} of ` : ''}hands-on ${copy.focus}${c.kind === 'certification' ? `, a timed exam${copy.capstone ? ' and a recorded capstone' : ''}` : ''}.\n\nVerify: ${verifyUrl}\n\n${tags}`;
+    return `Just earned the ${credName(c)} ${what} from ${ISSUER_NAME}: ${s.length ? `${s.join(' across ')} of ` : ''}hands-on ${copy.focus}${c.kind === 'certification' ? `, a timed exam${copy.capstone ? ' and a recorded capstone' : ''}` : ''}.\n\nVerify: ${verifyUrl}\n\n${tags}`;
   }
   if (tone === 'story') {
     return [
-      `I wanted to get better at ${copy.focus} by actually doing it — so I took on the ${programName(c)} ${what} on ${ISSUER_NAME}.`,
+      `I wanted to get better at ${copy.focus} by actually doing it, so I took on the ${programName(c)} ${what} on ${ISSUER_NAME}.`,
       '',
-      `Today I earned it. 🎓 ${assessment(c, copy)}`,
+      `Today I earned it. ${assessment(c, copy)}`,
       '',
       `My biggest takeaway: ${copy.takeaway}.`,
       '',
@@ -223,10 +223,10 @@ export function linkedInPost(c: CertificateView, verifyUrl: string, tone: PostTo
     ].join('\n');
   }
   return [
-    `I'm happy to share that I've earned the ${credName(c)} ${what} from ${ISSUER_NAME}! 🎓`,
+    `I'm happy to share that I've earned the ${credName(c)} ${what} from ${ISSUER_NAME}!`,
     '',
     `${s.length ? `Over ${s.join(' and ')}, I` : 'In the program, I'}:`,
-    ...copy.highlights.map((h) => `✅ ${h}`),
+    ...copy.highlights.map((h) => `• ${h}`),
     '',
     'Every module was graded on submitted work, not attendance.' + (avgScore(c) !== null ? ` I finished with an average challenge score of ${avgScore(c)}/100.` : ''),
     '',

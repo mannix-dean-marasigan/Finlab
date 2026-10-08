@@ -15,7 +15,7 @@ FINLAB is an **educational finance simulation** operated as an early beta. By cr
 Everything on FINLAB — lessons, challenges, scores, ratings, target prices, market events and portfolio results — is for **learning and practice**. Nothing on FINLAB is investment, financial, legal or tax advice, or a recommendation to buy or sell any security. Do not make real investment decisions based on FINLAB content.
 
 ## 2. Simulated money and sample data
-The portfolio simulator uses **virtual money only**. Market data is **curated sample data** that is illustrative and static; it is not real-time or historical market data and may not reflect actual prices.
+The Trading Floor and the portfolio simulator use **virtual money only**. Trading Floor stocks are **fictional** and their prices are **simulated**. Other market data is **curated sample data** that is illustrative and static; it is not real-time or historical market data and may not reflect actual prices.
 
 ## 3. Your account
 - Provide accurate information and keep your password secure.

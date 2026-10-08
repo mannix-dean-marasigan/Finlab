@@ -5,7 +5,7 @@ export const RESEARCH_SECTIONS: { key: ResearchSectionKey; title: string; prompt
   { key: 'company_overview', title: 'Company Overview', prompt: 'Business model, segments and revenue mix, strategy, management.', target: 150 },
   { key: 'industry_overview', title: 'Industry Overview', prompt: 'Market size and growth, structure, regulation, key drivers.', target: 150 },
   { key: 'competitive_analysis', title: 'Competitive Analysis', prompt: 'Positioning vs peers, moat, market share, threats.', target: 150 },
-  { key: 'financial_analysis', title: 'Financial Analysis', prompt: 'Historical growth, margins, returns, cash flow and balance sheet — with figures.', target: 200 },
+  { key: 'financial_analysis', title: 'Financial Analysis', prompt: 'Historical growth, margins, returns, cash flow and balance sheet, with figures.', target: 200 },
   { key: 'forecast', title: 'Forecast', prompt: 'Explicit assumptions and the resulting revenue / earnings path.', target: 120 },
   { key: 'valuation', title: 'Valuation', prompt: 'Method(s), key inputs, target price derivation, sensitivity.', target: 150 },
   { key: 'catalysts', title: 'Catalysts', prompt: 'One per line, with expected timing.', target: 3, list: true },

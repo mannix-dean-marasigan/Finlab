@@ -31,7 +31,7 @@ const TEXT_FIELDS: { key: TextKey; label: string; hint: string; pro?: boolean; r
   { key: 'thesis', label: 'Investment thesis', hint: '2–3 specific, quantified reasons the market is mispricing this stock.', rows: 6, target: 120 },
   { key: 'variant_perception', label: 'Variant perception', hint: 'What do you believe that the consensus does not?', pro: true, rows: 4, target: 100 },
   { key: 'company_analysis', label: 'Company analysis', hint: 'Business model, segments, competitive position, management.', pro: true, rows: 6, target: 150 },
-  { key: 'financial_analysis', label: 'Financial analysis', hint: 'Growth, margins, returns, balance sheet — with numbers.', pro: true, rows: 6, target: 250 },
+  { key: 'financial_analysis', label: 'Financial analysis', hint: 'Growth, margins, returns and the balance sheet, with numbers.', pro: true, rows: 6, target: 250 },
   { key: 'forecast', label: 'Forecast', hint: 'Key assumptions and the resulting revenue / earnings path.', pro: true, rows: 5, target: 150 },
   { key: 'valuation', label: 'Valuation', hint: 'Method (P/E, P/B, DCF…), key inputs, and how you reach the target.', pro: true, rows: 5, target: 200 },
   { key: 'catalysts', label: 'Catalysts', hint: 'One per line, with timing (e.g. "Q4 2026 results").', rows: 4, target: 3, list: true },
@@ -105,7 +105,7 @@ function PitchReadOnly({ pitch, isOwner }: { pitch: StockPitch; isOwner: boolean
             </div>
             {pitch.criteria_scores && <ScoreBreakdown criteria={pitch.criteria_scores} showWeights />}
             <p className="mt-3 text-xs text-fg-subtle">
-              Automated deterministic rubric (beta): measures completeness, consistency, quantitative support and structure — not whether the call is right.
+              Scored automatically on completeness, consistency, use of numbers and structure. It does not judge whether your call is right.
             </p>
           </CardContent>
         </Card>
@@ -380,7 +380,7 @@ export default function PitchEditorPage() {
   useEffect(() => {
     if (pitch.data?.ticker) document.title = `${pitch.data.ticker} pitch · FINLAB`;
     return () => {
-      document.title = 'FINLAB PH — The flight simulator for finance';
+      document.title = 'FINLAB PH · The flight simulator for finance';
     };
   }, [pitch.data?.ticker]);
 

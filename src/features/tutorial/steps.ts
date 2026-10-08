@@ -20,160 +20,133 @@ export const STEPS: TutorialStep[] = [
   {
     id: 'welcome', chapter: 'Welcome', route: '/dashboard',
     title: 'Welcome to FINLAB PH',
-    body: "You're one of our founding beta testers. This tour visits every part of FINLAB in about two minutes. You can skip it any time and replay it from your account menu.",
+    body: "You're one of our first beta testers, so thank you. This quick tour shows you around in about two minutes. Skip it any time; you can replay it from your account menu.",
   },
   {
     id: 'menu', chapter: 'Welcome', route: '/dashboard', target: 'sidebar',
     title: 'Your menu',
-    body: 'Everything lives here: Learn, Challenges, Research, Markets, Career, Compete and Profile. We will visit each one in order.',
+    body: 'Six sections: Dashboard, Learn, Practice, Tools, Compete and Profile. We will go through them in order.',
   },
   // ---------------------------------------------------------------- Dashboard
   {
     id: 'dashboard', chapter: 'Dashboard', route: '/dashboard', target: 'dashboard-header',
     title: 'Your dashboard',
-    body: "Your desk. Every number here is calculated from work you've actually submitted. Nobody, including you, can edit a score.",
+    body: 'Your home base. It shows how you are doing and what to do next.',
   },
   {
     id: 'score', chapter: 'Dashboard', route: '/dashboard', target: 'score',
     title: 'FINLAB Score',
-    body: 'Your overall score from 0 to 100. It grows as you complete scored challenges, and it sets your rank and your career level.',
+    body: 'A score from 0 to 100 that goes up as you finish scored challenges. It decides your rank and your career level.',
   },
   {
     id: 'beta', chapter: 'Dashboard', route: '/dashboard', target: 'beta-checklist',
     title: 'Beta tester checklist',
-    body: 'Finish these five tasks to claim your Founding Beta Tester certificate. Each one ticks itself when you do it.',
+    body: 'Do these five things to claim your Founding Beta Tester certificate. Each one ticks itself off.',
   },
   {
     id: 'today', chapter: 'Dashboard', route: '/dashboard', target: 'today-plan',
     title: "Today's plan",
-    body: 'A short to-do list for today, plus a daily question. Doing something every day keeps your streak alive and earns XP.',
+    body: "A few small things to do today, plus a daily question. Show up every day to keep your streak going.",
   },
   {
     id: 'topbar-score', chapter: 'Dashboard', route: '/dashboard', target: 'topbar-score',
     title: 'Level and score',
-    body: 'Your career level and FINLAB Score, always visible. Click it any time to see what you need for your next promotion.',
+    body: 'Always visible up here. Click it to see what you need for your next promotion.',
   },
   {
     id: 'notifications', chapter: 'Dashboard', route: '/dashboard', target: 'notifications',
     title: 'Notifications',
-    body: 'Scores, achievements, certificates and peer-review results show up here.',
+    body: 'Scores, badges and certificates show up here.',
   },
   // ---------------------------------------------------------------- Learn
   {
-    id: 'briefings', chapter: 'Learn', route: '/learn', target: 'page-header',
-    title: 'Briefings',
-    body: 'Short, practical lessons: a video, a written briefing, hands-on practice and a 10-question knowledge check.',
-  },
-  {
     id: 'certifications', chapter: 'Learn', route: '/certifications', target: 'page-header',
     title: 'Certifications',
-    body: 'Structured programs of lessons, cases and a timed final exam. Pass every module and a verifiable certificate is issued automatically. New here? The 30-minute Quick Start is the fastest first certificate.',
+    body: 'Programs of lessons, cases and a final exam. Finish one and you get a certificate anyone can verify. Start with the 30-minute Quick Start.',
+  },
+  {
+    id: 'lessons', chapter: 'Learn', route: '/learn', target: 'page-header',
+    title: 'Lessons',
+    body: 'Short lessons with a video, a written explanation, hands-on practice and a 10-question check.',
   },
   {
     id: 'flashcards', chapter: 'Learn', route: '/flashcards', target: 'page-header',
     title: 'Flashcards',
-    body: 'Spaced repetition for the formulas and ideas from every lesson. Cards you know come back less often; cards you miss come back sooner.',
+    body: 'Review the formulas and ideas from your lessons. Cards you miss come back sooner.',
   },
-  // ---------------------------------------------------------------- Challenges
+  // ---------------------------------------------------------------- Practice
   {
-    id: 'challenges', chapter: 'Challenges', route: '/challenges', target: 'page-header',
+    id: 'challenges', chapter: 'Practice', route: '/challenges', target: 'page-header',
     title: 'Challenges',
-    body: 'Real-style finance cases: journal entries, valuations, forecasts and investment committee cases. Every answer is scored and builds your skill profile.',
-  },
-  // ---------------------------------------------------------------- Research
-  {
-    id: 'research', chapter: 'Research', route: '/research', target: 'page-header',
-    title: 'Research Studio',
-    body: 'Write equity research reports in the format analysts use: thesis, financials, valuation, catalysts and risks.',
+    body: 'Real-style finance cases: journal entries, valuations, forecasts. Every answer is scored.',
   },
   {
-    id: 'pitches', chapter: 'Research', route: '/pitches', target: 'page-header',
-    title: 'Stock Pitch Arena',
-    body: 'Pitch a stock, from a quick 15–30 minute pitch to a professional multi-day one, scored against a clear rubric.',
-  },
-  {
-    id: 'reviews', chapter: 'Research', route: '/reviews', target: 'page-header',
-    title: 'Peer Review',
-    body: "Review other analysts' pitches anonymously, and open your own pitches for feedback.",
-  },
-  {
-    id: 'valuation', chapter: 'Research', route: '/valuation', target: 'page-header',
-    title: 'Valuation',
-    body: 'Value a company with multiples and a simplified DCF.',
-  },
-  {
-    id: 'models', chapter: 'Research', route: '/models', target: 'page-header',
-    title: 'Financial Models',
-    body: 'Enter historicals, set growth, margin and tax assumptions, and an income statement forecast builds itself.',
-  },
-  // ---------------------------------------------------------------- Markets
-  {
-    id: 'markets', chapter: 'Markets', route: '/markets', target: 'page-header',
-    title: 'Markets',
-    body: 'Prices and charts for Philippine and global stocks. During the beta these use sample data.',
-  },
-  {
-    id: 'trading', chapter: 'Markets', route: '/trading', target: 'page-header',
+    id: 'trading', chapter: 'Practice', route: '/trading', target: 'page-header',
     title: 'Trading Floor',
-    body: 'Trade simulated stocks on real charts with indicators, support and resistance, trend lines and Fibonacci. Play fast practice rounds, take the weekly challenge, or run a live account.',
+    body: 'Trade simulated stocks on real charts with indicators and support and resistance. Play quick rounds, take the weekly challenge, or run a live account.',
   },
   {
-    id: 'portfolio', chapter: 'Markets', route: '/portfolio', target: 'page-header',
-    title: 'Portfolio Simulator',
-    body: 'Manage a ₱10M practice portfolio. Every trade needs a written reason. No real money is involved.',
+    id: 'pitches', chapter: 'Practice', route: '/pitches', target: 'page-header',
+    title: 'Stock pitches',
+    body: 'Pitch a stock, from a quick 15-minute pitch to a full one over a few days. Scored against a clear rubric.',
   },
   {
-    id: 'events', chapter: 'Markets', route: '/events', target: 'page-header',
-    title: 'Market Events',
-    body: 'Market scenarios: decide Buy, Sell, Hold or Rebalance and defend it in writing. Your call is scored when the event resolves.',
+    id: 'research', chapter: 'Practice', route: '/research', target: 'page-header',
+    title: 'Research reports',
+    body: 'Write an equity research report the way analysts do: thesis, numbers, valuation, risks.',
   },
-  // ---------------------------------------------------------------- Career
+  // ---------------------------------------------------------------- Tools
   {
-    id: 'career', chapter: 'Career', route: '/career', target: 'page-header',
-    title: 'Career ladder',
-    body: 'Climb from Junior Analyst to Managing Director. Promotions are earned by meeting real requirements, checked by the system.',
+    id: 'valuation', chapter: 'Tools', route: '/valuation', target: 'page-header',
+    title: 'Valuation',
+    body: 'Value a company with multiples or a simple DCF.',
+  },
+  {
+    id: 'models', chapter: 'Tools', route: '/models', target: 'page-header',
+    title: 'Financial models',
+    body: 'Enter past numbers and your assumptions, and a forecast builds itself.',
   },
   // ---------------------------------------------------------------- Compete
   {
-    id: 'competitions', chapter: 'Compete', route: '/competitions', target: 'page-header',
-    title: 'Competitions',
-    body: 'Timed, ranked events built from FINLAB challenges. Register, compete and see where you finish.',
-  },
-  {
     id: 'leaderboards', chapter: 'Compete', route: '/leaderboard', target: 'page-header',
     title: 'Leaderboards',
-    body: 'Rankings nationwide, in the Philippines, by university, by specialization and by weekly XP. Each week you also compete in a pod of about 20.',
+    body: 'See how you rank nationwide, at your school and each week. Each week you also race a group of about 20.',
   },
   {
     id: 'classes', chapter: 'Compete', route: '/classes', target: 'page-header',
     title: 'Classes',
-    body: 'Join your class or org with its code for a private leaderboard with your classmates.',
+    body: 'Got a class or org code? Join here for a private leaderboard with your classmates.',
   },
   // ---------------------------------------------------------------- Profile
   {
     id: 'passport', chapter: 'Profile', route: '/passport', target: 'page-header',
     title: 'Finance Passport',
-    body: 'Your public proof of work: scores, certificates and your best pitches, ready to share with recruiters.',
+    body: 'Your public profile: scores, certificates and best work, ready to share with recruiters.',
+  },
+  {
+    id: 'career', chapter: 'Profile', route: '/career', target: 'page-header',
+    title: 'Career ladder',
+    body: 'Climb from Junior Analyst to Managing Director by meeting real requirements.',
   },
   {
     id: 'settings', chapter: 'Profile', route: '/profile', target: 'page-header',
     title: 'Settings',
-    body: 'Your name, school, privacy and account settings.',
+    body: 'Your name, school, privacy and account.',
   },
   // ---------------------------------------------------------------- Help
   {
     id: 'feedback', chapter: 'Help', route: '/profile', target: 'feedback',
     title: 'Feedback',
-    body: 'Found a bug or have an idea? Tell us here. Sending feedback is also one of your beta tasks.',
+    body: 'Spotted a bug or have an idea? Tell us here. It also counts toward your beta checklist.',
   },
   {
     id: 'account', chapter: 'Help', route: '/profile', target: 'user-menu',
     title: 'Account menu',
-    body: "What's new, this tutorial (replay it any time) and sign out.",
+    body: "What's new, this tour, and sign out.",
   },
   {
     id: 'finish', chapter: 'Done', route: '/dashboard',
-    title: "You've seen everything",
-    body: 'Now your first mission: three quick steps in the panel at the bottom of the screen. Finish them to earn the Tutorial Complete badge.',
+    title: "That's the tour",
+    body: 'One last thing: a three-step first mission in the panel at the bottom. Finish it to earn the Tutorial Complete badge.',
   },
 ];

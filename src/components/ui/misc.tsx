@@ -25,8 +25,14 @@ export function Tabs<T extends string>({
   onChange: (v: T) => void;
   className?: string;
 }) {
+  const bar = useRef<HTMLDivElement>(null);
+  // Keep the selected tab fully visible when the row scrolls sideways (phones, long tab lists).
+  useEffect(() => {
+    const el = bar.current?.querySelector<HTMLElement>('[aria-selected="true"]');
+    el?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [value]);
   return (
-    <div className={cn('flex gap-1 overflow-x-auto border-b border-border', className)} role="tablist">
+    <div ref={bar} className={cn('flex gap-1 overflow-x-auto border-b border-border [scrollbar-width:none]', className)} role="tablist">
       {tabs.map((t) => (
         <button
           key={t.value}

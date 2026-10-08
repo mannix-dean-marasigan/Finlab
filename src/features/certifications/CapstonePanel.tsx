@@ -160,7 +160,7 @@ export function CapstonePanel({ m, enrolled, slug }: { m: ProgramModuleStatus; e
             <Field label="Slides link (optional)" hint="Google Slides, Canva, OneDrive…">
               <Input value={slides} onChange={(e) => setSlides(e.target.value)} placeholder="https://docs.google.com/presentation/…" inputMode="url" />
             </Field>
-            <Field label="Executive summary" required hint={`${words}/150 words minimum — your call, key numbers, and the biggest risk.`}>
+            <Field label="Executive summary" required hint={`${words}/150 words minimum: your call, the key numbers and the biggest risk.`}>
               <Textarea autoGrow rows={7} value={summary} onChange={(e) => setSummary(e.target.value)} />
             </Field>
             <p className="text-xs text-fg-subtle">Make sure the link is viewable by anyone with it. Submissions are reviewed by a FINLAB admin against the rubric above.</p>

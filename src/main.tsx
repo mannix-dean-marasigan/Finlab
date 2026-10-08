@@ -10,7 +10,7 @@ import './index.css';
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 30_000,
+      staleTime: 120_000, // revisiting a page shows cached data instantly; edits refresh what they change
       retry: (count, error) => count < 2 && !/permission|not found|JWT/i.test(String((error as Error)?.message)),
       refetchOnWindowFocus: false,
     },

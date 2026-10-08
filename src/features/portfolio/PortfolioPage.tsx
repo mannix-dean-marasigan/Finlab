@@ -101,7 +101,7 @@ export default function PortfolioPage() {
       <PageHeader
         eyebrow="Portfolio Simulator"
         title={p.name}
-        description="Virtual capital only — no real money. Trades execute server-side at the current sample price, converted to PHP at the sample FX rate. Every trade needs a written rationale."
+        description="Practice money only. Trades fill at the current sample price, converted to pesos. Every trade needs a short reason."
         actions={
           <>
             <SampleDataBadge />
@@ -227,7 +227,7 @@ export default function PortfolioPage() {
                 <span className="text-fg-muted">Estimated {side === 'buy' ? 'cost' : 'proceeds'}</span>
                 <span className="font-mono tabular">{fmtMoney(estimate, 'PHP')}</span>
               </div>
-              <Field label="Rationale" required hint={`${rationale.trim().length}/15 characters minimum — why this, why now, what would make you exit?`}>
+              <Field label="Rationale" required hint={`${rationale.trim().length}/15 characters minimum. Why this, why now, and what would make you exit?`}>
                 <Textarea rows={3} value={rationale} onChange={(e) => setRationale(e.target.value)} maxLength={2000} placeholder="e.g. Rate hike should widen NIMs; adding to banks while trimming property exposure." />
               </Field>
               {tradeError && <InlineError message={tradeError} />}

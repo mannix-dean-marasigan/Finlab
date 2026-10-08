@@ -76,7 +76,7 @@ export default function CareerPage() {
       <PageHeader
         eyebrow="Career"
         title="The ladder"
-        description="Promotions are earned, not granted. Requirements are stored in the database and checked server-side when you apply."
+        description="Move up from Junior Analyst to Managing Director. Each level has clear requirements, and you can apply as soon as you meet them."
       />
 
       {/* Ladder */}
@@ -124,7 +124,7 @@ export default function CareerPage() {
                   <RequirementList reqs={reqs} />
                   <div className="mt-4 flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
                     <p className="text-sm text-fg-muted">
-                      {s.eligible ? 'All requirements met. Submit your promotion case.' : 'You can apply anytime — you will see exactly what is still missing.'}
+                      {s.eligible ? 'All requirements met. Submit your promotion case.' : 'You can apply any time. You will see exactly what is still missing.'}
                     </p>
                     <Button variant="primary" onClick={() => attempt.mutate()} loading={attempt.isPending}>
                       Apply for promotion
@@ -166,7 +166,7 @@ export default function CareerPage() {
             <CardHeader title="How your FINLAB Score works" icon={<Sigma className="h-3.5 w-3.5" />} />
             <CardContent className="space-y-3 text-sm text-fg-muted">
               <p>
-                Your score is a weighted average of seven skills. Each skill is the weighted mean of evidence from scored work — your <em>best</em> score per challenge,
+                Your score is a weighted average of seven skills. Each skill is the weighted mean of evidence from scored work: your <em>best</em> score per challenge,
                 rubric-scored pitches and reports, market-event decisions and competition results.
               </p>
               <p>
@@ -215,10 +215,10 @@ export default function CareerPage() {
       <Modal
         open={!!result}
         onClose={() => setResult(null)}
-        title={result?.result === 'PASS' ? `PASS — promoted to ${result.status.next_level?.name}` : 'NOT YET'}
+        title={result?.result === 'PASS' ? `Promoted to ${result.status.next_level?.name}` : 'NOT YET'}
         description={
           result?.result === 'PASS'
-            ? 'Every requirement was verified server-side. Your new level is live on your Passport.'
+            ? 'You met every requirement. Your new level is on your Passport.'
             : 'Your case was reviewed against every requirement. Here is what is still missing.'
         }
         footer={<Button variant="primary" onClick={() => setResult(null)}>Close</Button>}

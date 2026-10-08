@@ -71,7 +71,7 @@ export function SaveIndicator({ state, savedAt }: { state: SaveState; savedAt: s
         </>
       ) : state === 'error' ? (
         <span className="inline-flex items-center gap-1.5 text-down">
-          <CloudOff className="h-3.5 w-3.5" /> Not saved — retrying on next edit
+          <CloudOff className="h-3.5 w-3.5" /> Not saved yet. Retrying on your next edit.
         </span>
       ) : savedAt ? (
         <>

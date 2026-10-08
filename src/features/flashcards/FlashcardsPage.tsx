@@ -94,7 +94,7 @@ export function Session({ lessonId, onExit }: { lessonId: string | null; onExit:
       <EmptyState
         icon={<CheckCircle2 className="h-5 w-5 text-up" />}
         title="Nothing due right now"
-        description="You've reviewed every due card and today's new cards. Come back tomorrow — spacing is what makes it stick."
+        description="You're done for today. Come back tomorrow; spacing it out is what makes it stick."
         action={<Button onClick={onExit}>Back to decks</Button>}
       />
     );
@@ -211,7 +211,7 @@ export default function FlashcardsPage() {
       <PageHeader
         eyebrow="Learn"
         title="Flashcards"
-        description="Spaced repetition for the formulas and concepts from every briefing. Cards you know come back less often; cards you miss come back sooner."
+        description="Review the formulas and ideas from your lessons. Cards you know come back less often; cards you miss come back sooner."
       />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {[

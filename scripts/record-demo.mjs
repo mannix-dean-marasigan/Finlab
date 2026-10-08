@@ -115,7 +115,7 @@ const SCENES = [
   ['02-lesson', async (p) => {
     // Skip past the embedded YouTube video (another creator's content) straight to the briefing.
     await open(p, '/learn/accounting-equation-journal');
-    await scrollToText(p, /Step 2 · Read the briefing/i, 300);
+    await scrollToText(p, /Step 2 · Read the lesson/i, 300);
     await wait(1500);
     await scroll(p, 650, 4500);
     await wait(1200);
@@ -154,7 +154,7 @@ const SCENES = [
     await click(p, p.getByRole('tab', { name: 'Philippines' }).or(p.getByRole('button', { name: 'Philippines' })).first());
     await loaded(p);
     await wait(1500);
-    await click(p, p.getByRole('tab', { name: 'This week (XP)' }).or(p.getByRole('button', { name: 'This week (XP)' })).first());
+    await click(p, p.getByRole('tab', { name: 'XP this week' }).or(p.getByRole('button', { name: 'XP this week' })).first());
     await loaded(p);
     await wait(2500);
   }],

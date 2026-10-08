@@ -83,7 +83,7 @@ export function JourneyMap({ modules, certified }: { modules: ProgramModuleStatu
 function CohortBoard({ programId }: { programId: string }) {
   const rows = useQuery({ queryKey: ['program-leaderboard', programId], queryFn: () => getProgramLeaderboard(programId) });
   if (rows.isPending) return <Skeleton className="h-32" />;
-  if (rows.isError || !rows.data.length) return <p className="text-sm text-fg-muted">No one has enrolled yet — be the first.</p>;
+  if (rows.isError || !rows.data.length) return <p className="text-sm text-fg-muted">No one has enrolled yet. Be the first.</p>;
   const top = rows.data.slice(0, 8);
   const me = rows.data.find((r) => r.is_me);
   const list = me && !top.includes(me) ? [...top, me] : top;
@@ -139,7 +139,7 @@ function ModuleRow({ m, isNext, enrolled }: { m: ProgramModuleStatus; isNext: bo
             {m.kind === 'lesson'
               ? m.complete
                 ? 'Knowledge check passed'
-                : 'Read the briefing and pass its knowledge check'
+                : 'Do the lesson and pass its knowledge check'
               : m.complete
                 ? `Passed (needed ${m.required_score})`
                 : examBlocked
@@ -148,9 +148,9 @@ function ModuleRow({ m, isNext, enrolled }: { m: ProgramModuleStatus; isNext: bo
                     : 'Unlocks when every earlier module is complete'
                   : m.kind === 'capstone'
                     ? m.capstone?.status === 'submitted'
-                      ? 'Submitted — awaiting reviewer score'
+                      ? 'Submitted, waiting for a reviewer'
                       : m.capstone?.status === 'returned'
-                        ? 'Returned for revision — see feedback'
+                        ? 'Sent back for changes. See the feedback.'
                         : `Record a presentation · ${m.required_score}+ to pass`
                     : `Score ${m.required_score}+ to pass`}
           </div>
@@ -196,7 +196,7 @@ export default function ProgramPage() {
     onSuccess: (r) => {
       qc.invalidateQueries({ queryKey: ['program', slug] });
       qc.invalidateQueries({ queryKey: ['programs'] });
-      if (r.certificates?.length) toast.success('You already completed everything — certificate issued!');
+      if (r.certificates?.length) toast.success('You already finished everything, so your certificate is ready.');
       else toast.success('Enrolled. Work through the modules in order.');
     },
     onError: (e) => toast.error((e as Error).message),
@@ -327,7 +327,7 @@ export default function ProgramPage() {
                 ) : (
                   <>
                     <Button variant="primary" className="w-full justify-center" onClick={() => enroll.mutate()} loading={enroll.isPending}>
-                      Enroll — free
+                      Enroll for free
                     </Button>
                     <p className="mt-2 text-xs text-fg-subtle">Modules you've already passed count immediately.</p>
                   </>

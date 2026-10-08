@@ -47,7 +47,7 @@ export default function ModelsPage() {
       <PageHeader
         eyebrow="Financial Modeling"
         title="Income statement models"
-        description="Enter historicals, set growth, margin and tax assumptions, and the forecast builds itself. Deliberately lightweight — not a spreadsheet."
+        description="Enter past numbers and your assumptions for growth, margins and tax, and the forecast builds itself."
         actions={
           <Button variant="primary" onClick={() => setOpen(true)}>
             <Plus className="h-4 w-4" /> New model

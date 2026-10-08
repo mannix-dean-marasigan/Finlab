@@ -26,14 +26,14 @@ export default function LearnPage() {
     <div className="animate-fade-in">
       <PageHeader
         eyebrow="Learn"
-        title="Briefings"
-        description="Short, practical lessons. Each one links to the challenge where you apply it — reading earns no score; doing the work does."
+        title="Lessons"
+        description="Short lessons with a video, a written explanation, practice and a quick check. Each one links to a case where you use it."
       />
       <Card className="mb-6 flex flex-col gap-3 p-4 sm:flex-row sm:items-center">
         <BookOpen className="h-5 w-5 text-accent" />
         <div className="flex-1">
           <div className="text-sm">
-            {done} of {lessons.data.length} briefings completed
+            {done} of {lessons.data.length} lessons completed
           </div>
           <Progress value={lessons.data.length ? (done / lessons.data.length) * 100 : 0} className="mt-2" />
         </div>

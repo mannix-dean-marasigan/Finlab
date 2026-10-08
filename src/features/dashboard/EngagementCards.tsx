@@ -95,7 +95,7 @@ export function DailyChallengeCard() {
       qc.invalidateQueries({ queryKey: ['my-activity'] });
       invalidateProgress(qc);
       if (res.correct) toast.success('Correct! +10 XP');
-      else toast('Not quite — see the explanation. +3 XP for showing up.');
+      else toast('Not quite. Read the explanation. You still get +3 XP for showing up.');
     },
     onError: (e) => toast.error((e as Error).message),
   });

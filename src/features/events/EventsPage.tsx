@@ -30,7 +30,7 @@ function DecisionForm({ event, existing }: { event: MarketEvent; existing?: Mark
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['decisions'] });
       invalidateProgress(qc);
-      toast.success(existing ? 'Decision updated' : 'Decision recorded — scored when the event resolves');
+      toast.success(existing ? 'Decision updated' : 'Call saved. It is scored when the event closes.');
     },
   });
   return (
@@ -127,7 +127,7 @@ export default function EventsPage() {
       <PageHeader
         eyebrow="Market Events"
         title="React to the tape"
-        description="Curated market scenarios. Decide Buy, Sell, Hold or Rebalance and defend it in writing. When an administrator resolves the event, decisions are scored and the sample prices move."
+        description="Read the scenario, make your call (buy, sell, hold or rebalance) and explain why. Calls are scored when the event closes."
         actions={
           <Link to="/portfolio">
             <Button size="sm">Open portfolio</Button>

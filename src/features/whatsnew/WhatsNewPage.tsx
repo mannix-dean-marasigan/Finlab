@@ -18,7 +18,7 @@ export default function WhatsNewPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader eyebrow="FINLAB PH" title="What's new" description="Everything we've shipped during the beta. Send feedback with the Feedback button — it shapes what comes next." />
+      <PageHeader eyebrow="FINLAB PH" title="What's new" description="Everything new during the beta. Tell us what you think with the Feedback button." />
       <div className="mx-auto max-w-3xl space-y-4">
         {CHANGELOG.map((e, i) => (
           <Card key={e.id} className="p-5">

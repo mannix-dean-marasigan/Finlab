@@ -168,7 +168,7 @@ export default function ValuationPage() {
       <PageHeader
         eyebrow="Valuation"
         title="Value the business"
-        description="Multiples and a simplified DCF. These are educational beta tools — not a professional investment banking model."
+        description="Value a company with multiples or a simple DCF. Built for learning, not for real investment decisions."
         actions={
           <>
             <Badge tone="warn">
@@ -247,7 +247,7 @@ export default function ValuationPage() {
             </div>
             <div className="rounded-md border border-border bg-surface-2 p-4">
               <div className="mb-3 text-xs text-fg-muted">
-                Optional helper — justified P/B = (ROE − g) / (COE − g). Useful for banks.
+                Optional: justified P/B = (ROE − g) / (COE − g). Useful for banks.
               </div>
               <div className="grid gap-3 sm:grid-cols-4">
                 <NumberInput label="ROE" value={roe} onChange={setRoe} suffix="%" />

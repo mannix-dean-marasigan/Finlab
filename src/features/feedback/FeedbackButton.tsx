@@ -29,7 +29,7 @@ export function FeedbackButton() {
     mutationFn: () => submitFeedback({ category, message, page: pathname + search }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['beta-checklist'] });
-      toast.success('Thanks — your feedback was sent to the FINLAB team');
+      toast.success('Thanks! Your feedback was sent to the FINLAB PH team.');
       setMessage('');
       setOpen(false);
     },

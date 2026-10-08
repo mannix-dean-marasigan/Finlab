@@ -153,7 +153,7 @@ function ReviewForm() {
         </div>
         <div>
           <Card className="sticky top-20">
-            <CardHeader title="Your review" subtitle="Be specific and constructive — the author rates how helpful you were." icon={<MessageSquareText className="h-3.5 w-3.5" />} />
+            <CardHeader title="Your review" subtitle="Be specific and constructive. The author rates how helpful you were." icon={<MessageSquareText className="h-3.5 w-3.5" />} />
             <CardContent className="space-y-4">
               <div className="space-y-2.5">
                 {PEER_CRITERIA.map((c) => (
@@ -174,7 +174,7 @@ function ReviewForm() {
                 <Textarea rows={4} value={strengths} onChange={(e) => setStrengths(e.target.value)} placeholder="What is convincing? Which numbers or arguments work?" />
               </Field>
               <Field label="What would make it stronger" hint={`${improvements.trim().length}/60 characters minimum`}>
-                <Textarea rows={4} value={improvements} onChange={(e) => setImprovements(e.target.value)} placeholder="Gaps in the thesis, valuation or risks — and how to fix them." />
+                <Textarea rows={4} value={improvements} onChange={(e) => setImprovements(e.target.value)} placeholder="Gaps in the thesis, valuation or risks, and how to fix them." />
               </Field>
               <InlineError message={submit.error ? (submit.error as Error).message : null} />
               <Button variant="primary" className="w-full justify-center" onClick={() => submit.mutate()} loading={submit.isPending}>
@@ -200,7 +200,7 @@ function ReviewQueue() {
       <PageHeader
         eyebrow="Research"
         title="Peer review"
-        description="Review fellow analysts' stock pitches anonymously. Helpful reviews build your Communication and Leadership skills; your own pitches can be opened for review from the pitch page."
+        description="Review other analysts' pitches anonymously. Helpful reviews build your communication and leadership skills. You can open your own pitches for review from the pitch page."
       />
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <Card>

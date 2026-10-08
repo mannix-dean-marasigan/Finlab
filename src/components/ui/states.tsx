@@ -50,7 +50,19 @@ export function EmptyState({
 }) {
   return (
     <div className={cn('flex flex-col items-center justify-center text-center py-12 px-6', className)}>
-      <div className="mb-3 rounded-full border border-border-strong bg-surface-2 p-3 text-fg-muted">{icon ?? <Inbox className="h-5 w-5" />}</div>
+      <div className="relative mb-4 h-16 w-28">
+        {/* A faint rising chart line heading toward a sun: the FINLAB PH mark, as a quiet illustration. */}
+        <svg viewBox="0 0 112 64" className="absolute inset-0 h-full w-full" aria-hidden>
+          <circle cx="92" cy="14" r="8" fill="none" stroke="currentColor" className="text-accent/35" strokeWidth="1.5" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+            <line key={a} x1="92" y1="1" x2="92" y2="3.5" stroke="currentColor" className="text-accent/35" strokeWidth="1.5" strokeLinecap="round" transform={`rotate(${a} 92 14)`} />
+          ))}
+          <path d="M6 54 L30 36 L46 46 L84 20" fill="none" stroke="currentColor" className="text-border-strong" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" strokeDasharray="3 4" />
+        </svg>
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 rounded-full border border-border-strong bg-surface-2 p-2.5 text-fg-muted">
+          {icon ?? <Inbox className="h-5 w-5" />}
+        </div>
+      </div>
       <h3 className="text-sm font-semibold text-fg">{title}</h3>
       {description && <p className="mt-1 max-w-sm text-sm text-fg-muted">{description}</p>}
       {action && <div className="mt-4">{action}</div>}

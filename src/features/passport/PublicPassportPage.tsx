@@ -25,7 +25,7 @@ export function PublicShell({ children }: { children: ReactNode }) {
           ) : (
             <Link to="/register">
               <Button size="sm" variant="primary">
-                Build your own passport
+                Join the beta
               </Button>
             </Link>
           )}

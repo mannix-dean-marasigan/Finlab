@@ -224,7 +224,7 @@ export function MatchingActivity({ activity, onScored }: { activity: LessonActiv
           }}
         >
           <p className="mt-1 text-sm text-fg-muted">
-            {result.correct} of {result.total} placed correctly. Items marked ✗ are in the wrong place — think about why before retrying.
+            {result.correct} of {result.total} placed correctly. Items marked ✗ are in the wrong place. Think about why before you try again.
           </p>
         </ScoreBanner>
       ) : (

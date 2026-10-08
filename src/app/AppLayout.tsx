@@ -2,8 +2,8 @@ import { Suspense, useEffect, useRef, useState, type ComponentType } from 'react
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  Bell, BookOpen, Briefcase, Calculator, CandlestickChart, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard, LineChart,
-  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
+  Bell, BookOpen, Briefcase, Calculator, CandlestickChart, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard,
+  LogOut, Menu, Newspaper, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn, initials } from '@/lib/utils';
@@ -11,6 +11,8 @@ import { fmtScore, timeAgo } from '@/lib/format';
 import { useAuth } from './auth';
 import { useIsAdmin, useMyProfile, useMyStats, useReference } from './queries';
 import { listNotifications, markNotificationsRead } from '@/services/api/misc';
+import { competitionStatus, listCompetitions } from '@/services/api/compete';
+import { listMarketEvents } from '@/services/api/markets';
 import { PageSkeleton } from '@/components/ui/states';
 import { FeedbackButton } from '@/features/feedback/FeedbackButton';
 import { LINKEDIN_PAGE_URL } from '@/lib/brand';
@@ -18,58 +20,58 @@ import { Tutorial } from '@/features/tutorial/Tutorial';
 import { OPEN_TUTORIAL_EVENT } from '@/lib/events';
 import { CHANGELOG_SEEN_KEY, LATEST_CHANGELOG_ID } from '@/lib/changelog';
 
+type NavFlag = 'competitions' | 'events';
+interface NavChild { to: string; label: string; icon: ComponentType<{ className?: string }>; when?: NavFlag }
 interface NavItem {
   to: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
-  children?: { to: string; label: string; icon: ComponentType<{ className?: string }> }[];
+  children?: NavChild[];
 }
 
+// Kept short on purpose: sections only appear in the menu once they have something in them.
+// Pages not listed (Markets, Portfolio Simulator, Peer Review) still work through their links.
 const NAV: NavItem[] = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   {
-    to: '/learn',
+    to: '/certifications',
     label: 'Learn',
     icon: BookOpen,
     children: [
-      { to: '/learn', label: 'Briefings', icon: BookOpen },
       { to: '/certifications', label: 'Certifications', icon: GraduationCap },
+      { to: '/learn', label: 'Lessons', icon: BookOpen },
       { to: '/flashcards', label: 'Flashcards', icon: Layers },
     ],
   },
-  { to: '/challenges', label: 'Challenges', icon: Target },
   {
-    to: '/research',
-    label: 'Research',
-    icon: FileSearch,
+    to: '/challenges',
+    label: 'Practice',
+    icon: Target,
     children: [
-      { to: '/research', label: 'Research Studio', icon: FileSearch },
-      { to: '/pitches', label: 'Stock Pitch Arena', icon: Presentation },
-      { to: '/reviews', label: 'Peer Review', icon: MessageSquareText },
-      { to: '/valuation', label: 'Valuation', icon: Calculator },
-      { to: '/models', label: 'Financial Models', icon: Sigma },
-    ],
-  },
-  {
-    to: '/markets',
-    label: 'Markets',
-    icon: LineChart,
-    children: [
-      { to: '/markets', label: 'Markets', icon: LineChart },
+      { to: '/challenges', label: 'Challenges', icon: Target },
       { to: '/trading', label: 'Trading Floor', icon: CandlestickChart },
-      { to: '/portfolio', label: 'Portfolio Simulator', icon: PieChart },
-      { to: '/events', label: 'Market Events', icon: Zap },
+      { to: '/pitches', label: 'Stock pitches', icon: Presentation },
+      { to: '/research', label: 'Research reports', icon: FileSearch },
+      { to: '/events', label: 'Market events', icon: Zap, when: 'events' },
     ],
   },
-  { to: '/career', label: 'Career', icon: Briefcase },
   {
-    to: '/competitions',
-    label: 'Compete',
-    icon: Swords,
+    to: '/valuation',
+    label: 'Tools',
+    icon: Calculator,
     children: [
-      { to: '/competitions', label: 'Competitions', icon: Swords },
+      { to: '/valuation', label: 'Valuation', icon: Calculator },
+      { to: '/models', label: 'Financial models', icon: Sigma },
+    ],
+  },
+  {
+    to: '/leaderboard',
+    label: 'Compete',
+    icon: Trophy,
+    children: [
       { to: '/leaderboard', label: 'Leaderboards', icon: Trophy },
       { to: '/classes', label: 'Classes', icon: Users },
+      { to: '/competitions', label: 'Competitions', icon: Swords, when: 'competitions' },
     ],
   },
   {
@@ -78,10 +80,21 @@ const NAV: NavItem[] = [
     icon: User,
     children: [
       { to: '/passport', label: 'Finance Passport', icon: GraduationCap },
+      { to: '/career', label: 'Career ladder', icon: Briefcase },
       { to: '/profile', label: 'Settings', icon: Settings },
     ],
   },
 ];
+
+/** Which conditional sections have something live right now. Admins always see everything. */
+function useNavFlags(isAdmin: boolean): Record<NavFlag, boolean> {
+  const comps = useQuery({ queryKey: ['nav', 'competitions'], queryFn: listCompetitions, staleTime: 5 * 60_000 });
+  const events = useQuery({ queryKey: ['nav', 'events'], queryFn: listMarketEvents, staleTime: 5 * 60_000 });
+  return {
+    competitions: isAdmin || !!comps.data?.some((c) => competitionStatus(c) !== 'completed'),
+    events: isAdmin || !!events.data?.some((e) => e.status === 'open'),
+  };
+}
 
 function isActiveGroup(item: NavItem, path: string) {
   const prefixes = item.children ? item.children.map((c) => c.to) : [item.to];
@@ -92,6 +105,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { pathname } = useLocation();
   const admin = useIsAdmin();
   const [open, setOpen] = useState<Record<string, boolean>>({});
+  const flags = useNavFlags(!!admin.data);
 
   return (
     <nav className="flex h-full flex-col">
@@ -137,7 +151,7 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
               </button>
               {expanded && (
                 <div className="ml-5 mt-0.5 space-y-0.5 border-l border-border pl-2">
-                  {item.children.map((c) => {
+                  {item.children.filter((c) => !c.when || flags[c.when]).map((c) => {
                     const childActive = pathname === c.to || pathname.startsWith(c.to + '/');
                     return (
                       <NavLink
@@ -172,7 +186,9 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
         )}
       </div>
       <div className="border-t border-border px-4 py-3 text-[0.7rem] leading-relaxed text-fg-subtle">
-        Phase 1 beta · Market data is sample/static · Simulated money only
+        <Link to="/about" onClick={onNavigate} className="hover:text-fg-muted">About FINLAB PH</Link>
+        <span className="mx-1.5">·</span>
+        <Link to="/faq" onClick={onNavigate} className="hover:text-fg-muted">FAQ</Link>
       </div>
     </nav>
   );
@@ -376,9 +392,26 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   );
 }
 
+// Browser-tab titles for pages that aren't in the menu (menu pages use their menu label).
+const EXTRA_TITLES: [string, string][] = [
+  ['/markets', 'Markets'], ['/portfolio', 'Portfolio Simulator'], ['/reviews', 'Peer review'], ['/events', 'Market events'],
+  ['/competitions', 'Competitions'], ['/whats-new', "What's new"], ['/admin', 'Admin'], ['/about', 'About'], ['/faq', 'FAQ'],
+];
+function pageTitle(path: string): string | null {
+  const items = NAV.flatMap((n) => n.children ?? [n]);
+  const hit = [...items.map((i) => [i.to, i.label] as [string, string]), ...EXTRA_TITLES]
+    .filter(([to]) => path === to || path.startsWith(to + '/'))
+    .sort((a, b) => b[0].length - a[0].length)[0];
+  return hit ? hit[1] : null;
+}
+
 export function AppLayout() {
   const [drawer, setDrawer] = useState(false);
   const { pathname } = useLocation();
+  useEffect(() => {
+    const t = pageTitle(pathname);
+    document.title = t ? `${t} · FINLAB PH` : 'FINLAB PH · The flight simulator for finance';
+  }, [pathname]);
   // Block bodies on purpose: an effect must return nothing or a cleanup function
   // (newer browsers make window.scrollTo return a Promise).
   useEffect(() => {
@@ -410,7 +443,7 @@ export function AppLayout() {
           </Suspense>
         </main>
         <footer className="no-print mx-auto flex max-w-[1400px] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-4 pb-16 pt-4 text-xs text-fg-subtle sm:px-6 lg:px-8">
-          <span>FINLAB PH beta · Educational simulation — not investment advice</span>
+          <span>FINLAB PH · Practice platform, not investment advice</span>
           <Link to="/terms" className="hover:text-fg">Terms</Link>
           <Link to="/privacy" className="hover:text-fg">Privacy</Link>
           <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>
