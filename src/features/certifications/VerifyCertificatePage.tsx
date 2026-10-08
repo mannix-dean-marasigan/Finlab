@@ -16,7 +16,25 @@ import { ShareKit } from './ShareKit';
 
 const KIND_LABEL = { certification: 'Professional Certification', track: 'Learning Track Certificate', competition: 'Competition Certificate' } as const;
 
-/** Paper-style certificate; prints cleanly on A4 landscape. */
+/** The FINLAB PH sun mark, drawn for light paper (dark chart line). */
+function PaperMark({ style }: { style?: React.CSSProperties }) {
+  return (
+    <svg viewBox="150 55 300 260" style={style} aria-hidden>
+      <g transform="translate(360 148)" fill="#d99a1e">
+        {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+          <path key={a} d="M0 -82 L12 -52 L-12 -52 Z" transform={`rotate(${a})`} />
+        ))}
+        <circle r="36" />
+      </g>
+      <path d="M180 280 L240 210 L280 250 L360 148" stroke="#1a1d23" strokeWidth="30" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+/**
+ * Paper-style certificate; prints cleanly on A4 landscape.
+ * Every size is in `cqw` (1% of the certificate's own width), so it looks the same in a modal, on a phone or on paper.
+ */
 export function CertificateDocument({ c, preview }: { c: CertificateView; preview?: boolean }) {
   const revoked = !!c.revoked_at;
   const isTest = c.issue_type === 'test';
@@ -27,61 +45,86 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
       : [c.details.modules && `${c.details.modules} modules`, c.details.estimated_hours && `~${c.details.estimated_hours} hours`, c.details.average_score && `average challenge score ${c.details.average_score}`]
           .filter(Boolean)
           .join(' · ');
+  // Long names and titles step down so they stay on one or two lines.
+  const nameSize = c.recipient_name.length > 28 ? 3.8 : c.recipient_name.length > 20 ? 4.5 : 5.2;
+  const titleSize = c.title.length > 48 ? 2.4 : c.title.length > 32 ? 2.75 : 3.1;
+  const cq = (n: number) => `${n}cqw`;
+  const label: React.CSSProperties = { fontSize: cq(1.25), letterSpacing: '0.32em' };
   return (
-    <div className="certificate-paper relative mx-auto aspect-[1.414/1] w-full max-w-4xl overflow-hidden rounded-md bg-[#fbf8f1] text-[#1a1d23] shadow-2xl print:max-w-none print:rounded-none print:shadow-none">
-      <div className="absolute inset-3 rounded-sm border-2 border-[#c8922a] sm:inset-5" />
-      <div className="absolute inset-[18px] rounded-sm border border-[#c8922a]/50 sm:inset-[28px]" />
+    <div
+      className="certificate-paper relative mx-auto aspect-[1.414/1] w-full max-w-4xl overflow-hidden rounded-md bg-[#fbf8f1] text-[#1a1d23] shadow-2xl print:max-w-none print:rounded-none print:shadow-none"
+      style={{ containerType: 'inline-size' }}
+    >
+      <div className="absolute rounded-sm border-[#c8922a]" style={{ inset: cq(2.2), borderWidth: cq(0.25) }} />
+      <div className="absolute rounded-sm border border-[#c8922a]/50" style={{ inset: cq(3.1) }} />
       {isTest && !revoked && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <span className="rotate-[-14deg] select-none whitespace-nowrap rounded border-4 border-amber-600/50 px-4 py-1.5 text-base font-bold tracking-[0.2em] text-amber-600/55 sm:px-6 sm:py-2 sm:text-3xl">
+          <span className="rotate-[-14deg] select-none whitespace-nowrap rounded border-amber-600/50 font-bold text-amber-600/55"
+            style={{ fontSize: cq(2.8), letterSpacing: '0.2em', borderWidth: cq(0.45), padding: `${cq(0.8)} ${cq(2)}` }}>
             TEST · NOT A CREDENTIAL
           </span>
         </div>
       )}
       {preview && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
-          <span className="rotate-[-18deg] select-none rounded border-4 border-[#c8922a]/40 px-6 py-2 text-3xl font-bold tracking-[0.3em] text-[#c8922a]/40 sm:text-6xl">PREVIEW</span>
+          <span className="rotate-[-18deg] select-none rounded border-[#c8922a]/35 font-bold text-[#c8922a]/35"
+            style={{ fontSize: cq(5.5), letterSpacing: '0.3em', borderWidth: cq(0.45), padding: `${cq(0.6)} ${cq(2.4)}` }}>
+            PREVIEW
+          </span>
         </div>
       )}
       {revoked && (
         <div className="absolute inset-0 z-10 flex items-center justify-center">
-          <span className="rotate-[-18deg] rounded border-4 border-red-600/70 px-6 py-2 text-4xl font-bold tracking-widest text-red-600/70">REVOKED</span>
+          <span className="rotate-[-18deg] rounded border-red-600/70 font-bold tracking-widest text-red-600/70"
+            style={{ fontSize: cq(4.5), borderWidth: cq(0.45), padding: `${cq(0.6)} ${cq(2.4)}` }}>
+            REVOKED
+          </span>
         </div>
       )}
-      <div className="relative flex h-full flex-col items-center justify-between px-[8%] py-[6%] text-center">
+      <div className="relative flex h-full flex-col items-center justify-between text-center" style={{ padding: `${cq(5.6)} ${cq(8)} ${cq(5)}` }}>
+        {/* Header */}
         <div className="flex flex-col items-center">
-          <div className="flex items-center gap-2">
-            <svg viewBox="0 0 32 32" className="h-7 w-7 sm:h-9 sm:w-9" aria-hidden>
-              <rect width="32" height="32" rx="7" fill="#11161e" />
-              <path d="M7 22 L13 15 L17 19 L25 9" stroke="#f5a524" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-              <circle cx="25" cy="9" r="2.2" fill="#f5a524" />
-            </svg>
-            <span className="font-mono text-sm font-semibold tracking-[0.3em] sm:text-lg">
-              FIN<span className="text-[#c8922a]">LAB</span>
-            </span>
+          <div className="flex items-center" style={{ gap: cq(1.1) }}>
+            <PaperMark style={{ width: cq(5.2), height: cq(4.5) }} />
+            <div className="text-left leading-none">
+              <div className="font-mono font-semibold" style={{ fontSize: cq(2.3), letterSpacing: '0.28em' }}>
+                FIN<span className="text-[#c8922a]">LAB</span>
+              </div>
+              <div className="font-mono font-semibold text-[#6b6f78]" style={{ fontSize: cq(0.78), letterSpacing: '0.42em', marginTop: cq(0.45) }}>
+                PHILIPPINES
+              </div>
+            </div>
           </div>
-          <div className="mt-2 text-[0.55rem] uppercase tracking-[0.35em] text-[#6b6f78] sm:text-xs">{isAward && !c.program ? 'Certificate of Recognition' : KIND_LABEL[c.kind]}</div>
+          <div className="uppercase text-[#6b6f78]" style={{ ...label, marginTop: cq(1.6) }}>
+            {isAward && !c.program ? 'Certificate of Recognition' : KIND_LABEL[c.kind]}
+          </div>
         </div>
-        <div>
-          <div className="text-[0.6rem] uppercase tracking-[0.25em] text-[#6b6f78] sm:text-sm">This certifies that</div>
-          <div className="mt-1 font-serif text-2xl italic sm:mt-3 sm:text-5xl" style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}>
+
+        {/* Body */}
+        <div className="w-full">
+          <div className="uppercase text-[#6b6f78]" style={label}>This certifies that</div>
+          <div className="italic leading-tight" style={{ fontSize: cq(nameSize), marginTop: cq(1.4), fontFamily: 'Georgia, "Times New Roman", serif' }}>
             {c.recipient_name}
           </div>
-          <div className="mx-auto mt-2 h-px w-2/3 bg-[#c8922a]/60 sm:mt-4" />
-          <div className="mt-2 text-[0.6rem] text-[#6b6f78] sm:mt-4 sm:text-sm">
+          <div className="mx-auto bg-[#c8922a]/60" style={{ height: 1, width: '58%', marginTop: cq(1.6) }} />
+          <div className="text-[#6b6f78]" style={{ fontSize: cq(1.5), marginTop: cq(1.8) }}>
             {c.kind === 'competition' ? 'achieved the following result in' : isAward ? 'has been awarded' : 'has successfully completed all requirements of'}
           </div>
-          <div className="mt-1 text-base font-semibold sm:mt-2 sm:text-3xl">{c.title}</div>
-          {detail && <div className="mt-1 text-[0.6rem] text-[#6b6f78] sm:mt-2 sm:text-sm">{detail}</div>}
+          <div className="mx-auto font-semibold leading-tight" style={{ fontSize: cq(titleSize), marginTop: cq(0.8), maxWidth: '88%' }}>
+            {c.title}
+          </div>
+          {detail && <div className="text-[#6b6f78]" style={{ fontSize: cq(1.3), marginTop: cq(1) }}>{detail}</div>}
         </div>
-        <div className="flex w-full items-end justify-between gap-4 text-left text-[0.5rem] text-[#6b6f78] sm:text-xs">
+
+        {/* Footer */}
+        <div className="flex w-full items-end justify-between text-left text-[#6b6f78]" style={{ fontSize: cq(1.15), gap: cq(2) }}>
           <div>
             <div className="uppercase tracking-wider">Issued</div>
             <div className="font-semibold text-[#1a1d23]">{fmtDate(c.issued_at, { year: 'numeric', month: 'long', day: 'numeric' })}</div>
           </div>
           <div className="flex flex-col items-center">
-            <BadgeCheck className="h-6 w-6 text-[#c8922a] sm:h-10 sm:w-10" />
-            <div className="mt-1 uppercase tracking-wider">Verified by {ISSUER_NAME}</div>
+            <BadgeCheck className="text-[#c8922a]" style={{ width: cq(3.4), height: cq(3.4) }} />
+            <div className="uppercase tracking-wider" style={{ marginTop: cq(0.4) }}>Verified by {ISSUER_NAME}</div>
           </div>
           <div className="text-right">
             <div className="uppercase tracking-wider">Verification code</div>

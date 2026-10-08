@@ -46,25 +46,39 @@ function sun(g: CanvasRenderingContext2D, x: number, y: number, r: number) {
   g.fill();
 }
 
-function mark(g: CanvasRenderingContext2D, x: number, y: number, s: number) {
-  g.fillStyle = '#11161e';
+/** The FINLAB PH sun mark (rising chart line into a sun), fitted into a 32·s square at (x, y). */
+function mark(g: CanvasRenderingContext2D, x: number, y: number, s: number, line = TEXT) {
+  const u = (32 * s) / 300; // the mark is drawn in a 300×260 box
+  g.save();
+  g.translate(x - 150 * u, y + (32 * s - 260 * u) / 2 - 55 * u);
+  g.scale(u, u);
+  g.fillStyle = '#d99a1e';
+  g.save();
+  g.translate(360, 148);
+  for (let a = 0; a < 8; a++) {
+    g.beginPath();
+    g.moveTo(0, -82);
+    g.lineTo(12, -52);
+    g.lineTo(-12, -52);
+    g.closePath();
+    g.fill();
+    g.rotate(Math.PI / 4);
+  }
   g.beginPath();
-  g.roundRect(x, y, 32 * s, 32 * s, 7 * s);
+  g.arc(0, 0, 36, 0, Math.PI * 2);
   g.fill();
-  g.strokeStyle = AMBER;
-  g.lineWidth = 3 * s;
+  g.restore();
+  g.strokeStyle = line;
+  g.lineWidth = 30;
   g.lineCap = 'round';
   g.lineJoin = 'round';
   g.beginPath();
-  g.moveTo(x + 7 * s, y + 22 * s);
-  g.lineTo(x + 13 * s, y + 15 * s);
-  g.lineTo(x + 17 * s, y + 19 * s);
-  g.lineTo(x + 25 * s, y + 9 * s);
+  g.moveTo(180, 280);
+  g.lineTo(240, 210);
+  g.lineTo(280, 250);
+  g.lineTo(360, 148);
   g.stroke();
-  g.fillStyle = AMBER;
-  g.beginPath();
-  g.arc(x + 25 * s, y + 9 * s, 2.2 * s, 0, Math.PI * 2);
-  g.fill();
+  g.restore();
 }
 
 export async function renderShareImage(c: CertificateView, verifyUrl: string): Promise<Blob> {
@@ -148,6 +162,11 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
   const finW = g.measureText('FIN').width;
   g.fillStyle = GOLD;
   g.fillText('LAB', cx - 60 + finW, py + 108);
+  g.fillStyle = SUB;
+  g.font = `600 11px ${MONO}`;
+  if ('letterSpacing' in g) g.letterSpacing = '5px';
+  g.fillText('PHILIPPINES', cx - 60, py + 126);
+  if ('letterSpacing' in g) g.letterSpacing = '0px';
 
   g.textAlign = 'center';
   g.fillStyle = SUB;
@@ -214,16 +233,17 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
   g.strokeStyle = GOLD;
   g.lineWidth = 4;
   g.beginPath();
-  g.arc(cx, fy + 6, 30, 0, Math.PI * 2);
+  // Seal sits above its label so the label clears the gold border.
+  g.arc(cx, fy - 14, 26, 0, Math.PI * 2);
   g.stroke();
   g.beginPath();
-  g.moveTo(cx - 13, fy + 6);
-  g.lineTo(cx - 3, fy + 16);
-  g.lineTo(cx + 15, fy - 6);
+  g.moveTo(cx - 11, fy - 14);
+  g.lineTo(cx - 2, fy - 5);
+  g.lineTo(cx + 13, fy - 24);
   g.stroke();
   g.fillStyle = SUB;
   g.font = `500 16px ${SANS}`;
-  g.fillText(`VERIFIED BY ${ISSUER_NAME}`, cx, fy + 62);
+  g.fillText(`VERIFIED BY ${ISSUER_NAME}`, cx, fy + 32);
 
   if (c.issue_type === 'test') {
     g.save();
