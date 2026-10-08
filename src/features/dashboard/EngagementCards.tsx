@@ -2,12 +2,12 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-  ArrowRight, Brain, CalendarCheck, CheckCircle2, Compass, Flame, GraduationCap, ListChecks, MessageSquareText, PlayCircle, XCircle, Zap,
+  ArrowRight, Brain, CalendarCheck, CheckCircle2, Compass, Flame, GraduationCap, ListChecks, MessageSquareText, PlayCircle, Trophy, XCircle, Zap,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { invalidateProgress } from '@/app/queries';
-import { getDailyChallenge, getMyActivity, getTodayPlan, submitDailyAnswer } from '@/services/api/engage';
+import { getDailyChallenge, getMyActivity, getTodayPlan, getWeeklyPod, submitDailyAnswer } from '@/services/api/engage';
 import type { MyActivity, TodayItem } from '@/types/domain';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -286,5 +286,32 @@ export function StreakCard() {
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/** Compact weekly-pod card: my rank among about 20 learners this week. */
+export function WeeklyPodCard() {
+  const { user } = useAuth();
+  const pod = useQuery({ queryKey: ['weekly-pod', user!.id], queryFn: getWeeklyPod, staleTime: 60_000 });
+  if (!pod.data || !pod.data.in_pod) return null;
+  const me = pod.data.rows.find((r) => r.is_me);
+  const daysLeft = Math.max(0, Math.ceil((new Date(pod.data.week_end).getTime() - Date.now()) / 864e5));
+  return (
+    <Link to="/leaderboard?board=xp_pod" className="block">
+      <Card className="flex items-center gap-3 p-4 hover:border-border-strong">
+        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/40 bg-accent-muted text-accent">
+          <Trophy className="h-5 w-5" />
+        </span>
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold">
+            Weekly pod: <span className="font-mono">#{me?.rank ?? '—'}</span> of {pod.data.pod_size}
+          </div>
+          <div className="text-xs text-fg-muted">
+            {me?.xp ?? 0} XP this week · resets in {daysLeft} day{daysLeft === 1 ? '' : 's'}
+          </div>
+        </div>
+        <ArrowRight className="h-4 w-4 shrink-0 text-fg-subtle" />
+      </Card>
+    </Link>
   );
 }

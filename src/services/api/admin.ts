@@ -4,6 +4,7 @@ import { supabase, unwrap } from '@/lib/supabase';
 import type {
   Achievement,
   AdminBetaTester,
+  AdminCohort,
   Challenge,
   ChallengeScore,
   ChallengeSubmission,
@@ -390,6 +391,8 @@ export interface AdminInvite {
   expires_at: string | null;
   is_active: boolean;
   created_at: string;
+  cohort_id?: string | null;
+  cohort_name?: string | null;
   /** 'ok' or the reason the code can't be used right now. */
   status: string;
   redeemed_by: { full_name: string | null; handle: string | null; redeemed_at: string }[];
@@ -397,7 +400,7 @@ export interface AdminInvite {
 export async function adminListInvites(): Promise<AdminInvite[]> {
   return unwrap(await supabase.rpc('admin_list_invites')) as AdminInvite[];
 }
-export async function adminCreateInvite(input: { code: string; label: string; max_uses: number | null; expires_at: string | null }) {
+export async function adminCreateInvite(input: { code: string; label: string; max_uses: number | null; expires_at: string | null; cohort_id?: string | null }) {
   const res = await supabase.from('invite_codes').insert(input);
   if (res.error?.code === '23505') throw new Error('That code already exists — pick another.');
   if (res.error?.code === '23514') throw new Error('Codes use 4–40 capital letters, numbers or hyphens.');
@@ -533,4 +536,25 @@ export async function adminBackup(onProgress?: (table: string, done: number, tot
   }
   onProgress?.('done', BACKUP_TABLES.length, BACKUP_TABLES.length);
   return { data, errors, rows };
+}
+
+// ------------------------------------------------------------ Classes (admin)
+export async function adminListCohorts(): Promise<AdminCohort[]> {
+  const rows = unwrap(await supabase.rpc('admin_list_cohorts')) as AdminCohort[];
+  return rows.map((c) => ({ ...c, members: Number(c.members) }));
+}
+export async function adminCreateCohort(input: { name: string; description: string; join_code: string }, createdBy: string) {
+  const res = await supabase.from('cohorts').insert({ ...input, join_code: input.join_code.trim().toUpperCase(), created_by: createdBy });
+  if (res.error?.code === '23505') throw new Error('That join code is already used by another class.');
+  if (res.error?.code === '23514') throw new Error('Name: 3–80 characters. Join code: 4–30 capital letters, numbers or hyphens.');
+  unwrap(res);
+}
+export async function adminSetCohortOpen(id: string, open: boolean) {
+  unwrap(await supabase.from('cohorts').update({ is_open: open }).eq('id', id));
+}
+export async function adminDeleteCohort(id: string) {
+  unwrap(await supabase.from('cohorts').delete().eq('id', id));
+}
+export async function adminSetCohortManager(cohortId: string, email: string, add: boolean) {
+  unwrap(await supabase.rpc('admin_set_cohort_manager', { p_cohort: cohortId, p_email: email, p_add: add }));
 }

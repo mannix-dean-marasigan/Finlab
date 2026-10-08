@@ -875,3 +875,48 @@ export interface AdminBetaTester {
   certificate_code: string | null;
   feedback_count: number;
 }
+
+// ------------------------------------------------------------ Classes & pods
+export interface MyCohort {
+  id: string;
+  name: string;
+  description: string;
+  /** Only visible to class managers and admins. */
+  join_code: string | null;
+  is_open: boolean;
+  members: number;
+  is_manager: boolean;
+  is_member: boolean;
+  my_xp_week: number;
+  my_rank_week: number | null;
+}
+export interface CohortRosterRow {
+  user_id: string;
+  full_name: string;
+  handle: string;
+  joined_at: string;
+  finlab_score: number | null;
+  lessons_passed: number;
+  challenges_scored: number;
+  certificates: number;
+  xp_7d: number;
+  streak: number | null;
+  last_active: string | null;
+}
+export interface WeeklyPod {
+  week_start: string;
+  week_end: string;
+  pod_size: number;
+  in_pod: boolean;
+  rows: { rank: number; user_id: string; handle: string; display_name: string; xp: number; is_me: boolean }[];
+}
+export interface AdminCohort {
+  id: string;
+  name: string;
+  description: string;
+  join_code: string;
+  is_open: boolean;
+  created_at: string;
+  members: number;
+  managers: { user_id: string; full_name: string; email: string }[];
+}

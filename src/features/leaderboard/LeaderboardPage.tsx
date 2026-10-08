@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Crown, Flame, Medal, Trophy } from 'lucide-react';
 import { useMyProfile, useReference } from '@/app/queries';
 import { fetchLeaderboard, fetchUniversities } from '@/services/api/compete';
-import { getXpLeaderboard } from '@/services/api/engage';
+import { getWeeklyPod, getXpLeaderboard } from '@/services/api/engage';
 import type { LeaderboardBoard } from '@/types/domain';
 import { PageHeader } from '@/components/common';
 import { Card } from '@/components/ui/card';
@@ -24,17 +24,24 @@ const BOARDS: { value: LeaderboardBoard; label: string; metric: string; desc: st
   { value: 'portfolio', label: 'Portfolio Mgmt', metric: 'Simulated return %', desc: 'Return of the simulated portfolio since start or last reset (sample prices).' },
 ];
 
-type XpBoard = 'xp_week' | 'xp_30';
+type XpBoard = 'xp_pod' | 'xp_week' | 'xp_30';
 const XP_BOARDS: { value: XpBoard; label: string; desc: string }[] = [
+  { value: 'xp_pod', label: 'My weekly pod', desc: 'Each week everyone is placed in a random group of about 20 and competes on the XP earned that week. A fresh pod every Monday (Manila time).' },
   { value: 'xp_week', label: 'This week (XP)', desc: 'XP earned since Monday (Manila time) from lessons, practice, challenges, pitches, reviews, flashcards and daily challenges. Resets weekly.' },
   { value: 'xp_30', label: '30 days (XP)', desc: 'XP earned over the last 30 days.' },
 ];
 
 function XpLeaderboard({ board }: { board: XpBoard }) {
-  const rows = useQuery({ queryKey: ['xp-leaderboard', board], queryFn: () => getXpLeaderboard(board === 'xp_week' ? null : 30) });
+  const rows = useQuery({
+    queryKey: ['xp-leaderboard', board],
+    queryFn: async () => {
+      if (board === 'xp_pod') return (await getWeeklyPod()).rows;
+      return getXpLeaderboard(board === 'xp_week' ? null : 30);
+    },
+  });
   if (rows.isPending) return <LoadingState />;
   if (rows.isError) return <ErrorState error={rows.error} onRetry={() => rows.refetch()} />;
-  if (!rows.data.length) return <EmptyState icon={<Flame className="h-5 w-5" />} title="No XP earned yet in this period" description="Answer today's daily challenge or review some flashcards to get on the board." />;
+  if (!rows.data.length) return <EmptyState icon={<Flame className="h-5 w-5" />} title={board === 'xp_pod' ? 'No pod this week' : 'No XP earned yet in this period'} description={board === 'xp_pod' ? 'Pods are for learners; admin accounts are not placed in one.' : "Answer today's daily challenge or review some flashcards to get on the board."} />;
   return (
     <Table>
       <thead>

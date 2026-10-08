@@ -79,6 +79,7 @@ We do **not** collect payment information, and we do **not** sell your data or u
 - **Public profile off:** you are hidden from other users on leaderboards and your passport link stops working.
 - **Certificates** can be verified by anyone who has the code, so that employers can check them.
 - **Administrators** can see account and submission data (including your email address, invite code, feedback, peer reviews you wrote and capstone links) to review work, run competitions, give awards and provide support. Administrators may export data to keep backups.
+- **Classes:** if you join a class or organization, its **managers** (for example a professor or org officer assigned by an administrator) can see your name, score, lessons, certificates and recent activity, and class members can see your name and XP on the class leaderboard. You can leave a class at any time.
 - **Peer reviews** are anonymous to the pitch's author; the author sees "Peer analyst #N", not your name.
 
 ## Where data is stored

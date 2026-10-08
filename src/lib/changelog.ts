@@ -17,6 +17,8 @@ export const CHANGELOG: ChangelogEntry[] = [
       'Beta tester checklist on your dashboard: finish five tasks to claim a Founding Beta Tester certificate.',
       '45 more daily challenge questions, so the daily question stays fresh for months.',
       'Share any certificate on LinkedIn with a ready-made post, picture, description and skills list.',
+      'Classes: join your class or org with a code for a private leaderboard (class managers can see member progress).',
+      'Weekly pods: every Monday you are placed in a group of about 20 and compete on that week’s XP.',
       'A welcome tour for new analysts, and this What’s new page.',
     ],
   },

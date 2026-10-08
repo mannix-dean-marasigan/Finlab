@@ -4,7 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Check, ChevronDown, Copy, KeyRound, Lock, Plus, RefreshCw, Trash2, Unlock } from 'lucide-react';
 import { toast } from 'sonner';
 import {
-  adminCreateInvite, adminDeleteInvite, adminListInvites, adminSetInviteActive, adminSetInviteRequired, fetchInviteRequired, type AdminInvite,
+  adminCreateInvite, adminDeleteInvite, adminListCohorts, adminListInvites, adminSetInviteActive, adminSetInviteRequired, fetchInviteRequired, type AdminInvite,
 } from '@/services/api/admin';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,7 +33,8 @@ function copy(text: string, what: string) {
 
 function CreateInvite() {
   const qc = useQueryClient();
-  const [f, setF] = useState({ code: randomCode(), label: '', max_uses: '20', expires: '' });
+  const cohorts = useQuery({ queryKey: ['admin', 'cohorts'], queryFn: adminListCohorts });
+  const [f, setF] = useState({ code: randomCode(), label: '', max_uses: '20', expires: '', cohort: '' });
   const create = useMutation({
     mutationFn: () => {
       const max = f.max_uses.trim() ? Number(f.max_uses) : null;
@@ -43,12 +44,13 @@ function CreateInvite() {
         label: f.label.trim(),
         max_uses: max,
         expires_at: f.expires ? new Date(`${f.expires}T23:59:59+08:00`).toISOString() : null,
+        cohort_id: f.cohort || null,
       });
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'invites'] });
       copy(inviteLink(f.code.trim().toUpperCase()), 'Invite link');
-      setF({ code: randomCode(), label: '', max_uses: '20', expires: '' });
+      setF({ code: randomCode(), label: '', max_uses: '20', expires: '', cohort: '' });
     },
   });
   return (
@@ -82,6 +84,23 @@ function CreateInvite() {
             <KeyRound className="h-4 w-4" /> Create
           </Button>
         </div>
+        {!!cohorts.data?.length && (
+          <Field label="Add new sign-ups to a class (optional)" className="max-w-sm">
+            <select
+              value={f.cohort}
+              onChange={(e) => setF({ ...f, cohort: e.target.value })}
+              className="h-9 w-full rounded-md border border-border-strong bg-surface-2 px-3 text-sm"
+              aria-label="Class for this invite"
+            >
+              <option value="">No class</option>
+              {cohorts.data.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <InlineError message={create.error ? (create.error as Error).message : null} />
       </CardContent>
     </Card>
@@ -114,7 +133,10 @@ function InviteRow({ inv }: { inv: AdminInvite }) {
       <tr className="hover:bg-surface-2">
         <Td>
           <div className="font-mono font-semibold tracking-wider">{inv.code}</div>
-          <div className="text-xs text-fg-subtle">{inv.label || '—'}</div>
+          <div className="text-xs text-fg-subtle">
+            {inv.label || '—'}
+            {inv.cohort_name && <span className="ml-1.5 text-violet">· joins {inv.cohort_name}</span>}
+          </div>
         </Td>
         <Td>
           {usable ? (

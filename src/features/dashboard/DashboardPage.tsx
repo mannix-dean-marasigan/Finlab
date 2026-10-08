@@ -20,7 +20,7 @@ import { DifficultyBadge, DynamicIcon, ScorePill, ScoreRing } from '@/components
 import { SkillBars, SkillRadar, mergeSkills } from '@/components/SkillChart';
 import { fmtDate, fmtMinutes, fmtScore, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
-import { DailyChallengeCard, StreakCard, TodayPlanCard } from './EngagementCards';
+import { DailyChallengeCard, StreakCard, TodayPlanCard, WeeklyPodCard } from './EngagementCards';
 import { BetaChecklistCard } from './BetaChecklistCard';
 
 function greeting() {
@@ -276,6 +276,7 @@ export default function DashboardPage() {
           <TodayPlanCard />
           <DailyChallengeCard />
           <StreakCard />
+          <WeeklyPodCard />
           <Card className="border-accent/30 bg-gradient-to-b from-accent/[0.06] to-surface">
             <CardHeader title="Recommended next" icon={<Target className="h-3.5 w-3.5 text-accent" />} />
             <CardContent>

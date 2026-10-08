@@ -21,6 +21,7 @@ import AdminInvitesPage from './AdminInvitesPage';
 import AdminBetaTestersPage from './AdminBetaTestersPage';
 import AdminFlashcardsPage from './AdminFlashcardsPage';
 import AdminDailyPage from './AdminDailyPage';
+import AdminClassesPage from './AdminClassesPage';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -41,6 +42,7 @@ const LINKS = [
   { to: '/admin/market', label: 'Market data', icon: Database },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/invites', label: 'Invites', icon: KeyRound },
+  { to: '/admin/classes', label: 'Classes', icon: Users },
   { to: '/admin/beta', label: 'Beta testers', icon: FlaskConical },
 ];
 
@@ -80,6 +82,7 @@ export default function AdminRoutes() {
         <Route path="market" element={<AdminMarketPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="invites" element={<AdminInvitesPage />} />
+        <Route path="classes" element={<AdminClassesPage />} />
         <Route path="beta" element={<AdminBetaTestersPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />
         <Route path="lessons" element={<AdminLessonsPage />} />

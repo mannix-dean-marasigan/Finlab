@@ -1,7 +1,7 @@
 // Engagement: flashcards, peer review, capstones, daily challenge, XP/streaks, analytics.
 import { supabase, unwrap } from '@/lib/supabase';
 import type {
-  AdminAnalytics, AdminCapstoneRow, BetaChecklist, CapstoneRubricItem, DailyChallenge, FlashcardItem, FlashcardStats, MyActivity, PeerReview,
+  AdminAnalytics, AdminCapstoneRow, BetaChecklist, CohortRosterRow, MyCohort, WeeklyPod, CapstoneRubricItem, DailyChallenge, FlashcardItem, FlashcardStats, MyActivity, PeerReview,
   PeerReviewCriterion, ProgramLeaderRow, ReviewQueueItem, TodayItem, XpLeaderRow,
 } from '@/types/domain';
 
@@ -167,4 +167,37 @@ export async function getBetaChecklist(): Promise<BetaChecklist> {
 }
 export async function claimBetaCertificate(): Promise<string> {
   return unwrap(await supabase.rpc('claim_beta_certificate')) as string;
+}
+
+// ------------------------------------------------------------ Classes & weekly pods
+export async function getMyCohorts(): Promise<MyCohort[]> {
+  const rows = unwrap(await supabase.rpc('get_my_cohorts')) as MyCohort[];
+  return rows.map((c) => ({ ...c, members: Number(c.members), my_xp_week: Number(c.my_xp_week), my_rank_week: c.my_rank_week === null ? null : Number(c.my_rank_week) }));
+}
+export async function joinCohort(code: string): Promise<{ id: string; name: string }> {
+  return unwrap(await supabase.rpc('join_cohort', { p_code: code })) as { id: string; name: string };
+}
+export async function leaveCohort(cohortId: string): Promise<void> {
+  unwrap(await supabase.rpc('leave_cohort', { p_cohort: cohortId }));
+}
+/** days: null = this week, 0 = all time. */
+export async function getCohortLeaderboard(cohortId: string, days: number | null): Promise<XpLeaderRow[]> {
+  const rows = unwrap(await supabase.rpc('get_cohort_leaderboard', { p_cohort: cohortId, p_days: days })) as XpLeaderRow[];
+  return rows.map((r) => ({ ...r, rank: Number(r.rank), xp: Number(r.xp) }));
+}
+export async function getCohortRoster(cohortId: string): Promise<CohortRosterRow[]> {
+  const rows = unwrap(await supabase.rpc('get_cohort_roster', { p_cohort: cohortId })) as CohortRosterRow[];
+  return rows.map((r) => ({
+    ...r,
+    finlab_score: r.finlab_score === null ? null : Number(r.finlab_score),
+    lessons_passed: Number(r.lessons_passed),
+    challenges_scored: Number(r.challenges_scored),
+    certificates: Number(r.certificates),
+    xp_7d: Number(r.xp_7d),
+    streak: r.streak === null ? null : Number(r.streak),
+  }));
+}
+export async function getWeeklyPod(): Promise<WeeklyPod> {
+  const p = unwrap(await supabase.rpc('get_weekly_pod')) as WeeklyPod;
+  return { ...p, pod_size: Number(p.pod_size), rows: p.rows.map((r) => ({ ...r, rank: Number(r.rank), xp: Number(r.xp) })) };
 }

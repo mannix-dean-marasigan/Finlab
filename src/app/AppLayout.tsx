@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, BookOpen, Briefcase, Calculator, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard, LineChart,
-  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, X, Zap,
+  LogOut, Menu, MessageSquareText, Newspaper, PieChart, Presentation, Settings, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn, initials } from '@/lib/utils';
@@ -67,6 +67,7 @@ const NAV: NavItem[] = [
     children: [
       { to: '/competitions', label: 'Competitions', icon: Swords },
       { to: '/leaderboard', label: 'Leaderboards', icon: Trophy },
+      { to: '/classes', label: 'Classes', icon: Users },
     ],
   },
   {
