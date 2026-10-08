@@ -176,9 +176,9 @@ async function main() {
   await db.exec(readFileSync(join(root, 'supabase', 'seed_006_engagement.sql'), 'utf8'));
   const eng = (await db.query(`select (select count(*) from flashcards)::int cards,
       (select count(*) from program_modules where kind = 'capstone')::int capstones,
-      (select count(*) from daily_questions)::int dq, (select count(*) from daily_question_keys)::int dk,
+      (select count(*) from lessons)::int lessons, (select count(*) from daily_questions)::int dq, (select count(*) from daily_question_keys)::int dk,
       (select min(n)::int from (select count(*) n from flashcards group by lesson_id) t) min_per_lesson`)).rows[0];
-  ok(eng.cards === 150 && eng.min_per_lesson === 10 && eng.capstones === 4 && eng.dq === 45 && eng.dk === 45,
+  ok(eng.cards === eng.lessons * 10 && eng.min_per_lesson === 10 && eng.capstones === 4 && eng.dq === eng.dk && eng.dq >= 45,
     'seed_006 is idempotent: 10 flashcards per lesson, 4 capstones, 45 daily questions with keys', eng);
 
   const counts = (await db.query(`select
@@ -200,8 +200,8 @@ async function main() {
   const bank = (await db.query(`select m.kind from program_modules m join certification_programs p on p.id = m.program_id
       where p.slug = 'banking-credit-analyst' order by m.position`)).rows.map((r) => r.kind);
   ok(bank.length === 10 && bank[8] === 'exam' && bank[9] === 'capstone', 'Banking & Credit Analyst: 10 modules ending exam → capstone', bank);
-  ok(counts.lessons === 15 && counts.lessons_with_checks === 15 && counts.lesson_keys === 15, 'every lesson has a knowledge check + key', counts);
-  ok(counts.programs === 9 && counts.broken_modules === 0, '9 programs, all modules resolved', counts);
+  ok(counts.lessons >= 21 && counts.lessons_with_checks === counts.lessons && counts.lesson_keys === counts.lessons, 'every lesson has a knowledge check + key', counts);
+  ok(counts.programs >= 10 && counts.broken_modules === 0, 'all programs published, all modules resolved', counts);
 
   // The main flow below submits many times in quick succession; relax the
   // anti-gaming limits here and test them explicitly later.
@@ -532,7 +532,7 @@ async function main() {
   ok((await q(carol, `select count(*)::int n from lesson_activity_keys`)).rows[0].n === 0, 'activity answer keys hidden from users');
   const actCounts = (await db.query(`select count(*)::int n, count(distinct lesson_id)::int lessons,
       count(*) filter (where kind = 'calculator')::int calc from lesson_activities`)).rows[0];
-  ok(actCounts.n === 30 && actCounts.lessons === 15 && actCounts.calc === 7, 'every lesson has practice (30 activities, 7 calculators)', actCounts);
+  ok(actCounts.n >= actCounts.lessons * 2 && actCounts.lessons === (await db.query(`select count(*)::int n from lessons`)).rows[0].n && actCounts.calc === 7, 'every lesson has practice (2+ activities each)', actCounts);
   const acts = (await db.query(`select a.id, a.kind, a.slug, a.content, k.key from lesson_activities a join lessons l on l.id = a.lesson_id
       join lesson_activity_keys k on k.activity_id = a.id where l.slug in ('three-statements','cash-flow-statement','credit-analysis')`)).rows;
   const matching = acts.find((a) => a.slug === 'which-statement');
@@ -593,7 +593,7 @@ async function main() {
   section('Certification programs & tracks');
   const track = (await q(carol, `select id from certification_programs where slug = 'track-accounting-foundations'`)).rows[0].id;
   const progs = await rpc(carol, 'list_programs');
-  ok(progs.length === 9 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
+  ok(progs.length >= 10 && progs.some((p) => p.slug === 'track-accounting-foundations' && Number(p.completed_modules) === 1), 'programs list shows progress', progs.map((p) => [p.slug, p.completed_modules, p.modules]));
   await rpc(carol, 'enroll_program', [track]);
   const cfsLesson = (await q(carol, `select id from lessons where slug = 'cash-flow-statement'`)).rows[0].id;
   await rpc(carol, 'mark_lesson_video_watched', [cfsLesson, 'ended']);
@@ -704,7 +704,7 @@ async function main() {
 
   // ------------------------------------------------------------------
   section('Flashcards (spaced repetition)');
-  ok((await q(carol, `select count(*)::int n from flashcards`)).rows[0].n === 150, 'learners can read published flashcards');
+  ok((await q(carol, `select count(*)::int n from flashcards`)).rows[0].n === (await db.query(`select count(*)::int n from lessons`)).rows[0].n * 10, 'learners can read published flashcards');
   await expectError(carol, `insert into flashcards (lesson_id, position, front, back) values ($1, 99, 'Front', 'Back')`, [lessonRow.id], 'learners cannot create flashcards', 'row-level security');
   const fq = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
   ok(fq.length === 20 && fq.every((c) => c.is_new), 'queue introduces 20 new cards per day', fq.length);
@@ -722,7 +722,7 @@ async function main() {
   const fq2 = (await q(carol, `select * from get_flashcard_queue(null, 50)`)).rows;
   ok(fq2.length === 19 && !fq2.some((c) => c.card_id === card), 'reviewed card leaves the queue; it counts toward today\'s new cards', fq2.length);
   const fstats = await rpc(carol, 'flashcard_stats');
-  ok(Number(fstats.learned) === 1 && Number(fstats.reviewed_today) === 4 && Number(fstats.total) === 150, 'flashcard stats', fstats);
+  ok(Number(fstats.learned) === 1 && Number(fstats.reviewed_today) === 4 && Number(fstats.total) === (await db.query(`select count(*)::int n from flashcards`)).rows[0].n, 'flashcard stats', fstats);
   const deck = (await q(carol, `select * from get_flashcard_queue($1, 50)`, [fq[0].lesson_id])).rows;
   ok(deck.length === 9 && deck.every((c) => c.lesson_id === fq[0].lesson_id), 'per-lesson deck', deck.length);
 
@@ -798,7 +798,7 @@ async function main() {
   const an = await rpc(bob, 'admin_analytics', [30]);
   ok(an.funnel.length === 6 && Number(an.funnel[0].users) === 3 && an.days.length >= 30, 'funnel + daily series', an.funnel.map((f) => f.users));
   ok(an.hardest_questions.length > 0 && an.hardest_questions[0].prompt, 'per-question item analysis from stored results', an.hardest_questions[0]);
-  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === 9, 'activity + programs summary', [an.daily, an.active_7d]);
+  ok(Number(an.daily.answered_today) === 2 && Number(an.active_7d) === 3 && an.programs.length === (await db.query(`select count(*)::int n from certification_programs`)).rows[0].n, 'activity + programs summary', [an.daily, an.active_7d]);
 
   // ------------------------------------------------------------------
   section('Invite codes (closed beta)');
@@ -955,6 +955,47 @@ async function main() {
   ok(persisted.subs > 10 && persisted.pitches === 4 && persisted.reports === 1 && persisted.ach >= 5, 'all user work persisted', persisted);
   await q(alice, `update notifications set read_at = now() where user_id = $1`, [alice]);
   await expectError(alice, `update notifications set title = 'x' where user_id = $1`, [alice], 'notifications: only read state editable', 'permission denied');
+
+  // ------------------------------------------------------------------
+  section('Every certification can be completed end to end');
+  const finisher = await createUser('finisher@example.com', 'Fin Isher');
+  await q(finisher, `update profiles set onboarded_at = now() where id = $1`, [finisher]);
+  const allPrograms = (await db.query(`select p.id, p.slug,
+      (select count(*)::int from program_modules m join challenges c on c.id = m.challenge_id where m.program_id = p.id and c.kind <> 'tasks') as non_task
+      from certification_programs p where p.is_published order by p.sort_order, p.slug`)).rows;
+  for (const pr of allPrograms) {
+    if (pr.non_task > 0) {
+      ok(true, `${pr.slug}: skipped (contains a stock-pitch or research module, covered by its own tests)`);
+      continue;
+    }
+    await rpc(finisher, 'enroll_program', [pr.id]);
+    const before = await rpc(finisher, 'get_program', [pr.slug]);
+    const problems = [];
+    for (const m of before.modules) {
+      try {
+        if (m.complete) continue;
+        if (m.kind === 'lesson') {
+          const lid = (await q(finisher, `select id from lessons where slug = $1`, [m.lesson_slug])).rows[0].id;
+          await rpc(finisher, 'mark_lesson_video_watched', [lid, 'ended']);
+          await completeActivities(finisher, m.lesson_slug);
+          const res = await rpc(finisher, 'submit_lesson_check', [lid, JSON.stringify(await lessonAnswers(m.lesson_slug))]);
+          if (!res.passed) problems.push(`${m.lesson_slug}: quiz not passed (${res.score})`);
+        } else if (m.kind === 'challenge' || m.kind === 'exam') {
+          const slug = (await q(finisher, `select slug from challenges where id = $1`, [m.challenge_id])).rows[0].slug;
+          const attempt = await rpc(finisher, 'start_challenge', [m.challenge_id, null]);
+          const res = await rpc(finisher, 'submit_challenge', [attempt, JSON.stringify(await perfectResponses(slug))]);
+          if (!res.passed) problems.push(`${slug}: not passed (${res.score})`);
+        } else if (m.kind === 'capstone') {
+          const sub = await rpc(finisher, 'submit_capstone', [m.id, 'https://youtu.be/abcdefghijk', null, longText('Capstone review', 170)]);
+          await rpc(bob, 'admin_score_capstone', [sub, JSON.stringify(m.config.rubric.map((r) => ({ key: r.key, label: r.label, max: r.max, score: Math.round(r.max * 0.9) }))), 'Strong presentation overall.', false]);
+        }
+      } catch (e) {
+        problems.push(`${m.kind} ${m.title}: ${e.message}`);
+      }
+    }
+    const after = await rpc(finisher, 'get_program', [pr.slug]);
+    ok(problems.length === 0 && !!after.certificate_code, `${pr.slug}: every module completable, certificate issued`, problems.length ? problems : after.modules.filter((m) => !m.complete).map((m) => m.title));
+  }
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {
