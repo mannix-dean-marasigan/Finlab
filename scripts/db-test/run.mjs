@@ -192,7 +192,7 @@ async function main() {
       (select count(*) from lesson_check_keys)::int as lesson_keys,
       (select count(*) from certification_programs where is_published)::int as programs,
       (select count(*) from program_modules where lesson_id is null and challenge_id is null and kind <> 'capstone')::int as broken_modules`)).rows[0];
-  ok(counts.challenges >= 28 && counts.achievements === 23 && counts.securities === 16, 'seed counts', counts);
+  ok(counts.challenges >= 28 && counts.achievements === 26 && counts.securities === 16, 'seed counts', counts);
   ok(counts.keys === counts.task_challenges, 'answer keys for every task challenge', counts);
   const missingKeys = (await db.query(`select c.slug, t->>'id' as task from challenges c join challenge_answer_keys k on k.challenge_id = c.id,
       jsonb_array_elements(c.content->'tasks') t where not (k.answers ? (t->>'id'))`)).rows;
@@ -1175,6 +1175,46 @@ async function main() {
   acct = await rpc(trader, 'tf_live_trade', ['ARAW', 'sell', 10]);
   ok(+acct.positions[0].qty === -10, 'live shorting works');
   ok(!(await q(rival, `select * from tf_positions`)).rows.length && !(await q(rival, `select * from tf_accounts`)).rows.length, "players cannot read anyone's live account directly");
+
+  // ------------------------------------------------------------------
+  section('Trading Floor extras: limit orders, journal, badges');
+  const ltr = await createUser('limits@example.com', 'Lim Trader');
+  let lr = await rpc(ltr, 'tf_start_round', ['practice']);
+  await expectError(ltr, `select public.tf_place_limit($1, 'buy', 10, $2)`, [lr.id, +lr.price * 1.05], 'a buy limit must be below the price', 'below the current price');
+  await expectError(ltr, `select public.tf_place_limit($1, 'sell', 10, $2)`, [lr.id, +lr.price * 0.95], 'a sell limit must be above the price', 'above the current price');
+  const lim = Math.round(+lr.price * 0.999 * 1000) / 1000;
+  lr = await rpc(ltr, 'tf_place_limit', [lr.id, 'buy', 50, lim]);
+  ok(lr.limit_side === 'buy' && +lr.limit_qty === 50 && +lr.limit_price === lim, 'a pending buy limit is shown on the round');
+  lr = await rpc(ltr, 'tf_cancel_limit', [lr.id]);
+  ok(lr.limit_side === null, 'a limit order can be cancelled');
+  lr = await rpc(ltr, 'tf_place_limit', [lr.id, 'buy', 50, lim]);
+  for (let guard = 0; guard < 140 && lr.limit_side && lr.status === 'active'; guard++) lr = await rpc(ltr, 'tf_advance', [lr.id, 1]);
+  const lf = (await rpc(ltr, 'tf_get_round', [lr.id])).fills.find((f) => f.reason === 'limit');
+  ok(lf && +lf.price <= lim + 1e-9 && +lf.qty === 50, 'a buy limit fills at or below its price when a candle reaches it', lf);
+  // A limit that would need leverage is cancelled, not filled.
+  let lr2 = await rpc(ltr, 'tf_start_round', ['practice']);
+  if (lr2.id === lr.id) { await rpc(ltr, 'tf_finish', [lr.id]); lr2 = await rpc(ltr, 'tf_start_round', ['practice']); }
+  const tooMany = Math.ceil(100000 / (+lr2.price * 0.999)) * 3;
+  lr2 = await rpc(ltr, 'tf_place_limit', [lr2.id, 'buy', tooMany, Math.round(+lr2.price * 0.999 * 1000) / 1000]);
+  for (let guard = 0; guard < 140 && lr2.limit_side && lr2.status === 'active'; guard++) lr2 = await rpc(ltr, 'tf_advance', [lr2.id, 1]);
+  ok(+lr2.qty === 0 && !(await rpc(ltr, 'tf_get_round', [lr2.id])).fills.some((f) => f.reason === 'limit'), 'a limit order that would need leverage is cancelled instead of filled');
+
+  // Journal notes
+  lr2 = await rpc(ltr, 'tf_order', [lr2.id, 'buy', 10, '  Bounce off support at the 20-day low  ']);
+  ok(lr2.fills.at(-1).note === 'Bounce off support at the 20-day low', 'a market order saves its journal note (trimmed)');
+  const lacct = await rpc(ltr, 'tf_live_trade', ['BAYR', 'buy', 5, 'Testing the live journal']);
+  ok(lacct.trades[0].note === 'Testing the live journal', 'live trades save a journal note too');
+
+  // Badges
+  ok((await q(trader, `select 1 from user_achievements where user_id = $1 and achievement_id = 'tf_weekly'`, [trader])).rows.length === 1, 'finishing the weekly challenge awards Weekly Challenger');
+  await rpc(ltr, 'tf_finish', [lr2.id]);
+  await db.query(`update tf_rounds set return_pct = 4.2, trades = 3, max_drawdown = 2.5 where id = $1`, [lr2.id]);
+  await db.query(`select public.tf_award_badges(r) from tf_rounds r where r.id = $1`, [lr2.id]);
+  await db.query(`select public.tf_award_badges(r) from tf_rounds r where r.id = $1`, [lr2.id]);
+  const lbadges = (await q(ltr, `select achievement_id from user_achievements where user_id = $1 order by 1`, [ltr])).rows.map((x) => x.achievement_id);
+  ok(lbadges.includes('tf_first_profit') && lbadges.includes('tf_risk_manager') && !lbadges.includes('tf_weekly'), 'profitable, controlled rounds earn First Profit and Risk Manager', lbadges);
+  ok((await q(ltr, `select count(*)::int as n from notifications where user_id = $1 and title like 'Achievement unlocked: %'`, [ltr])).rows[0].n === 2, 'each badge notifies once');
+  await expectError(ltr, `select public.tf_award_badges(r) from tf_rounds r limit 1`, [], 'players cannot award themselves badges', 'permission denied');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {

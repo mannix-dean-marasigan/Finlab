@@ -5,7 +5,7 @@ import type { Candle } from '@/features/trading/indicators';
 
 type RawCandle = [number | string, number | string, number | string, number | string, number | string];
 
-export interface RoundFill { i: number; side: 'buy' | 'sell'; qty: number; price: number; reason: 'market' | 'stop' | 'take' | 'close'; pnl: number }
+export interface RoundFill { i: number; side: 'buy' | 'sell'; qty: number; price: number; reason: 'market' | 'stop' | 'take' | 'close' | 'limit'; pnl: number; note: string | null }
 export interface RoundView {
   id: string;
   kind: 'practice' | 'weekly';
@@ -20,6 +20,9 @@ export interface RoundView {
   avg_price: number;
   stop_price: number | null;
   take_price: number | null;
+  limit_side: 'buy' | 'sell' | null;
+  limit_qty: number | null;
+  limit_price: number | null;
   fees: number;
   realized: number;
   trades: number;
@@ -47,6 +50,7 @@ function toRound(raw: Record<string, unknown>): RoundView {
     ...(raw as unknown as RoundView),
     cursor: Number(raw.cursor), last_index: Number(raw.last_index), start_cash: Number(raw.start_cash), cash: Number(raw.cash),
     qty: Number(raw.qty), avg_price: Number(raw.avg_price), stop_price: n(raw.stop_price), take_price: n(raw.take_price),
+    limit_side: (raw.limit_side as RoundView['limit_side']) ?? null, limit_qty: n(raw.limit_qty), limit_price: n(raw.limit_price),
     fees: Number(raw.fees), realized: Number(raw.realized), trades: Number(raw.trades), wins: Number(raw.wins),
     max_drawdown: Number(raw.max_drawdown), price: Number(raw.price), equity: Number(raw.equity),
     final_equity: n(raw.final_equity), return_pct: n(raw.return_pct), score: n(raw.score), from,
@@ -64,8 +68,14 @@ export async function getRound(id: string) {
 export async function advanceRound(id: string, steps = 1) {
   return toRound(unwrap(await supabase.rpc('tf_advance', { p_round: id, p_steps: steps })) as Record<string, unknown>);
 }
-export async function placeRoundOrder(id: string, side: 'buy' | 'sell', qty: number) {
-  return toRound(unwrap(await supabase.rpc('tf_order', { p_round: id, p_side: side, p_qty: qty })) as Record<string, unknown>);
+export async function placeRoundOrder(id: string, side: 'buy' | 'sell', qty: number, note?: string) {
+  return toRound(unwrap(await supabase.rpc('tf_order', { p_round: id, p_side: side, p_qty: qty, p_note: note?.trim() || null })) as Record<string, unknown>);
+}
+export async function placeRoundLimit(id: string, side: 'buy' | 'sell', qty: number, price: number) {
+  return toRound(unwrap(await supabase.rpc('tf_place_limit', { p_round: id, p_side: side, p_qty: qty, p_price: price })) as Record<string, unknown>);
+}
+export async function cancelRoundLimit(id: string) {
+  return toRound(unwrap(await supabase.rpc('tf_cancel_limit', { p_round: id })) as Record<string, unknown>);
 }
 export async function setRoundExits(id: string, stop: number | null, take: number | null) {
   return toRound(unwrap(await supabase.rpc('tf_set_exits', { p_round: id, p_stop: stop, p_take: take })) as Record<string, unknown>);
@@ -106,7 +116,7 @@ export async function liveCandles(symbol: string, limit = 500): Promise<{ candle
   };
 }
 export interface LivePosition { symbol: string; qty: number; avg_price: number; price: number; stop_price: number | null; take_price: number | null; unrealized: number }
-export interface LiveTrade { symbol: string; side: 'buy' | 'sell'; qty: number; price: number; reason: string; pnl: number; created_at: string }
+export interface LiveTrade { symbol: string; side: 'buy' | 'sell'; qty: number; price: number; reason: string; pnl: number; note: string | null; created_at: string }
 export interface LiveAccount { cash: number; start_cash: number; fees: number; equity: number; return_pct: number; positions: LivePosition[]; trades: LiveTrade[] }
 function toAccount(raw: Record<string, unknown>): LiveAccount {
   const num = (x: unknown) => (x === null || x === undefined ? null : Number(x));
@@ -121,8 +131,8 @@ function toAccount(raw: Record<string, unknown>): LiveAccount {
 export async function liveAccount() {
   return toAccount(unwrap(await supabase.rpc('tf_live_account')) as Record<string, unknown>);
 }
-export async function liveTrade(symbol: string, side: 'buy' | 'sell', qty: number) {
-  return toAccount(unwrap(await supabase.rpc('tf_live_trade', { p_symbol: symbol, p_side: side, p_qty: qty })) as Record<string, unknown>);
+export async function liveTrade(symbol: string, side: 'buy' | 'sell', qty: number, note?: string) {
+  return toAccount(unwrap(await supabase.rpc('tf_live_trade', { p_symbol: symbol, p_side: side, p_qty: qty, p_note: note?.trim() || null })) as Record<string, unknown>);
 }
 export async function liveSetExits(symbol: string, stop: number | null, take: number | null) {
   return toAccount(unwrap(await supabase.rpc('tf_live_set_exits', { p_symbol: symbol, p_stop: stop, p_take: take })) as Record<string, unknown>);

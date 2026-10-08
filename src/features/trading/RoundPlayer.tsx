@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { FastForward, Flag, Pause, Play, RotateCcw, SkipForward, Trophy } from 'lucide-react';
 import { toast } from 'sonner';
-import { advanceRound, finishRound, placeRoundOrder, roundTime, setRoundExits, type RoundView } from '@/services/api/trading';
+import { advanceRound, cancelRoundLimit, finishRound, placeRoundLimit, placeRoundOrder, roundTime, setRoundExits, type RoundView } from '@/services/api/trading';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -106,6 +106,7 @@ export function RoundPlayer({ kind, initial, onNew }: { kind: 'practice' | 'week
           storageKey={`round-${round.id}`}
           fills={fills}
           position={round.qty !== 0 ? { qty: round.qty, avg: round.avg_price, stop: round.stop_price, take: round.take_price } : null}
+          pendingLimit={round.limit_side ? { side: round.limit_side, price: round.limit_price ?? 0 } : null}
         />
         {!done && (
           <div className="flex flex-wrap items-center gap-2">
@@ -151,6 +152,26 @@ export function RoundPlayer({ kind, initial, onNew }: { kind: 'practice' | 'week
               <Stat label="Fees paid" value={fmtMoney(round.fees, 'PHP', 0)} />
             </div>
             <p className="mt-3 text-xs leading-relaxed text-fg-muted">Score = return minus half your worst drawdown, so steady, controlled trading beats lucky all-in bets.</p>
+            {round.fills.length > 0 && (
+              <div className="mt-4 border-t border-border pt-3">
+                <div className="mb-2 text-xs font-semibold uppercase tracking-wider text-fg-subtle">Trade journal</div>
+                <ul className="max-h-64 space-y-2 overflow-y-auto pr-1">
+                  {round.fills.map((f, i) => (
+                    <li key={i} className="text-xs">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>
+                          <span className={f.side === 'buy' ? 'text-up' : 'text-down'}>{f.side === 'buy' ? 'Buy' : 'Sell'}</span> {fmtNumber(f.qty, 0)} @{' '}
+                          <span className="font-mono">{fmtNumber(f.price, f.price < 10 ? 3 : 2)}</span>
+                          {f.reason !== 'market' && <span className="ml-1 text-fg-subtle">({f.reason === 'take' ? 'target' : f.reason})</span>}
+                        </span>
+                        {f.pnl !== 0 && <span className={cn('font-mono', f.pnl > 0 ? 'text-up' : 'text-down')}>{fmtMoney(f.pnl, 'PHP', 0)}</span>}
+                      </div>
+                      {f.note && <div className="mt-0.5 italic text-fg-muted">“{f.note}”</div>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {onNew && (
               <Button variant="primary" className="mt-3 w-full justify-center" onClick={onNew}>
                 <RotateCcw className="h-4 w-4" /> New practice round
@@ -180,7 +201,10 @@ export function RoundPlayer({ kind, initial, onNew }: { kind: 'practice' | 'week
               busy={busy}
               error={error}
               disabled={playing}
-              onOrder={(side, n) => act(() => placeRoundOrder(round.id, side, n))}
+              onOrder={(side, n, note) => act(() => placeRoundOrder(round.id, side, n, note))}
+              onLimit={(side, n, px) => act(() => placeRoundLimit(round.id, side, n, px))}
+              onCancelLimit={() => act(() => cancelRoundLimit(round.id))}
+              pendingLimit={round.limit_side ? { side: round.limit_side, qty: round.limit_qty ?? 0, price: round.limit_price ?? 0 } : null}
               onExits={(s, t) => act(() => setRoundExits(round.id, s, t))}
             />
             {playing && <p className="mt-2 text-[0.7rem] text-accent">Pause to place orders.</p>}

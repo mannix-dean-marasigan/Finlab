@@ -39,13 +39,14 @@ function loadDrawings(key: string): Drawing[] {
 
 /** Candles, volume, indicators, drawing tools and trade markers. Everything shown comes from candles already revealed. */
 export function TradingChart({
-  candles, storageKey, hourly, fills = [], position, height = 460,
+  candles, storageKey, hourly, fills = [], position, pendingLimit, height = 460,
 }: {
   candles: Candle[];
   storageKey: string;
   hourly?: boolean;
   fills?: ChartFill[];
   position?: ChartPosition | null;
+  pendingLimit?: { side: 'buy' | 'sell'; price: number } | null;
   height?: number;
 }) {
   const box = useRef<HTMLDivElement>(null);
@@ -183,9 +184,9 @@ export function TradingChart({
     const ms: SeriesMarker<Time>[] = fills.map((f) => ({
       time: t(f.time),
       position: f.side === 'buy' ? 'belowBar' : 'aboveBar',
-      color: f.reason === 'stop' ? COLORS.down : f.reason === 'take' ? COLORS.up : f.side === 'buy' ? COLORS.up : COLORS.down,
+      color: f.reason === 'stop' ? COLORS.down : f.reason === 'take' ? COLORS.up : f.reason === 'limit' ? COLORS.sky : f.side === 'buy' ? COLORS.up : COLORS.down,
       shape: f.side === 'buy' ? 'arrowUp' : 'arrowDown',
-      text: f.reason === 'stop' ? 'Stop' : f.reason === 'take' ? 'Target' : f.side === 'buy' ? 'Buy' : 'Sell',
+      text: f.reason === 'stop' ? 'Stop' : f.reason === 'take' ? 'Target' : f.reason === 'limit' ? 'Limit' : f.side === 'buy' ? 'Buy' : 'Sell',
     }));
     a.markers.setMarkers(ms.sort((x, y) => (x.time as number) - (y.time as number)));
   }, [fills, version]);
@@ -205,6 +206,7 @@ export function TradingChart({
       if (position.stop) add(position.stop, COLORS.down, 'Stop', LineStyle.Solid, 2);
       if (position.take) add(position.take, COLORS.up, 'Target', LineStyle.Solid, 2);
     }
+    if (pendingLimit) add(pendingLimit.price, '#38bdf8', `${pendingLimit.side === 'buy' ? 'Buy' : 'Sell'} limit`, LineStyle.Dashed, 2);
     const last = candles.at(-1)?.c ?? 0;
     for (const d of drawings) {
       if (d.kind === 'hline') add(d.price, COLORS.accent, d.price < last ? 'Support' : 'Resistance', LineStyle.Solid, 2);
@@ -223,7 +225,7 @@ export function TradingChart({
       made.forEach((pl) => a.candle.removePriceLine(pl));
       extra.forEach((s) => a.chart.removeSeries(s));
     };
-  }, [srLevels, position?.qty, position?.avg, position?.stop, position?.take, drawings, candles, version]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [srLevels, position?.qty, position?.avg, position?.stop, position?.take, pendingLimit?.side, pendingLimit?.price, drawings, candles, version]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------------------------------------------------------------- drawing by clicking the chart
   const toolRef = useRef({ tool, pending });

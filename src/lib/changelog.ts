@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-12',
+    title: 'Trading Floor: limit orders and a trade journal',
+    items: [
+      'Limit orders in rounds: buy if the price drops to your level, or sell if it rises to it.',
+      'Add a note to any trade, then review your trade journal at the end of the round.',
+      'New badges: First Profit, Risk Manager and Weekly Challenger.',
+    ],
+  },
+  {
     id: '2026-10-11',
     title: 'A cleaner FINLAB PH',
     items: [

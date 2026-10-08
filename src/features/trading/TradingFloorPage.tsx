@@ -135,7 +135,7 @@ function LiveTab() {
     qc.setQueryData(['tf', 'account'], a);
     setError(null);
   };
-  const trade = useMutation({ mutationFn: ({ side, qty }: { side: 'buy' | 'sell'; qty: number }) => liveTrade(symbol, side, qty), onSuccess: setAcct, onError: (e) => setError((e as Error).message) });
+  const trade = useMutation({ mutationFn: ({ side, qty, note }: { side: 'buy' | 'sell'; qty: number; note?: string }) => liveTrade(symbol, side, qty, note), onSuccess: setAcct, onError: (e) => setError((e as Error).message) });
   const exits = useMutation({ mutationFn: ({ stop, take }: { stop: number | null; take: number | null }) => liveSetExits(symbol, stop, take), onSuccess: setAcct, onError: (e) => setError((e as Error).message) });
 
   const pos = account.data?.positions.find((p) => p.symbol === symbol);
@@ -221,7 +221,7 @@ function LiveTab() {
                 take={pos?.take_price ?? null}
                 busy={trade.isPending || exits.isPending}
                 error={error}
-                onOrder={(side, qty) => trade.mutate({ side, qty })}
+                onOrder={(side, qty, note) => trade.mutate({ side, qty, note })}
                 onExits={(stop, take) => exits.mutate({ stop, take })}
               />
             </Card>
@@ -283,6 +283,7 @@ function LiveTab() {
                         <Td>
                           <span className={t.side === 'buy' ? 'text-up' : 'text-down'}>{t.side === 'buy' ? 'Buy' : 'Sell'}</span> {fmtNumber(t.qty, 0)} {t.symbol}
                           {t.reason !== 'market' && <Badge className="ml-1.5" tone={t.reason === 'stop' ? 'down' : 'up'}>{t.reason === 'stop' ? 'Stop' : 'Target'}</Badge>}
+                          {t.note && <div className="mt-0.5 max-w-xs truncate text-xs italic text-fg-muted" title={t.note}>“{t.note}”</div>}
                         </Td>
                         <Td align="right" mono>{fmtNumber(t.price, 2)}</Td>
                         <Td align="right" mono className={t.pnl > 0 ? 'text-up' : t.pnl < 0 ? 'text-down' : 'text-fg-subtle'}>{t.pnl ? fmtMoney(t.pnl, 'PHP', 0) : '—'}</Td>

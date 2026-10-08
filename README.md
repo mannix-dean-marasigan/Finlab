@@ -145,6 +145,7 @@ src/
    then `supabase/migrations/20261011000014_classes_and_pods.sql` (classes with join codes and manager rosters, weekly XP pods — Admin → Classes)
    then `supabase/migrations/20261012000015_tutorial.sql` (Tutorial Complete badge for the new-user tutorial)
    then `supabase/migrations/20261013000016_trading_floor.sql` (Trading Floor: simulated markets, rounds, weekly challenge, live market)
+   then `supabase/migrations/20261014000017_trading_extras.sql` (Trading Floor limit orders, trade journal notes, trading badges)
 9. `supabase/seed.sql`
 10. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
 11. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)
