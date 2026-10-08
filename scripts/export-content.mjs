@@ -9,7 +9,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
-const NEW_SEEDS = /^seed_(009|010|011|012)/;
+const NEW_SEEDS = /^seed_(009|010|011|012|013)/;
 
 const STUB = `
   create role anon nologin; create role authenticated nologin; create role service_role nologin bypassrls;

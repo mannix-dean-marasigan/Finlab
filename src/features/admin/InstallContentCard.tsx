@@ -10,7 +10,10 @@ import { installContentBundle, type ContentBundle, type InstallDb } from './inst
 // The bundle is ~230 KB, so it is only downloaded when an admin opens this card.
 const loadBundle = () => import('./contentBundle.json').then((m) => m.default as unknown as ContentBundle);
 
-const PROGRAMS = ['accounting-fundamentals', 'corporate-finance-fpa', 'financial-modeling', 'finance-interview-prep', 'personal-finance-essentials'];
+const PROGRAMS = [
+  'accounting-fundamentals', 'corporate-finance-fpa', 'financial-modeling', 'finance-interview-prep', 'personal-finance-essentials',
+  'quickstart-accounting-basics', 'quickstart-personal-finance',
+];
 
 const db: InstallDb = {
   async upsert(table, rows, onConflict, returning) {
@@ -50,7 +53,7 @@ export function InstallContentCard() {
     <Card>
       <CardHeader
         title="New content"
-        subtitle="Accounting Fundamentals, Corporate Finance & FP&A, Financial Modeling, Finance Interview Prep, Personal Finance Essentials and 45 daily questions."
+        subtitle="Accounting Fundamentals, Corporate Finance & FP&A, Financial Modeling, Finance Interview Prep, Personal Finance Essentials, two new Quick Starts (Accounting Basics, Personal Finance) and 45 daily questions."
         icon={<PackagePlus className="h-3.5 w-3.5" />}
         action={
           <Button size="sm" variant={done ? 'outline' : 'primary'} onClick={run} loading={busy}>
@@ -63,7 +66,7 @@ export function InstallContentCard() {
           <p className="font-mono text-accent">Installing: {step}…</p>
         ) : done ? (
           <p className="flex items-center gap-1.5 text-up">
-            <CheckCircle2 className="h-3.5 w-3.5" /> All 5 are installed. Reinstalling is harmless — it only rewrites the same content.
+            <CheckCircle2 className="h-3.5 w-3.5" /> All {PROGRAMS.length} are installed. Reinstalling is harmless; it only rewrites the same content.
           </p>
         ) : (
           <p>

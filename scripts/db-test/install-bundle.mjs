@@ -11,7 +11,7 @@ import { randomUUID } from 'node:crypto';
 import { installContentBundle } from '../../src/features/admin/installContent.ts';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const NEW_SEEDS = /^seed_(009|010|011|012)/;
+const NEW_SEEDS = /^seed_(009|010|011|012|013)/;
 const bundle = JSON.parse(readFileSync(join(root, 'src', 'features', 'admin', 'contentBundle.json'), 'utf8'));
 
 const STUB = `
@@ -127,7 +127,7 @@ await live.query(`insert into user_roles (user_id, role) values ($1, 'admin')`, 
 const steps = [];
 const result = await installContentBundle(adapter(live, admin), bundle, (s) => steps.push(s));
 ok(steps.at(-1) === 'Done', 'installer runs every step as admin', steps.join(' → '));
-ok(result.lessons === 20 && result.programs === 5, 'installer reports what it added', JSON.stringify(result));
+ok(result.lessons === 20 && result.programs === 7, 'installer reports what it added', JSON.stringify(result));
 
 const got = await fingerprint(live);
 for (const k of Object.keys(expected)) {
