@@ -153,7 +153,14 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
   g.fillStyle = SUB;
   g.font = `500 20px ${SANS}`;
   if ('letterSpacing' in g) g.letterSpacing = '6px';
-  const kindLabel = c.kind === 'competition' ? 'COMPETITION CERTIFICATE' : c.kind === 'track' ? 'LEARNING TRACK CERTIFICATE' : 'PROFESSIONAL CERTIFICATION';
+  const kindLabel =
+    c.issue_type === 'admin_award' && !c.program
+      ? 'CERTIFICATE OF RECOGNITION'
+      : c.kind === 'competition'
+        ? 'COMPETITION CERTIFICATE'
+        : c.kind === 'track'
+          ? 'LEARNING TRACK CERTIFICATE'
+          : 'PROFESSIONAL CERTIFICATION';
   g.fillText(kindLabel, cx, py + 165);
   g.fillText('THIS CERTIFIES THAT', cx, py + 250);
   if ('letterSpacing' in g) g.letterSpacing = '0px';

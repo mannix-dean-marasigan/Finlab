@@ -60,7 +60,7 @@ export function CertificateDocument({ c, preview }: { c: CertificateView; previe
               FIN<span className="text-[#c8922a]">LAB</span>
             </span>
           </div>
-          <div className="mt-2 text-[0.55rem] uppercase tracking-[0.35em] text-[#6b6f78] sm:text-xs">{KIND_LABEL[c.kind]}</div>
+          <div className="mt-2 text-[0.55rem] uppercase tracking-[0.35em] text-[#6b6f78] sm:text-xs">{isAward && !c.program ? 'Certificate of Recognition' : KIND_LABEL[c.kind]}</div>
         </div>
         <div>
           <div className="text-[0.6rem] uppercase tracking-[0.25em] text-[#6b6f78] sm:text-sm">This certifies that</div>
