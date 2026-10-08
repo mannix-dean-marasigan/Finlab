@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form';
 import { ErrorState, PageSkeleton } from '@/components/ui/states';
 import { BackupCard } from './BackupCard';
+import { InstallContentCard } from './InstallContentCard';
 
 export default function AdminOverviewPage() {
   const qc = useQueryClient();
@@ -74,6 +75,7 @@ export default function AdminOverviewPage() {
         <Stat label="Pitches · Reports" value={`${o.pitches} · ${o.reports}`} sub="submitted" />
         <Stat label="Competitions · Events" value={`${o.competitions} · ${o.open_events}`} sub="total · open events" />
       </div>
+      <InstallContentCard />
       <BackupCard />
       <Card>
         <CardHeader
