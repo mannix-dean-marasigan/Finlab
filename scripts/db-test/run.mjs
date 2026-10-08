@@ -178,7 +178,7 @@ async function main() {
       (select count(*) from program_modules where kind = 'capstone')::int capstones,
       (select count(*) from lessons)::int lessons, (select count(*) from daily_questions)::int dq, (select count(*) from daily_question_keys)::int dk,
       (select min(n)::int from (select count(*) n from flashcards group by lesson_id) t) min_per_lesson`)).rows[0];
-  ok(eng.cards === eng.lessons * 10 && eng.min_per_lesson === 10 && eng.capstones === 4 && eng.dq === eng.dk && eng.dq >= 45,
+  ok(eng.cards === eng.lessons * 10 && eng.min_per_lesson === 10 && eng.capstones === 4 && eng.dq === eng.dk && eng.dq >= 90,
     'seed_006 is idempotent: 10 flashcards per lesson, 4 capstones, 45 daily questions with keys', eng);
 
   const counts = (await db.query(`select
