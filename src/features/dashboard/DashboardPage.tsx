@@ -81,7 +81,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+      <div data-tour="dashboard-header" className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-accent">{fmtDate(new Date(), { weekday: 'long', month: 'long', day: 'numeric' })}</p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">
@@ -103,7 +103,7 @@ export default function DashboardPage() {
 
       {/* KPI strip */}
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card className="flex items-center gap-4 p-4 xl:col-span-1">
+        <Card data-tour="score" className="flex items-center gap-4 p-4 xl:col-span-1">
           {stats.isPending ? (
             <Skeleton className="h-[104px] w-[104px] rounded-full" />
           ) : stats.isError ? (
@@ -272,9 +272,13 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
-          <BetaChecklistCard />
-          <TodayPlanCard />
-          <DailyChallengeCard />
+          <div data-tour="beta-checklist">
+            <BetaChecklistCard />
+          </div>
+          <div data-tour="today-plan" className="space-y-6">
+            <TodayPlanCard />
+            <DailyChallengeCard />
+          </div>
           <StreakCard />
           <WeeklyPodCard />
           <Card className="border-accent/30 bg-gradient-to-b from-accent/[0.06] to-surface">

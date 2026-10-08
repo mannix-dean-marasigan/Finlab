@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-09',
+    title: 'A guided tutorial',
+    items: [
+      'New analysts get a guided walkthrough of every part of FINLAB PH, one highlighted section at a time.',
+      'Then a three-step first mission: open a lesson, try a practice activity, check the weekly leaderboard.',
+      'Finish it to earn the Tutorial Complete badge. Replay the tutorial any time from your account menu.',
+    ],
+  },
+  {
     id: '2026-10-08',
     title: 'More certifications, interview prep and a beta checklist',
     items: [

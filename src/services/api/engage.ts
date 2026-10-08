@@ -201,3 +201,15 @@ export async function getWeeklyPod(): Promise<WeeklyPod> {
   const p = unwrap(await supabase.rpc('get_weekly_pod')) as WeeklyPod;
   return { ...p, pod_size: Number(p.pod_size), rows: p.rows.map((r) => ({ ...r, rank: Number(r.rank), xp: Number(r.xp) })) };
 }
+
+// ------------------------------------------------------------ Tutorial
+/** Has the signed-in user attempted at least one practice activity? */
+export async function hasPracticeAttempt(userId: string): Promise<boolean> {
+  const res = await supabase.from('activity_attempts').select('id', { count: 'exact', head: true }).eq('user_id', userId);
+  if (res.error) throw res.error;
+  return (res.count ?? 0) > 0;
+}
+/** Awards the Tutorial Complete badge; true if newly awarded. */
+export async function completeTutorial(): Promise<boolean> {
+  return unwrap(await supabase.rpc('complete_tutorial')) as boolean;
+}

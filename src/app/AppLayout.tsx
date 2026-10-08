@@ -14,7 +14,8 @@ import { listNotifications, markNotificationsRead } from '@/services/api/misc';
 import { PageSkeleton } from '@/components/ui/states';
 import { FeedbackButton } from '@/features/feedback/FeedbackButton';
 import { LINKEDIN_PAGE_URL } from '@/lib/brand';
-import { WelcomeTour, OPEN_TOUR_EVENT } from '@/features/tour/WelcomeTour';
+import { Tutorial } from '@/features/tutorial/Tutorial';
+import { OPEN_TUTORIAL_EVENT } from '@/lib/events';
 import { CHANGELOG_SEEN_KEY, LATEST_CHANGELOG_ID } from '@/lib/changelog';
 
 interface NavItem {
@@ -201,7 +202,7 @@ function NotificationsMenu() {
   };
 
   return (
-    <div className="relative" ref={ref}>
+    <div className="relative" ref={ref} data-tour="notifications">
       <button
         onClick={() => setOpen((o) => !o)}
         className="relative rounded-md p-2 text-fg-muted hover:bg-surface-3 hover:text-fg"
@@ -294,7 +295,7 @@ function UserMenu() {
   }, []);
   return (
     <div className="relative" ref={ref}>
-      <button onClick={() => setOpen((o) => !o)} className="relative flex items-center gap-2 rounded-md p-1 pr-2 hover:bg-surface-3" aria-label="Account menu">
+      <button data-tour="user-menu" onClick={() => setOpen((o) => !o)} className="relative flex items-center gap-2 rounded-md p-1 pr-2 hover:bg-surface-3" aria-label="Account menu">
         <span className="flex h-7 w-7 items-center justify-center rounded-md bg-accent-muted text-xs font-semibold text-accent">
           {initials(profile.data?.full_name)}
         </span>
@@ -322,11 +323,11 @@ function UserMenu() {
           <button
             onClick={() => {
               setOpen(false);
-              window.dispatchEvent(new Event(OPEN_TOUR_EVENT));
+              window.dispatchEvent(new Event(OPEN_TUTORIAL_EVENT));
             }}
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-fg-muted hover:bg-surface-2 hover:text-fg"
           >
-            <Compass className="h-4 w-4" /> Welcome tour
+            <Compass className="h-4 w-4" /> Tutorial
           </button>
           <button
             onClick={async () => {
@@ -357,7 +358,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
       </div>
       <div className="ml-auto flex items-center gap-2 sm:gap-3">
         {stats.data && (
-          <Link to="/career" className="hidden items-center gap-3 rounded-md border border-border bg-surface px-3 py-1.5 text-xs sm:flex hover:border-border-strong">
+          <Link to="/career" data-tour="topbar-score" className="hidden items-center gap-3 rounded-md border border-border bg-surface px-3 py-1.5 text-xs sm:flex hover:border-border-strong">
             <span className="text-fg-muted">{level?.name ?? '—'}</span>
             <span className="h-3 w-px bg-border-strong" />
             <span className="text-fg-subtle">FINLAB</span>
@@ -386,7 +387,7 @@ export function AppLayout() {
 
   return (
     <div className="min-h-screen bg-bg">
-      <aside className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-surface lg:block">
+      <aside data-tour="sidebar" className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-surface lg:block">
         <Sidebar />
       </aside>
       {drawer && (
@@ -414,7 +415,7 @@ export function AppLayout() {
           <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>
         </footer>
         <FeedbackButton />
-        <WelcomeTour />
+        <Tutorial />
       </div>
     </div>
   );

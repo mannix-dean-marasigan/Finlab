@@ -41,6 +41,7 @@ export function FeedbackButton() {
         onClick={() => setOpen(true)}
         className="no-print fixed bottom-4 left-4 z-30 inline-flex items-center gap-2 rounded-full border border-border-strong bg-surface-2/95 px-3.5 py-2 text-xs font-medium text-fg-muted shadow-lg backdrop-blur hover:border-accent/50 hover:text-fg lg:left-64"
         aria-label="Send feedback"
+        data-tour="feedback"
       >
         <MessageSquarePlus className="h-4 w-4 text-accent" /> Feedback
       </button>

@@ -192,7 +192,7 @@ async function main() {
       (select count(*) from lesson_check_keys)::int as lesson_keys,
       (select count(*) from certification_programs where is_published)::int as programs,
       (select count(*) from program_modules where lesson_id is null and challenge_id is null and kind <> 'capstone')::int as broken_modules`)).rows[0];
-  ok(counts.challenges >= 28 && counts.achievements === 22 && counts.securities === 16, 'seed counts', counts);
+  ok(counts.challenges >= 28 && counts.achievements === 23 && counts.securities === 16, 'seed counts', counts);
   ok(counts.keys === counts.task_challenges, 'answer keys for every task challenge', counts);
   const missingKeys = (await db.query(`select c.slug, t->>'id' as task from challenges c join challenge_answer_keys k on k.challenge_id = c.id,
       jsonb_array_elements(c.content->'tasks') t where not (k.answers ? (t->>'id'))`)).rows;
@@ -1075,6 +1075,21 @@ async function main() {
   ok(!JSON.stringify(pod).includes('@') && pod.rows.every((r, i, a) => i === 0 || Number(r.rank) >= Number(a[i - 1].rank)), 'pod is ranked and exposes no emails');
   ok((await rpc(bob, 'get_weekly_pod')).in_pod === false, 'admins are not placed in pods');
   await expectError(null, `select public.get_weekly_pod()`, [], 'anon cannot read pods', 'permission denied');
+
+  // ------------------------------------------------------------------
+  section('Tutorial badge');
+  const rookie = await createUser('rookie@example.com', 'Rookie Tester');
+  await expectError(rookie, `select public.complete_tutorial()`, [], 'tutorial needs a real practice attempt first', 'practice activity');
+  ok(!(await q(rookie, `select 1 from user_achievements where user_id = $1 and achievement_id = 'tutorial_complete'`, [rookie])).rows.length, 'no badge before the mission is done');
+  await completeActivities(rookie, 'accounting-equation-journal');
+  ok((await rpc(rookie, 'complete_tutorial')) === true, 'finishing the mission awards the badge');
+  ok((await rpc(rookie, 'complete_tutorial')) === false, 'awarding twice is a no-op');
+  ok((await q(rookie, `select count(*)::int as n from user_achievements where user_id = $1 and achievement_id = 'tutorial_complete'`, [rookie])).rows[0].n === 1, 'exactly one badge');
+  ok((await q(rookie, `select count(*)::int as n from notifications where user_id = $1 and title like '%Tutorial Complete%'`, [rookie])).rows[0].n === 1, 'one achievement notification');
+  const fresh = await createUser('fresh@example.com', 'Fresh Tester');
+  await db.query(`select public.evaluate_achievements($1)`, [fresh]);
+  ok(!(await db.query(`select 1 from user_achievements where user_id = $1 and achievement_id = 'tutorial_complete'`, [fresh])).rows.length, 'automatic achievement checks never grant it');
+  await expectError(null, `select public.complete_tutorial()`, [], 'anon cannot complete the tutorial', 'permission denied');
 
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {

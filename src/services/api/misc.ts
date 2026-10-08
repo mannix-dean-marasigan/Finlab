@@ -1,5 +1,6 @@
 // Learn, certifications, certificates, feedback, account.
 import { supabase, unwrap } from '@/lib/supabase';
+import { ACTIVITY_DONE_EVENT } from '@/lib/events';
 import type {
   AppNotification, CertificateSummary, CertificateView, FeedbackItem, Lesson, LessonActivity, LessonCheckResult, ProgramDetail, ProgramSummary,
 } from '@/types/domain';
@@ -62,13 +63,17 @@ export async function fetchActivityBest(userId: string, activityIds: string[]): 
 }
 
 export async function submitActivity(activityId: string, response: Record<string, unknown>): Promise<Record<string, unknown> & { score: number }> {
-  return unwrap(await supabase.rpc('submit_activity', { p_activity: activityId, p_response: response })) as Record<string, unknown> & { score: number };
+  const result = unwrap(await supabase.rpc('submit_activity', { p_activity: activityId, p_response: response })) as Record<string, unknown> & { score: number };
+  window.dispatchEvent(new Event(ACTIVITY_DONE_EVENT));
+  return result;
 }
 
 export async function workedCheck(activityId: string, step: string, answer: string): Promise<{ correct: boolean; explanation?: string | null; completed?: boolean; score?: number; already?: boolean }> {
-  return unwrap(await supabase.rpc('worked_check', { p_activity: activityId, p_step: step, p_answer: answer })) as {
+  const result = unwrap(await supabase.rpc('worked_check', { p_activity: activityId, p_step: step, p_answer: answer })) as {
     correct: boolean; explanation?: string | null; completed?: boolean; score?: number; already?: boolean;
   };
+  if (result.completed) window.dispatchEvent(new Event(ACTIVITY_DONE_EVENT));
+  return result;
 }
 
 export async function workedHint(activityId: string, step: string): Promise<string | null> {
