@@ -1,6 +1,6 @@
 // Ready-to-use LinkedIn copy for a FINLAB certificate (profile description,
 // résumé line and post drafts). Pure functions so they can be unit-tested.
-import type { CertificateView } from '@/types/domain';
+import { isAwardedCertificate, type CertificateView } from '@/types/domain';
 import { ISSUER_NAME, LINKEDIN_ORG_ID } from '@/lib/brand';
 
 export type PostTone = 'professional' | 'story' | 'short';
@@ -152,7 +152,7 @@ function assessment(c: CertificateView, copy: ProgramCopy): string {
 
 /** Text for the "Description" field of the LinkedIn certification entry. */
 export function profileDescription(c: CertificateView, verifyUrl: string): string {
-  if (c.issue_type === 'admin_award') {
+  if (isAwardedCertificate(c)) {
     return [`Awarded by ${ISSUER_NAME}${c.award_reason ? `: ${c.award_reason}` : '.'}`, `Verify: ${verifyUrl}`].join('\n');
   }
   if (c.kind === 'competition') {
@@ -177,7 +177,7 @@ export function profileDescription(c: CertificateView, verifyUrl: string): strin
 /** One-line résumé bullet. */
 export function resumeLine(c: CertificateView): string {
   const year = new Date(c.issued_at).getFullYear();
-  if (c.issue_type === 'admin_award') return `${c.title} (awarded by ${ISSUER_NAME}, ${year})${c.award_reason ? ` — ${c.award_reason}` : ''}.`;
+  if (isAwardedCertificate(c)) return `${c.title} (awarded by ${ISSUER_NAME}, ${year})${c.award_reason ? ` — ${c.award_reason}` : ''}.`;
   if (c.kind === 'competition') return `${c.subtitle}, ${c.competition?.name ?? c.title} (${ISSUER_NAME}, ${year})`;
   const copy = programCopy(c);
   const parts = copy.highlights.slice(0, 3).map((h) => h.charAt(0).toLowerCase() + h.slice(1));
@@ -186,7 +186,7 @@ export function resumeLine(c: CertificateView): string {
 
 export function linkedInPost(c: CertificateView, verifyUrl: string, tone: PostTone): string {
   const tags = hashtags(c);
-  if (c.issue_type === 'admin_award') {
+  if (isAwardedCertificate(c)) {
     const why = c.award_reason ? `${c.award_reason}.` : '';
     if (tone === 'short') return `Awarded the ${c.title} by ${ISSUER_NAME} 🎓 ${why}\n\nVerify: ${verifyUrl}\n\n${tags}`;
     if (tone === 'story') return `Grateful to receive the ${c.title} from ${ISSUER_NAME}. 🎓\n\n${why}\n\nIt was a great chance to learn alongside other aspiring analysts — and I'm excited to keep building.\n\nCertificate: ${verifyUrl}\n\n${tags}`;

@@ -21,6 +21,7 @@ import { SkillBars, SkillRadar, mergeSkills } from '@/components/SkillChart';
 import { fmtDate, fmtMinutes, fmtScore, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { DailyChallengeCard, StreakCard, TodayPlanCard } from './EngagementCards';
+import { BetaChecklistCard } from './BetaChecklistCard';
 
 function greeting() {
   const h = new Date().getHours();
@@ -271,6 +272,7 @@ export default function DashboardPage() {
 
         {/* Right column */}
         <div className="space-y-6">
+          <BetaChecklistCard />
           <TodayPlanCard />
           <DailyChallengeCard />
           <StreakCard />

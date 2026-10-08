@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { BadgeCheck, Copy, ExternalLink, FlaskConical, Printer, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { verifyCertificate } from '@/services/api/misc';
-import type { CertificateView } from '@/types/domain';
+import { isAwardedCertificate, type CertificateView } from '@/types/domain';
 import { Button } from '@/components/ui/button';
 import { EmptyState, ErrorState, PageSkeleton } from '@/components/ui/states';
 import { PublicShell } from '@/features/passport/PublicPassportPage';
@@ -20,7 +20,7 @@ const KIND_LABEL = { certification: 'Professional Certification', track: 'Learni
 export function CertificateDocument({ c, preview }: { c: CertificateView; preview?: boolean }) {
   const revoked = !!c.revoked_at;
   const isTest = c.issue_type === 'test';
-  const isAward = c.issue_type === 'admin_award';
+  const isAward = isAwardedCertificate(c);
   const detail =
     c.kind === 'competition'
       ? c.subtitle
@@ -133,7 +133,9 @@ export default function VerifyCertificatePage() {
                     ? `Revoked ${fmtDate(q.data.revoked_at)}${q.data.revoked_reason ? ` — ${q.data.revoked_reason}` : ''}.`
                     : q.data.issue_type === 'test'
                       ? 'Created by a FINLAB PH administrator to test certificates and sharing. It does not represent completed work.'
-                      : q.data.issue_type === 'admin_award'
+                      : q.data.issue_type === 'recognition'
+                        ? `Awarded to ${q.data.recipient_name} by ${ISSUER_NAME} on ${fmtDate(q.data.issued_at)}${q.data.award_reason ? ` — ${q.data.award_reason}` : ''}. It cannot be edited by its holder.`
+                        : q.data.issue_type === 'admin_award'
                         ? `Awarded to ${q.data.recipient_name} by a ${ISSUER_NAME} administrator on ${fmtDate(q.data.issued_at)}${q.data.award_reason ? ` — ${q.data.award_reason}` : ''}. It cannot be edited by its holder.`
                         : `Issued to ${q.data.recipient_name} on ${fmtDate(q.data.issued_at)}. Issued automatically from scored work; it cannot be edited by its holder.`}
                   {q.data.handle && (

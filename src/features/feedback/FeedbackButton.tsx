@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { MessageSquarePlus } from 'lucide-react';
 import { toast } from 'sonner';
 import { submitFeedback } from '@/services/api/misc';
@@ -10,15 +10,25 @@ import { Field, Textarea } from '@/components/ui/form';
 import { Modal, Segmented } from '@/components/ui/misc';
 import { InlineError } from '@/components/ui/states';
 
+export const OPEN_FEEDBACK_EVENT = 'finlab:open-feedback';
+
 /** Floating "Feedback" button available on every signed-in page. */
 export function FeedbackButton() {
   const { pathname, search } = useLocation();
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<FeedbackItem['category']>('bug');
   const [message, setMessage] = useState('');
+  const qc = useQueryClient();
+  // Other parts of the app (e.g. the beta checklist) can open this dialog.
+  useEffect(() => {
+    const openIt = () => setOpen(true);
+    window.addEventListener(OPEN_FEEDBACK_EVENT, openIt);
+    return () => window.removeEventListener(OPEN_FEEDBACK_EVENT, openIt);
+  }, []);
   const send = useMutation({
     mutationFn: () => submitFeedback({ category, message, page: pathname + search }),
     onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['beta-checklist'] });
       toast.success('Thanks — your feedback was sent to the FINLAB team');
       setMessage('');
       setOpen(false);

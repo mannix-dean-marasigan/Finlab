@@ -1,5 +1,5 @@
 import { NavLink, Route, Routes } from 'react-router';
-import { Award, BadgeCheck, BarChart3, BookOpen, ClipboardCheck, Database, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
+import { Award, BadgeCheck, BarChart3, BookOpen, ClipboardCheck, Database, FlaskConical, GraduationCap, KeyRound, LayoutDashboard, LineChart, Briefcase, MessageSquare, MonitorPlay, Swords, Target, Users, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import AdminOverviewPage from './AdminOverviewPage';
 import AdminChallengesPage from './AdminChallengesPage';
@@ -18,6 +18,7 @@ import AdminFeedbackPage from './AdminFeedbackPage';
 import AdminAnalyticsPage from './AdminAnalyticsPage';
 import AdminCapstonesPage from './AdminCapstonesPage';
 import AdminInvitesPage from './AdminInvitesPage';
+import AdminBetaTestersPage from './AdminBetaTestersPage';
 
 const LINKS = [
   { to: '/admin', label: 'Overview', icon: LayoutDashboard, end: true },
@@ -36,6 +37,7 @@ const LINKS = [
   { to: '/admin/market', label: 'Market data', icon: Database },
   { to: '/admin/users', label: 'Users', icon: Users },
   { to: '/admin/invites', label: 'Invites', icon: KeyRound },
+  { to: '/admin/beta', label: 'Beta testers', icon: FlaskConical },
 ];
 
 export default function AdminRoutes() {
@@ -74,6 +76,7 @@ export default function AdminRoutes() {
         <Route path="market" element={<AdminMarketPage />} />
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="invites" element={<AdminInvitesPage />} />
+        <Route path="beta" element={<AdminBetaTestersPage />} />
         <Route path="feedback" element={<AdminFeedbackPage />} />
         <Route path="lessons" element={<AdminLessonsPage />} />
         <Route path="programs" element={<AdminProgramsPage />} />

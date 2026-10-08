@@ -3,6 +3,7 @@
 import { supabase, unwrap } from '@/lib/supabase';
 import type {
   Achievement,
+  AdminBetaTester,
   Challenge,
   ChallengeScore,
   ChallengeSubmission,
@@ -331,7 +332,7 @@ export interface AdminCertificate {
   issued_at: string;
   revoked_at: string | null;
   revoked_reason: string | null;
-  issue_type: 'earned' | 'admin_award' | 'test';
+  issue_type: 'earned' | 'admin_award' | 'test' | 'recognition';
   award_reason: string | null;
 }
 export async function adminListCertificates(): Promise<AdminCertificate[]> {
@@ -414,4 +415,17 @@ export async function fetchInviteRequired(): Promise<boolean> {
 }
 export async function adminSetInviteRequired(required: boolean) {
   unwrap(await supabase.from('app_settings').update({ value: required ? 1 : 0 }).eq('key', 'require_invite_code'));
+}
+
+// ------------------------------------------------------------ Beta testers
+export async function adminBetaTesters(): Promise<AdminBetaTester[]> {
+  const rows = unwrap(await supabase.rpc('admin_beta_testers')) as AdminBetaTester[];
+  return rows.map((r) => ({ ...r, done: Number(r.done), feedback_count: Number(r.feedback_count) }));
+}
+export async function fetchBetaOpen(): Promise<boolean> {
+  const rows = unwrap(await supabase.from('app_settings').select('value').eq('key', 'beta_program_open')) as { value: unknown }[];
+  return Number(rows[0]?.value ?? 0) >= 1;
+}
+export async function adminSetBetaOpen(open: boolean) {
+  unwrap(await supabase.from('app_settings').update({ value: open ? 1 : 0 }).eq('key', 'beta_program_open'));
 }

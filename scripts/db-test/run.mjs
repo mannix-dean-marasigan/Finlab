@@ -896,10 +896,44 @@ async function main() {
   await expectError(null, `select public.admin_award_certificate($1, $2, null, 'Anonymous award attempt here')`, [alice, evp], 'anon cannot award certificates', 'permission denied');
 
   // ------------------------------------------------------------------
+  section('Beta tester checklist');
+  const bc0 = await rpc(dana, 'get_beta_checklist');
+  ok(bc0.open === true && bc0.total === 5 && Number(bc0.done) === 2 && bc0.certificate_code === null, 'checklist reflects real activity (lesson + challenge done)', [bc0.done, bc0.items.map((i) => [i.key, i.done])]);
+  await expectError(dana, `select public.claim_beta_certificate()`, [], 'cannot claim before finishing all five', 'all five');
+  await rpc(dana, 'submit_daily_answer', ['1']);
+  await rpc(dana, 'execute_trade', ['PSE:BDO', 'buy', 10, 'Testing the simulator with a small position.', null]);
+  await q(dana, `insert into feedback (category, message, page) values ('idea', 'Great', '/dashboard')`);
+  ok(Number((await rpc(dana, 'get_beta_checklist')).done) === 4, 'one-word feedback does not count');
+  await q(dana, `insert into feedback (category, message, page) values ('idea', 'The lesson videos load slowly on mobile data.', '/learn')`);
+  const bc1 = await rpc(dana, 'get_beta_checklist');
+  ok(Number(bc1.done) === 5, 'all five items complete', bc1.items.map((i) => [i.key, i.done]));
+  const betaCode = await rpc(dana, 'claim_beta_certificate');
+  const betaView = await rpc(null, 'verify_certificate', [betaCode]);
+  ok(betaView.title === 'FINLAB PH Founding Beta Tester' && betaView.issue_type === 'recognition' && /beta tester checklist/.test(betaView.award_reason), 'claim issues a Certificate of Recognition', betaView.title);
+  ok((await rpc(dana, 'claim_beta_certificate')) === betaCode, 'claiming twice returns the same certificate');
+  ok((await rpc(dana, 'get_beta_checklist')).certificate_code === betaCode, 'checklist shows the claimed certificate');
+  ok(Number((await db.query(`select public.user_metric($1, 'certificates_earned') v`, [dana])).rows[0].v) === 1, 'recognition does not count as a course certificate');
+  await expectError(dana, `insert into certificates (code, user_id, kind, recipient_name, title, issue_type) values ('FLB-BETA-0001', $1, 'certification', 'x', 'Fake', 'recognition')`, [dana], 'cannot forge a beta certificate', 'permission denied');
+  const testers = await rpc(bob, 'admin_beta_testers');
+  const danaRow = testers.find((t) => t.user_id === dana);
+  ok(danaRow && Number(danaRow.done) === 5 && danaRow.certificate_code === betaCode && Number(danaRow.feedback_count) === 2, 'admin sees each tester\'s progress and certificate', danaRow);
+  ok(!testers.some((t) => t.user_id === bob), 'admins are not listed as testers');
+  await expectError(carol, `select public.admin_beta_testers()`, [], 'tester list is admin-only', 'Admin access required');
+  const evan = await createUser('evan@example.com', 'Evan Tan');
+  const manualBeta = await rpc(bob, 'admin_award_certificate', [evan, null, 'FINLAB PH Founding Beta Tester', 'Gave detailed beta feedback over chat']);
+  ok((await rpc(evan, 'get_beta_checklist')).certificate_code === manualBeta, 'a manually awarded beta certificate counts as claimed');
+  ok((await rpc(evan, 'claim_beta_certificate')) === manualBeta, 'no second beta certificate after a manual award');
+  await db.exec(`update app_settings set value = '0' where key = 'beta_program_open'`);
+  ok((await rpc(alice, 'get_beta_checklist')).open === false, 'closing the beta hides the checklist');
+  await expectError(alice, `select public.claim_beta_certificate()`, [], 'no new claims once closed', 'closed');
+  ok((await rpc(null, 'verify_certificate', [betaCode])).revoked_at === null, 'issued beta certificates stay valid after closing');
+  await db.exec(`update app_settings set value = '1' where key = 'beta_program_open'`);
+
+  // ------------------------------------------------------------------
   section('Feedback & account deletion');
   await q(carol, `insert into feedback (category, message, page) values ('bug', 'The chart overlaps on mobile', '/dashboard')`);
   ok((await q(alice, `select count(*)::int n from feedback`)).rows[0].n === 0, "users can't read others' feedback");
-  ok((await q(bob, `select count(*)::int n from feedback`)).rows[0].n === 1, 'admin sees feedback');
+  ok((await q(bob, `select count(*)::int n from feedback`)).rows[0].n === 3, 'admin sees all feedback');
   await q(bob, `update feedback set status = 'resolved', resolved_at = now()`);
   ok((await q(carol, `select status from feedback`)).rows[0].status === 'resolved', 'admin resolves feedback; reporter sees status');
   await db.query(`update feedback set status = 'open'`);

@@ -1,6 +1,6 @@
 // Renders a square (1200×1200) social image of a certificate for LinkedIn posts.
 // Drawn on a canvas so it works offline and needs no extra libraries.
-import type { CertificateView } from '@/types/domain';
+import { isAwardedCertificate, type CertificateView } from '@/types/domain';
 import { ISSUER_NAME } from '@/lib/brand';
 
 const AMBER = '#f5a524';
@@ -112,7 +112,7 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
   if ('letterSpacing' in g) g.letterSpacing = '10px';
   g.fillText(ISSUER_NAME, 80, 120);
   if ('letterSpacing' in g) g.letterSpacing = '0px';
-  const headline = c.issue_type === 'admin_award' ? 'Certificate awarded' : c.kind === 'competition' ? 'Competition result' : 'Certificate earned';
+  const headline = isAwardedCertificate(c) ? 'Certificate awarded' : c.kind === 'competition' ? 'Competition result' : 'Certificate earned';
   g.fillStyle = WHITE;
   g.font = `700 68px ${SANS}`;
   g.fillText(headline, 80, 200);
@@ -154,7 +154,7 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
   g.font = `500 20px ${SANS}`;
   if ('letterSpacing' in g) g.letterSpacing = '6px';
   const kindLabel =
-    c.issue_type === 'admin_award' && !c.program
+    isAwardedCertificate(c) && !c.program
       ? 'CERTIFICATE OF RECOGNITION'
       : c.kind === 'competition'
         ? 'COMPETITION CERTIFICATE'
@@ -177,7 +177,7 @@ export async function renderShareImage(c: CertificateView, verifyUrl: string): P
 
   g.fillStyle = SUB;
   g.font = `500 24px ${SANS}`;
-  const verb = c.kind === 'competition' ? 'achieved the following result in' : c.issue_type === 'admin_award' ? 'has been awarded' : 'has successfully completed all requirements of';
+  const verb = c.kind === 'competition' ? 'achieved the following result in' : isAwardedCertificate(c) ? 'has been awarded' : 'has successfully completed all requirements of';
   g.fillText(verb, cx, py + 425);
   g.fillStyle = TEXT;
   fit(g, c.title, (n) => `700 ${n}px ${SANS}`, 50, inner);

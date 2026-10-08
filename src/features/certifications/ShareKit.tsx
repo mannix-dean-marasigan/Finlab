@@ -5,7 +5,7 @@ import { Check, Copy, Download, ExternalLink, Image as ImageIcon, PenLine, Spark
 import { toast } from 'sonner';
 import { useAuth } from '@/app/auth';
 import { supabase } from '@/lib/supabase';
-import type { CertificateView } from '@/types/domain';
+import { isAwardedCertificate, type CertificateView } from '@/types/domain';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/form';
 import { Segmented } from '@/components/ui/misc';
@@ -123,7 +123,7 @@ export function ShareKitPanel({ c }: { c: CertificateView }) {
 
   const description = profileDescription(c, verifyUrl);
   // Skills are only suggested for certificates earned through the graded program.
-  const skills = c.kind === 'competition' || c.issue_type === 'admin_award' ? [] : programCopy(c).skills;
+  const skills = c.kind === 'competition' || isAwardedCertificate(c) ? [] : programCopy(c).skills;
   const resume = resumeLine(c);
 
   const openPost = async () => {

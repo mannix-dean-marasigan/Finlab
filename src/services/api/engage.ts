@@ -1,7 +1,7 @@
 // Engagement: flashcards, peer review, capstones, daily challenge, XP/streaks, analytics.
 import { supabase, unwrap } from '@/lib/supabase';
 import type {
-  AdminAnalytics, AdminCapstoneRow, CapstoneRubricItem, DailyChallenge, FlashcardItem, FlashcardStats, MyActivity, PeerReview,
+  AdminAnalytics, AdminCapstoneRow, BetaChecklist, CapstoneRubricItem, DailyChallenge, FlashcardItem, FlashcardStats, MyActivity, PeerReview,
   PeerReviewCriterion, ProgramLeaderRow, ReviewQueueItem, TodayItem, XpLeaderRow,
 } from '@/types/domain';
 
@@ -158,4 +158,13 @@ export async function getProgramLeaderboard(programId: string): Promise<ProgramL
 // ------------------------------------------------------------ Admin analytics
 export async function getAdminAnalytics(days: number): Promise<AdminAnalytics> {
   return unwrap(await supabase.rpc('admin_analytics', { p_days: days })) as AdminAnalytics;
+}
+
+// ------------------------------------------------------------ Beta tester checklist
+export async function getBetaChecklist(): Promise<BetaChecklist> {
+  const r = unwrap(await supabase.rpc('get_beta_checklist')) as BetaChecklist;
+  return { ...r, done: Number(r.done), total: Number(r.total) };
+}
+export async function claimBetaCertificate(): Promise<string> {
+  return unwrap(await supabase.rpc('claim_beta_certificate')) as string;
 }

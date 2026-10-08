@@ -804,8 +804,8 @@ export interface CertificateView {
   issued_at: string;
   revoked_at: string | null;
   revoked_reason: string | null;
-  /** earned = automatic from scored work; admin_award = issued by an admin; test = admin test, not a credential. */
-  issue_type?: 'earned' | 'admin_award' | 'test';
+  /** earned = automatic from scored work; admin_award = issued by an admin; recognition = automatic award (e.g. beta tester); test = admin test, not a credential. */
+  issue_type?: 'earned' | 'admin_award' | 'test' | 'recognition';
   award_reason?: string | null;
   handle: string | null;
   program: { title: string; level: string; estimated_hours: number; description: string } | null;
@@ -842,4 +842,36 @@ export interface AppNotification {
   link: string | null;
   read_at: string | null;
   created_at: string;
+}
+
+/** Awarded (by an admin or automatically for recognition) rather than earned through a graded program. */
+export function isAwardedCertificate(c: { issue_type?: CertificateView['issue_type'] }): boolean {
+  return c.issue_type === 'admin_award' || c.issue_type === 'recognition';
+}
+
+export interface BetaChecklistItem {
+  key: 'lesson' | 'daily' | 'challenge' | 'trade' | 'feedback';
+  label: string;
+  link: string;
+  done: boolean;
+}
+export interface BetaChecklist {
+  open: boolean;
+  items: BetaChecklistItem[];
+  done: number;
+  total: number;
+  certificate_code: string | null;
+}
+export interface AdminBetaTester {
+  user_id: string;
+  full_name: string;
+  handle: string;
+  email: string;
+  joined_at: string;
+  last_sign_in_at: string | null;
+  invite_code: string | null;
+  items: BetaChecklistItem[];
+  done: number;
+  certificate_code: string | null;
+  feedback_count: number;
 }

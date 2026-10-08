@@ -18,6 +18,7 @@ import { fmtDate } from '@/lib/format';
 const ISSUE_BADGE = {
   earned: { tone: 'neutral', label: 'Earned' },
   admin_award: { tone: 'violet', label: 'Awarded' },
+  recognition: { tone: 'info', label: 'Recognition' },
   test: { tone: 'warn', label: 'Test' },
 } as const;
 
@@ -229,7 +230,7 @@ export default function AdminCertificatesPage() {
                     <Td>{c.recipient_name}</Td>
                     <Td>
                       <div>{c.title}</div>
-                      <div className="text-xs text-fg-muted">{c.issue_type === 'admin_award' && c.award_reason ? c.award_reason : c.subtitle}</div>
+                      <div className="text-xs text-fg-muted">{(c.issue_type === 'admin_award' || c.issue_type === 'recognition') && c.award_reason ? c.award_reason : c.subtitle}</div>
                     </Td>
                     <Td>
                       <Badge tone={badge.tone}>{badge.label}</Badge>
