@@ -31,6 +31,15 @@
   .square .logo svg { width: 80px; height: 70px; }
   .square .logo .w { font-size: 34px; }
   .square .logo .p { font-size: 11px; }
+
+  /* 9:16 for Reels/TikTok/Stories: everything stays inside the area their buttons don't cover (~y 250–1520). */
+  .vertical { width: 1080px; height: 1920px; }
+  .vertical .eyebrow { left: 40px; top: 388px; font-size: 26px; }
+  .vertical .title { left: 40px; top: 430px; width: 1000px; font-size: 60px; }
+  .vertical .logo { left: 40px; top: 262px; }
+  .vertical .logo svg { width: 96px; height: 84px; }
+  .vertical .logo .w { font-size: 40px; }
+  .vertical .logo .p { font-size: 13px; }
 </style>
 </head>
 <body>
@@ -55,9 +64,13 @@
     const shape = q.get('shape') || 'wide';
     const part = q.get('part') || 'bg';
     document.body.classList.add(shape);
-    const W = shape === 'square' ? 1080 : 1920, H = 1080;
-    // Where the app clip goes. Keep in sync with WINDOW in scripts/build-video.mjs.
-    const WIN = shape === 'square' ? { x: 40, y: 300, w: 1000, h: 562, r: 18 } : { x: 240, y: 215, w: 1440, h: 810, r: 20 };
+    // Where the app clip goes. Keep in sync with SHAPES in scripts/build-video.mjs.
+    const SIZES = {
+      wide: { W: 1920, H: 1080, WIN: { x: 240, y: 215, w: 1440, h: 810, r: 20 } },
+      square: { W: 1080, H: 1080, WIN: { x: 40, y: 300, w: 1000, h: 562, r: 18 } },
+      vertical: { W: 1080, H: 1920, WIN: { x: 40, y: 600, w: 1000, h: 880, r: 18 } },
+    };
+    const { W, H, WIN } = SIZES[shape];
 
     document.getElementById('num').textContent = q.get('num') || '';
     document.getElementById('eyebrow').textContent = q.get('eyebrow') || '';

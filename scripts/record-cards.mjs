@@ -1,4 +1,4 @@
-// Records the animated intro/outro cards (brand/video/cards.html) in wide (1920×1080) and square (1080×1080),
+// Records the animated intro/outro cards (brand/video/cards.html) in wide (1920×1080), square (1080×1080) and vertical (1080×1920),
 // and saves cover images. Output: recordings/00-intro[-square].webm, 09-outro[-square].webm, cover[-square].png
 //
 //   node scripts/record-cards.mjs
@@ -10,7 +10,7 @@ import { mkdirSync } from 'node:fs';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const OUT = join(root, 'recordings');
 const PAGE = pathToFileURL(join(root, 'brand', 'video', 'cards.html')).href;
-const SHAPES = { '': { width: 1920, height: 1080 }, '-square': { width: 1080, height: 1080 } };
+const SHAPES = { '': { width: 1920, height: 1080 }, '-square': { width: 1080, height: 1080 }, '-vertical': { width: 1080, height: 1920 } };
 const CARDS = [
   ['00-intro', 'intro', 7_000],
   ['09-outro', 'outro', 8_000],
@@ -19,7 +19,7 @@ mkdirSync(OUT, { recursive: true });
 
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 for (const [suffix, size] of Object.entries(SHAPES)) {
-  const shape = suffix ? 'square' : 'wide';
+  const shape = suffix ? suffix.slice(1) : 'wide';
   for (const [name, card, ms] of CARDS) {
     console.log(`Recording ${name}${suffix}…`);
     const ctx = await browser.newContext({ viewport: size, recordVideo: { dir: OUT, size } });

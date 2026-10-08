@@ -1,11 +1,11 @@
-// Builds the finished beta video in two shapes:
-//   recordings/finlab-ph-beta-video.mp4         1920×1080 (landscape)
-//   recordings/finlab-ph-beta-video-square.mp4  1080×1080 (best for the LinkedIn mobile feed)
-// Inputs: recordings/00-intro, 01–08 app clips, 09-outro (+ -square card variants from record-cards.mjs).
+// Builds the finished beta videos: recordings/finlab-ph-beta-video[-<shape>][-teaser].mp4
+//   shapes: wide 1920×1080, square 1080×1080 (LinkedIn feed), vertical 1080×1920 (Reels, TikTok, Stories, Shorts)
+//   cuts:   full (~52s) and teaser (~15s)
+// Inputs: recordings/00-intro, 01–08 app clips, 09-outro (+ -square/-vertical cards from record-cards.mjs).
 // Needs a full ffmpeg (FFMPEG env var, or ~/finlab-tools/ffmpeg).
 //
-//   node scripts/build-video.mjs            (both shapes)
-//   node scripts/build-video.mjs square     (one shape)
+//   node scripts/build-video.mjs                     (every shape, both cuts)
+//   node scripts/build-video.mjs vertical teaser     (one shape and/or one cut)
 import { chromium } from 'playwright-core';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, readdirSync, writeFileSync } from 'node:fs';
@@ -23,15 +23,18 @@ const BAR = 6; // progress bar height
 mkdirSync(WORK, { recursive: true });
 
 // Keep WINDOW in sync with brand/video/frame.html.
+// bar: where the progress bar goes (vertical keeps it under the window, clear of the apps' on-screen buttons).
 const SHAPES = {
-  wide: { W: 1920, H: 1080, suffix: '', window: { x: 240, y: 215, w: 1440, h: 810 } },
-  square: { W: 1080, H: 1080, suffix: '-square', window: { x: 40, y: 300, w: 1000, h: 562 } },
+  wide: { W: 1920, H: 1080, suffix: '', window: { x: 240, y: 215, w: 1440, h: 810 }, bar: { x: 0, y: 1080 - BAR, w: 1920 } },
+  square: { W: 1080, H: 1080, suffix: '-square', window: { x: 40, y: 300, w: 1000, h: 562 }, bar: { x: 0, y: 1080 - BAR, w: 1080 } },
+  // Vertical shows a taller window, so each scene is first cropped to the window's shape around its key area.
+  vertical: { W: 1080, H: 1920, suffix: '-vertical', window: { x: 40, y: 600, w: 1000, h: 880 }, bar: { x: 40, y: 1506, w: 1000 }, crop: true },
 };
 
 // Zoom tip: the zoomed view's left edge is cx - 0.5/z; keep it at ~0.2 so it lines up with the app's sidebar edge.
 // Source window [start, end) in seconds (negative end = from the clip's end), playback speed, frozen hold at
 // the end, and the zoom target: centre (fractions of the frame) and how far to push in.
-const SEGMENTS = [
+const FULL = [
   { file: '00-intro', start: 0.4, end: -1.3, card: true },
   { file: '01-certifications', start: 2.4, end: 7.6, num: '01', eyebrow: 'Learn', title: 'Certifications for <em>real finance careers.</em>', zoom: { cx: 0.6, cy: 0.5, z: 1.25 } },
   { file: '02-lesson', start: 6.3, end: 12.3, speed: 1.2, num: '02', eyebrow: 'Learn', title: 'Short lessons. <em>Clear explanations.</em>', zoom: { cx: 0.54, cy: 0.45, z: 1.5 } },
@@ -39,10 +42,22 @@ const SEGMENTS = [
   { file: '04-case', start: 4.5, end: 12.5, speed: 1.6, num: '04', eyebrow: 'Apply', title: 'Solve real-style cases. <em>Every answer is scored.</em>', zoom: { cx: 0.575, cy: 0.5, z: 1.35 } },
   { file: '05-leaderboards', start: 11.0, end: 16.0, num: '05', eyebrow: 'Compete', title: 'Climb the leaderboards, <em>every week.</em>', zoom: { cx: 0.545, cy: 0.38, z: 1.45 } },
   { file: '06-classes', start: 2.5, end: 12.0, speed: 1.9, num: '06', eyebrow: 'Compete', title: 'Your class. <em>Your own leaderboard.</em>', zoom: { cx: 0.535, cy: 0.38, z: 1.5 } },
-  { file: '07-certificate', start: 5.0, end: 15.5, speed: 2.0, num: '07', eyebrow: 'Prove it', title: 'Earn certificates <em>anyone can verify.</em>', zoom: { cx: 0.5, cy: 0.45, z: 1.25 } },
-  { file: '08-beta-checklist', start: 3.0, end: 9.5, speed: 1.3, num: '08', eyebrow: 'Closed beta', title: '5 tasks = a <em>Founding Beta Tester</em> certificate.', zoom: { cx: 0.8, cy: 0.42, z: 1.75 } },
+  { file: '07-certificate', start: 5.0, end: 15.5, speed: 2.0, num: '07', eyebrow: 'Prove it', title: 'Earn certificates <em>anyone can verify.</em>', zoom: { cx: 0.5, cy: 0.45, z: 1.25, vx: 0.27, ax: 0.5 } },
+  { file: '08-beta-checklist', start: 3.0, end: 9.5, speed: 1.3, num: '08', eyebrow: 'Closed beta', title: '5 tasks = a <em>Founding Beta Tester</em> certificate.', zoom: { cx: 0.8, cy: 0.42, z: 1.75, vx: 0.66, ax: 1 } },
   { file: '09-outro', start: 0.4, end: -2.0, card: true },
 ];
+
+// The 15-second teaser: hook, four quick scenes, call to action. Each scene reuses the full cut's text and zoom.
+const pick = (file, over) => ({ ...FULL.find((s) => s.file === file), ...over });
+const TEASER = [
+  { file: '00-intro', start: 0.4, end: 3.0, card: true },
+  pick('03-practice', { start: 10.5, end: 16.0, speed: 2.2, hold: 0 }),
+  pick('05-leaderboards', { start: 11.0, end: 13.5 }),
+  pick('07-certificate', { start: 6.5, end: 12.5, speed: 2.4 }),
+  pick('08-beta-checklist', { start: 3.5, end: 6.75, speed: 1.3 }),
+  { file: '09-outro', start: 0.4, end: 6.2, card: true },
+];
+const CUTS = { full: { segments: FULL, suffix: '' }, teaser: { segments: TEASER, suffix: '-teaser' } };
 
 const run = (args) => execFileSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: 'inherit' });
 function duration(file) {
@@ -56,13 +71,18 @@ function duration(file) {
 }
 const n = (x) => +x.toFixed(3);
 
-const wanted = process.argv[2] ? [process.argv[2]] : Object.keys(SHAPES);
+const args = process.argv.slice(2);
+const shapes = args.filter((a) => SHAPES[a]);
+const cuts = args.filter((a) => CUTS[a]);
 const browser = await chromium.launch({ channel: 'chrome', headless: true });
 
-for (const shapeName of wanted) {
+for (const cutName of cuts.length ? cuts : Object.keys(CUTS))
+for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
   const S = SHAPES[shapeName];
-  const out = join(REC, `finlab-ph-beta-video${S.suffix}.mp4`);
+  const SEGMENTS = CUTS[cutName].segments;
+  const out = join(REC, `finlab-ph-beta-video${S.suffix}${CUTS[cutName].suffix}.mp4`);
   const win = S.window;
+  const tag = `${shapeName}${CUTS[cutName].suffix}`;
 
   // ------------------------------------------------------------ 1. overlay layers (background + headline)
   const framePage = pathToFileURL(join(root, 'brand', 'video', 'frame.html')).href;
@@ -91,7 +111,7 @@ for (const shapeName of wanted) {
 
   // ------------------------------------------------------------ 3. render each segment
   for (const p of plan) {
-    const seg = join(WORK, `${shapeName}-seg-${p.file}.mp4`);
+    const seg = join(WORK, `${tag}-seg-${p.file}.mp4`);
     const time = `setpts=(PTS-STARTPTS)/${p.speed},fps=${FPS}` + (p.hold ? `,tpad=stop_mode=clone:stop_duration=${p.hold}` : '');
     if (p.card) {
       run(['-ss', String(p.start), '-to', String(p.end), '-i', p.src, '-vf', `${time},scale=${S.W}:${S.H}:flags=lanczos,format=yuv420p`,
@@ -100,12 +120,26 @@ for (const shapeName of wanted) {
       // Smooth push-in: zoom eases from 1 to z between 0.6s and 2.4s, centred on the key area.
       const { cx, cy, z } = p.zoom;
       const ease = `min(1,max(0,(on/${FPS}-0.6)/1.8))`;
-      const zexpr = `1+${z - 1}*(${ease})*(${ease})*(3-2*(${ease}))`;
       const big = { w: win.w * 2, h: win.h * 2 };
-      const zoom = `scale=${big.w}:${big.h}:flags=lanczos,zoompan=z='${zexpr}':x='max(0,min(iw-iw/zoom,${cx}*iw-iw/zoom/2))':` +
-        `y='max(0,min(ih-ih/zoom,${cy}*ih-ih/zoom/2))':d=1:s=${win.w}x${win.h}:fps=${FPS}`;
-      const bar = `color=c=0xf5a524:s=${S.W}x${BAR}:r=${FPS}:d=${p.len}[pb];` +
-        `[c][pb]overlay=x='-w+w*(${p.offset}+t)/${total}':y=${S.H - BAR}:eval=frame:shortest=1`;
+      let zoom;
+      if (S.crop) {
+        // Crop the 16:9 clip to the window's shape, starting just right of the app sidebar (vx = left edge, 0..1);
+        // the push-in then keeps the left edge (ax 0), the centre (0.5) or the right edge (1) fixed.
+        const cw = Math.round((720 * win.w) / win.h / 2) * 2;
+        const vx = p.zoom.vx ?? 0.2;
+        const left = Math.round(Math.min(1280 - cw, vx * 1280));
+        const zexpr = `1+${(z - 1) * 0.45}*(${ease})*(${ease})*(3-2*(${ease}))`;
+        zoom = `crop=${cw}:720:${left}:0,scale=${big.w}:${big.h}:flags=lanczos,zoompan=z='${zexpr}':x='(iw-iw/zoom)*${p.zoom.ax ?? 0}':` +
+          `y='max(0,min(ih-ih/zoom,${cy}*ih-ih/zoom/2))':d=1:s=${win.w}x${win.h}:fps=${FPS}`;
+      } else {
+        const zexpr = `1+${z - 1}*(${ease})*(${ease})*(3-2*(${ease}))`;
+        zoom = `scale=${big.w}:${big.h}:flags=lanczos,zoompan=z='${zexpr}':x='max(0,min(iw-iw/zoom,${cx}*iw-iw/zoom/2))':` +
+          `y='max(0,min(ih-ih/zoom,${cy}*ih-ih/zoom/2))':d=1:s=${win.w}x${win.h}:fps=${FPS}`;
+      }
+      const B = S.bar;
+      const bar = `color=c=0xf5a524:s=${B.w}x${BAR}:r=${FPS}:d=${p.len}[pb];` +
+        `[c]drawbox=x=${B.x}:y=${B.y}:w=${B.w}:h=${BAR}:color=white@0.06:t=fill[c2];` +
+        `[c2][pb]overlay=x='${B.x}-w+w*(${p.offset}+t)/${total}':y=${B.y}:eval=frame:shortest=1`;
       run([
         '-ss', String(p.start), '-to', String(p.end), '-i', p.src,
         '-loop', '1', '-t', String(p.len), '-i', join(WORK, `${shapeName}-bg-${p.file}.png`),
@@ -114,16 +148,16 @@ for (const shapeName of wanted) {
         `color=c=0x0b0f15:s=${S.W}x${S.H}:r=${FPS}:d=${p.len}[base];[0:v]${time},${zoom}[clip];` +
           `[base][clip]overlay=${win.x}:${win.y}:shortest=1[a];[a][1:v]overlay=0:0:shortest=1[b];` +
           `[2:v]format=rgba,fade=t=in:st=0.25:d=0.5:alpha=1[t];[b][t]overlay=x=0:y='20*max(0,1-(t-0.25)/0.5)':eval=frame:shortest=1[c];` +
-          `${bar},drawbox=x=0:y=${S.H - BAR}:w=${S.W}:h=${BAR}:color=white@0.05:t=fill,format=yuv420p[v]`,
+          `${bar},crop=${S.W}:${S.H}:0:0,format=yuv420p[v]`,
         '-map', '[v]', '-t', String(p.len), '-an', '-c:v', 'libx264', '-preset', 'medium', '-crf', '16', '-r', String(FPS), seg,
       ]);
     }
-    console.log(`[${shapeName}] ${p.file}: ${p.len}s`);
+    console.log(`[${tag}] ${p.file}: ${p.len}s`);
   }
-  console.log(`[${shapeName}] video length: ${total}s`);
+  console.log(`[${tag}] video length: ${total}s`);
 
   // ------------------------------------------------------------ 4. music, composed in code (no licence issues)
-  const music = join(WORK, `${shapeName}-music.wav`);
+  const music = join(WORK, `${tag}-music.wav`);
   const page = await browser.newPage();
   const b64 = await page.evaluate(async ({ seconds, introEnd, outroStart }) => {
     const SR = 44100;
@@ -200,7 +234,7 @@ for (const shapeName of wanted) {
   await page.close();
 
   // ------------------------------------------------------------ 5. crossfade, add music, export
-  const inputs = plan.flatMap((p) => ['-i', join(WORK, `${shapeName}-seg-${p.file}.mp4`)]);
+  const inputs = plan.flatMap((p) => ['-i', join(WORK, `${tag}-seg-${p.file}.mp4`)]);
   let graph = '', prev = '[0:v]';
   for (let i = 1; i < plan.length; i++) {
     const label = i === plan.length - 1 ? '[v]' : `[x${i}]`;
@@ -211,6 +245,6 @@ for (const shapeName of wanted) {
   run([...inputs, '-i', music, '-filter_complex', graph, '-map', '[v]', '-map', '[a]',
     '-c:v', 'libx264', '-preset', 'slow', '-crf', '18', '-pix_fmt', 'yuv420p', '-r', String(FPS),
     '-c:a', 'aac', '-b:a', '192k', '-ar', '48000', '-movflags', '+faststart', '-t', String(total), out]);
-  console.log(`[${shapeName}] done: ${out} (${duration(out).toFixed(1)}s)`);
+  console.log(`[${tag}] done: ${out} (${duration(out).toFixed(1)}s)`);
 }
 await browser.close();
