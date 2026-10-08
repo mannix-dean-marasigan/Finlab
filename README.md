@@ -151,9 +151,9 @@ src/
 14. `supabase/seed_006_engagement.sql` (flashcards, capstone modules, daily-challenge bank, new achievements — safe to re-run)
 15. `supabase/seed_007_banking_certification.sql` (Banking & Credit Analyst certification — safe to re-run)
 16. `supabase/seed_008_quickstart.sql` (30-minute Quick Start certificate — safe to re-run)
-17. `supabase/seed_009_accounting.sql` (Accounting Fundamentals certification — safe to re-run)
-18. `supabase/seed_010_corpfin_modeling.sql` (Corporate Finance & FP&A and Financial Modeling certifications — safe to re-run)
-19. `supabase/seed_011_personal_interview.sql` (Personal Finance Essentials track and Finance Interview Prep certification — safe to re-run)
+17. `supabase/seed_009_accounting_part1.sql`, `_part2`, `_part3` (Accounting Fundamentals certification — safe to re-run)
+18. `supabase/seed_010_corpfin_modeling_part1.sql`, `_part2`, `_part3` (Corporate Finance & FP&A and Financial Modeling certifications — safe to re-run)
+19. `supabase/seed_011_personal_interview_part1.sql`, `_part2`, `_part3` (Personal Finance Essentials track and Finance Interview Prep certification — safe to re-run)
 20. `supabase/seed_012_daily_questions.sql` (45 more daily challenge questions — safe to re-run)
 
 Upgrading an existing database: run only the files you haven't run yet, in the same order (migration 0005 must run before `seed_002`).
