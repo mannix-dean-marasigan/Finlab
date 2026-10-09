@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form';
 import { InlineError } from '@/components/ui/states';
 import { cn } from '@/lib/utils';
+import { tidyMath } from '@/features/chat/tidyMath';
 
 /** Switch for the AI study helper, its limits, and a button that sends one test question end to end. */
 export function AiHelperCard() {
@@ -34,7 +35,7 @@ export function AiHelperCard() {
   });
   const run = useMutation({
     mutationFn: () => askHelper([{ role: 'user', text: 'In one sentence, what is the accounting equation?' }]),
-    onSuccess: (r) => setTest({ ok: true, text: r.reply }),
+    onSuccess: (r) => setTest({ ok: true, text: tidyMath(r.reply).replace(/\*\*/g, '') }),
     onError: (e) => {
       const detail = e instanceof HelperError ? e.detail : undefined;
       setTest({ ok: false, text: detail ? `${(e as Error).message} Reason from Gemini: ${detail}` : (e as Error).message });

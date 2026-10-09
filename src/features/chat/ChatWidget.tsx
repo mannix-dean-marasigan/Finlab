@@ -5,6 +5,7 @@ import { Send, Sparkles, X } from 'lucide-react';
 import { askHelper, getAiStatus, type HelperMessage } from '@/services/api/ai';
 import { Markdown } from '@/components/common';
 import { cn } from '@/lib/utils';
+import { tidyMath } from './tidyMath';
 
 interface Bubble extends HelperMessage {
   error?: boolean;
@@ -43,7 +44,7 @@ export function ChatWidget() {
     setBusy(true);
     try {
       const res = await askHelper(next.filter((b) => !b.error).map(({ role, text: x }) => ({ role, text: x })), lessonSlug);
-      setBubbles([...next, { role: 'assistant', text: res.reply }]);
+      setBubbles([...next, { role: 'assistant', text: tidyMath(res.reply) }]);
       if (res.remaining !== null) setRemaining(res.remaining);
       qc.invalidateQueries({ queryKey: ['ai-status'] });
     } catch (e) {

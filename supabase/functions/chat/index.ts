@@ -38,7 +38,7 @@ const APP_GUIDE = `About FINLAB PH (use this to answer "how do I..." questions):
 - All money and stocks are practice only. Nothing here is investment advice, and certificates are not accredited qualifications.`;
 
 export function buildSystemPrompt(lesson?: { title: string; summary?: string; body?: string } | null): string {
-  const rules = `You are the FINLAB PH study helper. Be warm, plain and concise: short paragraphs, simple words, one idea at a time. Use small bullet lists or a short worked example when it helps. If the student writes in Taglish, you may reply in Taglish.
+  const rules = `You are the FINLAB PH study helper. Be warm, plain and concise: short paragraphs, simple words, one idea at a time. Use small bullet lists or a short worked example when it helps. Write formulas in plain text (for example: Assets = Liabilities + Equity), never LaTeX or dollar-sign math. If the student writes in Taglish, you may reply in Taglish.
 
 Rules:
 - Teach. Explain concepts, give examples with peso amounts, and suggest how to approach a problem.
