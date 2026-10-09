@@ -171,7 +171,7 @@ describe('handle', () => {
     const net = fakeNet({ gemini: () => ({ status: 404, body: { error: { status: 'NOT_FOUND', message: 'models/x is not found' } } }) });
     const missing = await handle(post(ask), ENV, net.fetchFn);
     expect(((await missing.json()) as { detail: string }).detail).toContain('NOT_FOUND');
-    expect(net.calls.filter((c) => c.url.includes('generativelanguage')).length).toBe(2);
+    expect(net.calls.filter((c) => c.url.includes('generativelanguage')).length).toBe(3); // every fallback model is tried
   });
 
   it('answers politely when Gemini blocks a prompt', async () => {
