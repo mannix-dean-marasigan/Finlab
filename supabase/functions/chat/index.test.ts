@@ -419,8 +419,8 @@ describe('switching to another free model when one runs out', () => {
   it('uses Groq when every Gemini model is out of quota, with the same rules and reminder', async () => {
     const net = fakeNet({ gemini: () => tooMany });
     const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string; model: string; sig: string };
-    expect(out.reply).toBe('Groq llama-3.3-70b-versatile answered.');
-    expect(out.model).toBe('groq:llama-3.3-70b-versatile');
+    expect(out.reply).toBe('Groq openai/gpt-oss-120b answered.');
+    expect(out.model).toBe('groq:openai/gpt-oss-120b');
     expect(out.sig).toBeTruthy();
     const groq = net.calls.find((c) => c.url.includes('api.groq.com'))!;
     expect((groq.init?.headers as Record<string, string>).authorization).toBe('Bearer test-groq-key');
@@ -449,7 +449,7 @@ describe('switching to another free model when one runs out', () => {
   it('works with only a Groq key', async () => {
     const net = fakeNet();
     const out = (await (await handle(post(ask), { SUPABASE_URL: ENV.SUPABASE_URL, GEMINI_API_KEY: '', GROQ_API_KEY: 'test-groq-key' }, net.fetchFn)).json()) as { reply: string };
-    expect(out.reply).toBe('Groq llama-3.3-70b-versatile answered.');
+    expect(out.reply).toBe('Groq openai/gpt-oss-120b answered.');
     expect(calls(net, 'generativelanguage')).toBe(0);
   });
 
@@ -463,8 +463,8 @@ describe('switching to another free model when one runs out', () => {
   });
 
   it('falls back from a retired Groq model to the next one', async () => {
-    const net = fakeNet({ gemini: () => tooMany, groq: (m) => (m === 'llama-3.3-70b-versatile' ? { status: 400, body: { error: { code: 'model_decommissioned', message: 'retired' } } } : { status: 200, body: { choices: [{ message: { content: `${m} ok` } }] } }) });
+    const net = fakeNet({ gemini: () => tooMany, groq: (m) => (m === 'openai/gpt-oss-120b' ? { status: 400, body: { error: { code: 'model_decommissioned', message: 'retired' } } } : { status: 200, body: { choices: [{ message: { content: `${m} ok` } }] } }) });
     const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string };
-    expect(out.reply).toBe('openai/gpt-oss-120b ok');
+    expect(out.reply).toBe('qwen/qwen3.8-27b ok');
   });
 });

@@ -17,7 +17,7 @@ export const MAX_CHARS = 700;
 export const LESSON_CHARS = 12000;
 export const DEFAULT_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'];
 /** Backup models on Groq's free tier, tried in order when every Gemini model is busy or out of quota. */
-export const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'llama-3.1-8b-instant'];
+export const DEFAULT_GROQ_MODELS = ['openai/gpt-oss-120b', 'qwen/qwen3.8-27b', 'openai/gpt-oss-20b'];
 /** A model that answered "too many requests" is skipped for this long, so replies stay fast. */
 export const COOLDOWN_MS = 60_000;
 
