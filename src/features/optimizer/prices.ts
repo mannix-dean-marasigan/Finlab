@@ -136,3 +136,19 @@ export function sharesFor(weights: number[], prices: number[], amount: number): 
     return { shares, cost: shares * prices[k] };
   });
 }
+
+/**
+ * The expected return to use for each stock: the student's own view (in %) where they typed one,
+ * otherwise the historical average. Views outside -100%..+300% are ignored.
+ */
+export function applyViews(historical: number[], tickers: string[], views: Record<string, string>): { mu: number[]; custom: boolean[] } {
+  const custom: boolean[] = [];
+  const mu = historical.map((h, k) => {
+    const raw = (views[tickers[k]] ?? '').trim().replace('%', '');
+    const v = raw === '' ? NaN : Number(raw);
+    const ok = Number.isFinite(v) && v >= -100 && v <= 300;
+    custom.push(ok);
+    return ok ? v / 100 : h;
+  });
+  return { mu, custom };
+}

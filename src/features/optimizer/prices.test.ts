@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { detectFrequency, parseDate, parsePrice, parsePriceTable, sharesFor, stockStats, type PriceTable } from './prices';
+import { applyViews, detectFrequency, parseDate, parsePrice, parsePriceTable, sharesFor, stockStats, type PriceTable } from './prices';
 
 const sheet = (rows: string[][]) => rows.map((r) => r.join('\t')).join('\n');
 const weekly = (n: number, f: (i: number) => [number, number, number]) => {
@@ -75,5 +75,18 @@ describe('stock statistics', () => {
   it('turns weights into whole shares within the budget', () => {
     const out = sharesFor([0.5, 0.5], [142.5, 30], 10_000);
     expect(out).toEqual([{ shares: 35, cost: 4987.5 }, { shares: 166, cost: 4980 }]);
+  });
+});
+
+describe('your own expected returns', () => {
+  it('uses typed views where given and history elsewhere', () => {
+    const { mu, custom } = applyViews([0.3, 0.05, -0.02], ['BDO', 'JFC', 'TEL'], { BDO: '12', TEL: '8%', JFC: '' });
+    expect(mu).toEqual([0.12, 0.05, 0.08]);
+    expect(custom).toEqual([true, false, true]);
+  });
+  it('ignores views that are not numbers or are unrealistic', () => {
+    const { mu, custom } = applyViews([0.1, 0.2], ['A', 'B'], { A: 'abc', B: '500' });
+    expect(mu).toEqual([0.1, 0.2]);
+    expect(custom).toEqual([false, false]);
   });
 });

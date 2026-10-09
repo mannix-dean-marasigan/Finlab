@@ -1,13 +1,13 @@
 import { useMemo, useState } from 'react';
 import { CartesianGrid, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts';
-import { ClipboardPaste, Download, Star, TriangleAlert } from 'lucide-react';
+import { ClipboardPaste, Download, PencilLine, RotateCcw, Star, TriangleAlert } from 'lucide-react';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { liveCandles, liveTickers } from '@/services/api/trading';
 import { fmtMoney } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { frontier, maxSharpe, portfolioReturn, portfolioRisk } from './optimizer';
-import { detectFrequency, parsePriceTable, PERIODS_PER_YEAR, sharesFor, stockStats, type Frequency } from './prices';
+import { applyViews, detectFrequency, parsePriceTable, PERIODS_PER_YEAR, sharesFor, stockStats, type Frequency } from './prices';
 
 const pct = (x: number, d = 1) => `${(x * 100).toFixed(d)}%`;
 const PALETTE = ['#f5a524', '#38bdf8', '#22c55e', '#a78bfa', '#ef4444', '#14b8a6', '#f472b6', '#facc15', '#60a5fa', '#fb923c', '#4ade80', '#c084fc', '#f87171', '#2dd4bf', '#e879f9'];
@@ -26,6 +26,8 @@ export function StockOptimizer() {
   const [amount, setAmount] = useState(50_000);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState('');
+  // The student's own expected return per stock, in %, keyed by ticker. Empty = use history.
+  const [views, setViews] = useState<Record<string, string>>({});
 
   const table = useMemo(() => (text.trim() ? parsePriceTable(text) : null), [text]);
   const detected = table && typeof table !== 'string' ? detectFrequency(table.dates) : null;
@@ -34,12 +36,14 @@ export function StockOptimizer() {
   const result = useMemo(() => {
     if (!table || typeof table === 'string') return null;
     const s = stockStats(table.rows, PERIODS_PER_YEAR[freq]);
-    const pts = frontier(s.mu, s.cov, cap);
+    // Risk and correlations come from the prices; expected returns can be the student's own view.
+    const { mu, custom } = applyViews(s.mu, table.tickers, views);
+    const pts = frontier(mu, s.cov, cap);
     const best = maxSharpe(pts, riskFree / 100);
     const n = table.tickers.length;
     const equal = Array(n).fill(1 / n);
-    return { s, pts, best, minRisk: pts[0], equal };
-  }, [table, freq, cap, riskFree]);
+    return { s, mu, custom, pts, best, minRisk: pts[0], equal };
+  }, [table, freq, cap, riskFree, views]);
 
   const loadTradingFloor = async () => {
     setLoading(true);
@@ -68,7 +72,7 @@ export function StockOptimizer() {
   const sharpe = (w: number[]) => {
     if (!result) return 0;
     const r = portfolioRisk(w, result.s.cov);
-    return r > 0 ? (portfolioReturn(w, result.s.mu) - riskFree / 100) / r : 0;
+    return r > 0 ? (portfolioReturn(w, result.mu) - riskFree / 100) / r : 0;
   };
 
   return (
@@ -131,9 +135,52 @@ export function StockOptimizer() {
 
       {result && table && typeof table !== 'string' && (
         <>
+          <Card>
+            <CardHeader
+              title="2. Expected returns"
+              subtitle="History is the starting guess. Type your own view for any stock, for example from your valuation or an analyst's target, and everything below updates."
+              icon={<PencilLine className="h-3.5 w-3.5" />}
+            />
+            <CardContent>
+              {result.custom.some(Boolean) && (
+                <Button size="sm" variant="outline" className="mb-3" onClick={() => setViews({})}>
+                  <RotateCcw className="h-3.5 w-3.5" /> Reset all to history
+                </Button>
+              )}
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {table.tickers.map((t, k) => (
+                  <div key={t} className={cn('flex items-center gap-3 rounded-md border px-3 py-2 text-sm', result.custom[k] ? 'border-accent/50 bg-accent-muted' : 'border-border')}>
+                    <span className="w-16 shrink-0 truncate font-medium">
+                      <span style={{ color: PALETTE[k] }}>◆</span> {t}
+                    </span>
+                    <span className="flex-1 text-xs text-fg-subtle">
+                      History <span className={cn('font-mono', result.s.mu[k] < 0 ? 'text-down' : 'text-fg-muted')}>{pct(result.s.mu[k])}</span>
+                    </span>
+                    <label className="flex items-center gap-1 text-xs">
+                      <span className="sr-only">Your expected return for {t}</span>
+                      <input
+                        type="text"
+                        inputMode="decimal"
+                        value={views[t] ?? ''}
+                        onChange={(e) => setViews((v) => ({ ...v, [t]: e.target.value.slice(0, 7) }))}
+                        placeholder={(result.s.mu[k] * 100).toFixed(1)}
+                        aria-label={`Your expected return for ${t}`}
+                        className="w-16 rounded border border-border-strong bg-surface-2 px-1.5 py-1 text-right font-mono outline-none focus:border-accent"
+                      />
+                      %
+                    </label>
+                  </div>
+                ))}
+              </div>
+              <p className="mt-2 text-[0.7rem] text-fg-subtle">
+                Risk and how the stocks move together still come from the prices you pasted. A small change in one expected return can move the whole mix, so try a few.
+              </p>
+            </CardContent>
+          </Card>
+
           <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_400px]">
             <Card>
-              <CardHeader title="2. Risk and return" subtitle="Each diamond is one stock. The curve is the best mix for each level of risk; the star has the highest Sharpe ratio." />
+              <CardHeader title="3. Risk and return" subtitle="Each diamond is one stock. The curve is the best mix for each level of risk; the star has the highest Sharpe ratio." />
               <CardContent>
                 <div className="h-[340px]">
                   <ResponsiveContainer>
@@ -147,7 +194,7 @@ export function StockOptimizer() {
                         formatter={(v, n) => [pct(Number(v)), String(n)]} />
                       <Scatter name="Frontier" data={result.pts} fill="var(--color-accent)" line={{ stroke: 'var(--color-accent)', strokeWidth: 2.5 }} shape={() => <g />} isAnimationActive={false} />
                       {table.tickers.map((t, k) => (
-                        <Scatter key={t} name={t} data={[{ risk: result.s.vol[k], ret: result.s.mu[k] }]} fill={PALETTE[k]} shape="diamond" isAnimationActive={false} />
+                        <Scatter key={t} name={t} data={[{ risk: result.s.vol[k], ret: result.mu[k] }]} fill={PALETTE[k]} shape="diamond" isAnimationActive={false} />
                       ))}
                       <Scatter name="Lowest risk" data={[result.minRisk]} fill="#38bdf8" shape="circle" isAnimationActive={false} />
                       {result.best && <Scatter name="Max Sharpe" data={[result.best]} fill="#22c55e" shape="star" isAnimationActive={false} />}
@@ -165,7 +212,7 @@ export function StockOptimizer() {
             </Card>
 
             <Card className="border-up/30">
-              <CardHeader title="3. Max-Sharpe portfolio" icon={<Star className="h-3.5 w-3.5 text-up" />} subtitle={`For ${fmtMoney(amount, 'PHP', 0)} at the latest prices`} />
+              <CardHeader title="4. Max-Sharpe portfolio" icon={<Star className="h-3.5 w-3.5 text-up" />} subtitle={`For ${fmtMoney(amount, 'PHP', 0)} at the latest prices`} />
               <CardContent className="space-y-3 text-sm">
                 {result.best ? (
                   <>
@@ -213,13 +260,13 @@ export function StockOptimizer() {
 
           <div className="grid gap-4 lg:grid-cols-2">
             <Card>
-              <CardHeader title="Each stock on its own" subtitle={`From ${result.s.periods} ${freq} returns, scaled to a year.`} />
+              <CardHeader title="Each stock on its own" subtitle={`Risk from ${result.s.periods} ${freq} returns, scaled to a year. ✎ marks your own expected return.`} />
               <CardContent>
                 <table className="w-full text-xs">
                   <thead>
                     <tr className="text-left text-fg-subtle">
                       <th className="pb-1 font-medium">Stock</th>
-                      <th className="pb-1 text-right font-medium">Return/yr</th>
+                      <th className="pb-1 text-right font-medium">Expected/yr</th>
                       <th className="pb-1 text-right font-medium">Risk/yr</th>
                       <th className="pb-1 text-right font-medium">Sharpe</th>
                       <th className="pb-1 text-right font-medium">Last price</th>
@@ -229,9 +276,12 @@ export function StockOptimizer() {
                     {table.tickers.map((t, k) => (
                       <tr key={t} className="border-t border-border">
                         <td className="py-1.5"><span style={{ color: PALETTE[k] }}>◆</span> {t}</td>
-                        <td className={cn('py-1.5 text-right font-mono', result.s.mu[k] < 0 && 'text-down')}>{pct(result.s.mu[k])}</td>
+                        <td className={cn('py-1.5 text-right font-mono', result.mu[k] < 0 && 'text-down', result.custom[k] && 'text-accent')}>
+                          {pct(result.mu[k])}
+                          {result.custom[k] && <span title="Your own view"> ✎</span>}
+                        </td>
                         <td className="py-1.5 text-right font-mono">±{pct(result.s.vol[k])}</td>
-                        <td className="py-1.5 text-right font-mono">{result.s.vol[k] > 0 ? ((result.s.mu[k] - riskFree / 100) / result.s.vol[k]).toFixed(2) : '—'}</td>
+                        <td className="py-1.5 text-right font-mono">{result.s.vol[k] > 0 ? ((result.mu[k] - riskFree / 100) / result.s.vol[k]).toFixed(2) : '—'}</td>
                         <td className="py-1.5 text-right font-mono">{result.s.last[k].toLocaleString()}</td>
                       </tr>
                     ))}
@@ -248,7 +298,7 @@ export function StockOptimizer() {
                       w ? (
                         <tr key={label as string} className="border-t border-border">
                           <td className="py-1.5">{label as string}</td>
-                          <td className="py-1.5 text-right font-mono">{pct(portfolioReturn(w as number[], result.s.mu))}</td>
+                          <td className="py-1.5 text-right font-mono">{pct(portfolioReturn(w as number[], result.mu))}</td>
                           <td className="py-1.5 text-right font-mono">±{pct(portfolioRisk(w as number[], result.s.cov))}</td>
                           <td className="py-1.5 text-right font-mono">{sharpe(w as number[]).toFixed(2)}</td>
                         </tr>
