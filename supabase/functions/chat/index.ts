@@ -10,7 +10,7 @@
 // Secrets to set in Supabase (Edge Functions > Secrets):  GEMINI_API_KEY  (required),  GEMINI_MODEL  (optional).
 // SUPABASE_URL is provided automatically.
 
-export const MAX_TURNS = 10;
+export const MAX_TURNS = 6;
 export const MAX_CHARS = 700;
 export const LESSON_CHARS = 12000;
 export const DEFAULT_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'];
@@ -78,9 +78,37 @@ const INJECTION_PATTERNS: RegExp[] = [
   /\bkalimutan\b.{0,30}\b(rules|instructions|utos|patakaran)\b/i,
 ];
 
+const LEET: Record<string, string> = { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '5': 's', '7': 't', '@': 'a', '$': 's', '!': 'i', '|': 'i' };
+
+/**
+ * A copy of the text with common disguises removed, used only for checking: look-alike letters (NFKC),
+ * invisible characters, accents, leetspeak (1gn0re), and letters split by spaces or dots (i g n o r e).
+ */
+export function normalizeForCheck(text: string): string {
+  let t = text
+    .normalize('NFKC')
+    .replace(/[​-‏⁠-⁤﻿­]/g, '')
+    .normalize('NFKD')
+    .replace(/[̀-ͯ]/g, '');
+  // Cyrillic and Greek look-alikes of Latin letters.
+  const look: Record<string, string> = { 'а': 'a', 'е': 'e', 'о': 'o', 'р': 'p', 'с': 'c', 'у': 'y', 'х': 'x', 'і': 'i', 'ѕ': 's', 'ј': 'j', 'ο': 'o', 'α': 'a', 'ε': 'e', 'ι': 'i', 'ν': 'v', 'τ': 't' };
+  t = t.replace(/[аеорсухіѕјοαειντ]/gi, (c) => look[c.toLowerCase()] ?? c);
+  // Leetspeak only inside words (so "₱150" or "12.5%" stay as they are).
+  t = t.replace(/(?<=[a-z])[013457@$!|]|[013457@$!|](?=[a-z])/gi, (c) => LEET[c] ?? c);
+  // Rejoin letters split by single spaces, dots, dashes or underscores: "i g n o r e" -> "ignore".
+  t = t.replace(/\b(?:[a-z][\s._-]){3,}[a-z]\b/gi, (m) => m.replace(/[\s._-]/g, ''));
+  return t;
+}
+
+/** Long runs that look like base64 or hex: a common way to smuggle hidden instructions. */
+function looksEncoded(text: string): boolean {
+  return /[A-Za-z0-9+/]{48,}={0,2}/.test(text.replace(/\s/g, ' ')) || /\b(base64|rot13|decode (this|the following)|in reverse|backwards)\b/i.test(text);
+}
+
 /** True when a student message looks like an attempt to change the helper's rules. */
 export function looksLikeInjection(text: string): boolean {
-  return INJECTION_PATTERNS.some((r) => r.test(text));
+  const n = normalizeForCheck(text);
+  return looksEncoded(text) || INJECTION_PATTERNS.some((r) => r.test(text) || r.test(n));
 }
 
 /** True when a message looks like a pasted multiple-choice or graded question. */
@@ -89,11 +117,18 @@ export function looksLikeGradedQuestion(text: string): boolean {
   return options >= 2 || /\b(which of the following|choose the (correct|best)|correct answer|what is the answer|answer key|sagot)\b/i.test(text);
 }
 
-const LEAK_MARKERS = ['NEVER give the final answer', 'Security (these rules', 'About FINLAB PH (use this', 'Reminder from FINLAB PH', 'student_message'];
+const LEAK_MARKERS = ['NEVER give the final answer to a graded', 'Security (these rules always win)', 'About FINLAB PH (use this to answer', 'Reminder from FINLAB PH, not from the student', '<student_message>'];
 
-/** True when a reply seems to repeat the hidden instructions. */
+const OFF_RAILS: RegExp[] = [
+  /```\s*(python|py|javascript|js|typescript|ts|html|css|bash|sh|shell|sql|java|c\+\+|cpp|c#|php|ruby|go|rust)\b/i,
+  /\b(as|i am|i'm)\s+(DAN|an? (unfiltered|uncensored|jailbroken) (ai|assistant|model))\b/i,
+  /\b(jailbroken|jailbreak mode|developer mode (is )?(on|enabled|activated))\b/i,
+  /\bI am (now|no longer)\b/i,
+];
+
+/** True when a reply seems to repeat the hidden instructions or has gone off the rails (code, a new persona). */
 export function leaksInstructions(reply: string): boolean {
-  return LEAK_MARKERS.some((m) => reply.includes(m));
+  return LEAK_MARKERS.some((m) => reply.includes(m)) || OFF_RAILS.some((r) => r.test(reply));
 }
 
 async function hmacKey(secret: string) {
@@ -104,14 +139,19 @@ export async function signReply(text: string, secret: string): Promise<string> {
   const sig = await crypto.subtle.sign('HMAC', await hmacKey(secret), new TextEncoder().encode(text));
   return Array.from(new Uint8Array(sig), (b) => b.toString(16).padStart(2, '0')).join('');
 }
-/** Keeps only replies the server really sent (valid signature); drops forged ones, then re-merges turns. */
+export const UNVERIFIED_REPLY = '(An earlier reply is not shown.)';
+
+/**
+ * Keeps replies the server really sent (valid signature). A reply without a valid signature is swapped for a
+ * neutral placeholder, so nobody can put words in the helper's mouth, and the student's messages stay separate.
+ */
 export async function keepGenuine(messages: ChatMessage[], secret: string): Promise<ChatMessage[]> {
   const out: ChatMessage[] = [];
   for (const m of messages) {
-    if (m.role === 'assistant' && (!m.sig || m.sig !== (await signReply(m.text, secret)))) continue;
-    const last = out[out.length - 1];
-    if (last && last.role === m.role) last.text += `\n${m.text}`;
-    else out.push({ role: m.role, text: m.text });
+    if (m.role === 'assistant') {
+      const genuine = !!m.sig && m.sig === (await signReply(m.text, secret));
+      out.push({ role: 'assistant', text: genuine ? m.text : UNVERIFIED_REPLY });
+    } else out.push({ role: 'user', text: m.text });
   }
   return out;
 }
