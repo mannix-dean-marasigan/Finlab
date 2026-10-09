@@ -162,6 +162,18 @@ describe('handle', () => {
     expect(down.status).toBe(502);
   });
 
+  it("reports Gemini's real reason in `detail` (key removed) so the admin can fix a bad key or model", async () => {
+    const bad = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 400, body: { error: { status: 'INVALID_ARGUMENT', message: 'API key not valid. Please pass a valid API key. (test-gemini-key)' } } }) }).fetchFn);
+    expect(bad.status).toBe(502);
+    const out = (await bad.json()) as { detail: string };
+    expect(out.detail).toContain('API key not valid');
+    expect(out.detail).not.toContain('test-gemini-key');
+    const net = fakeNet({ gemini: () => ({ status: 404, body: { error: { status: 'NOT_FOUND', message: 'models/x is not found' } } }) });
+    const missing = await handle(post(ask), ENV, net.fetchFn);
+    expect(((await missing.json()) as { detail: string }).detail).toContain('NOT_FOUND');
+    expect(net.calls.filter((c) => c.url.includes('generativelanguage')).length).toBe(2);
+  });
+
   it('answers politely when Gemini blocks a prompt', async () => {
     const res = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 200, body: { promptFeedback: { blockReason: 'SAFETY' } } }) }).fetchFn);
     expect(res.status).toBe(200);

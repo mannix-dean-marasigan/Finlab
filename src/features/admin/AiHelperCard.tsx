@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import { adminGetAiSettings, adminSetAiSettings, askHelper } from '@/services/api/ai';
+import { adminGetAiSettings, adminSetAiSettings, askHelper, HelperError } from '@/services/api/ai';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/form';
@@ -35,7 +35,10 @@ export function AiHelperCard() {
   const run = useMutation({
     mutationFn: () => askHelper([{ role: 'user', text: 'In one sentence, what is the accounting equation?' }]),
     onSuccess: (r) => setTest({ ok: true, text: r.reply }),
-    onError: (e) => setTest({ ok: false, text: (e as Error).message }),
+    onError: (e) => {
+      const detail = e instanceof HelperError ? e.detail : undefined;
+      setTest({ ok: false, text: detail ? `${(e as Error).message} Reason from Gemini: ${detail}` : (e as Error).message });
+    },
   });
 
   return (

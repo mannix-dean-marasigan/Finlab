@@ -12,6 +12,11 @@ export interface HelperMessage {
   text: string;
 }
 
+/** An error from the helper. `detail` is Gemini's own reason (no key), shown only on the admin test. */
+export class HelperError extends Error {
+  detail?: string;
+}
+
 export async function getAiStatus(): Promise<AiStatus> {
   const s = unwrap(await supabase.rpc('ai_status')) as AiStatus;
   return { enabled: !!s.enabled, limit: Number(s.limit), remaining: Number(s.remaining) };
@@ -22,13 +27,17 @@ export async function askHelper(messages: HelperMessage[], lessonSlug?: string):
   const { data, error } = await supabase.functions.invoke('chat', { body: { messages: messages.slice(-20), lessonSlug } });
   if (error) {
     let message = 'The AI helper could not answer. Please try again.';
+    let detail: string | undefined;
     if (error instanceof FunctionsHttpError) {
-      const body = (await error.context.json().catch(() => null)) as { message?: string } | null;
+      const body = (await error.context.json().catch(() => null)) as { message?: string; detail?: string } | null;
       if (body?.message) message = body.message;
+      detail = body?.detail;
     } else if (/Failed to send|NetworkError|fetch/i.test(error.message)) {
       message = 'The AI helper is not reachable. Check your connection, or it may not be set up yet.';
     }
-    throw new Error(message);
+    const err = new HelperError(message);
+    err.detail = detail;
+    throw err;
   }
   return data as { reply: string; remaining: number | null };
 }

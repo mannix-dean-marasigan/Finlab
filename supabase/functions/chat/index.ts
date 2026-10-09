@@ -116,6 +116,13 @@ const reply = (status: number, body: Record<string, unknown>) =>
 
 type Fetch = typeof fetch;
 
+/** Gemini's own error text (status and message) for the admin test and the function logs. The key is always removed. */
+export async function geminiError(res: Response, key: string): Promise<string> {
+  const j = (await res.json().catch(() => ({}))) as { error?: { status?: string; message?: string } };
+  const text = `HTTP ${res.status}${j.error?.status ? ` ${j.error.status}` : ''}${j.error?.message ? `: ${j.error.message}` : ''}`;
+  return (key ? text.split(key).join('[key]') : text).slice(0, 300);
+}
+
 export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Promise<Response> {
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS });
   if (req.method !== 'POST') return reply(405, { error: 'method', message: 'Use POST.' });
@@ -166,6 +173,7 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
   const payload = JSON.stringify(toGeminiBody(buildSystemPrompt(lesson), messages));
   const models = [env.GEMINI_MODEL, ...DEFAULT_MODELS].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
   let lastStatus = 0;
+  let lastDetail = '';
   for (const model of models) {
     let res: Response;
     try {
@@ -176,11 +184,16 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
       });
     } catch {
       lastStatus = 0;
+      lastDetail = 'Could not reach Gemini (network error).';
       continue;
     }
     lastStatus = res.status;
-    if (res.status === 404 || res.status === 400) continue; // unknown model name: try the next one
-    if (!res.ok) break;
+    if (!res.ok) {
+      lastDetail = await geminiError(res, env.GEMINI_API_KEY);
+      console.error(`Gemini ${model} failed: ${lastDetail}`); // no user text and no key in logs
+      if (res.status === 404 || (res.status === 400 && /model/i.test(lastDetail))) continue; // unknown model name: try the next one
+      break;
+    }
     const parsed = parseGemini(await res.json().catch(() => ({})));
     if (parsed.text) return reply(200, { reply: parsed.text, remaining: remaining ?? null });
     return reply(200, {
@@ -192,6 +205,7 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
   return reply(busy ? 503 : 502, {
     error: busy ? 'busy' : 'provider',
     message: busy ? 'The AI helper is busy right now. Please try again in a minute.' : 'The AI helper could not answer. Please try again.',
+    detail: lastDetail || `HTTP ${lastStatus}`,
   });
 }
 
