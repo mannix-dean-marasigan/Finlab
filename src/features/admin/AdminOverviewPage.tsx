@@ -15,6 +15,7 @@ import { ErrorState, PageSkeleton } from '@/components/ui/states';
 import { BackupCard } from './BackupCard';
 import { InstallContentCard } from './InstallContentCard';
 import { AiHelperCard } from './AiHelperCard';
+import { AiSafetyCard } from './AiSafetyCard';
 
 export default function AdminOverviewPage() {
   const qc = useQueryClient();
@@ -78,6 +79,7 @@ export default function AdminOverviewPage() {
       </div>
       <InstallContentCard />
       <AiHelperCard />
+      <AiSafetyCard />
       <BackupCard />
       <Card>
         <CardHeader

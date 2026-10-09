@@ -17,6 +17,16 @@ import type { MyChallengeState } from '@/services/api/challenges';
 
 type StatusFilter = 'all' | 'not_started' | 'in_progress' | 'passed' | 'attempted';
 
+// Quick length filters, like "under 30 minutes", so students can pick something that fits their free time.
+const LENGTHS = [
+  { value: 'all', label: 'Any length', test: () => true },
+  { value: '15', label: 'Under 15 min', test: (m: number) => m <= 15 },
+  { value: '30', label: 'Under 30 min', test: (m: number) => m <= 30 },
+  { value: 'long', label: '30 min or more', test: (m: number) => m > 30 },
+] as const;
+type LengthFilter = (typeof LENGTHS)[number]['value'];
+const minutesOf = (c: Challenge) => c.time_limit_minutes ?? c.estimated_minutes;
+
 export function challengeStatus(c: Challenge, s: MyChallengeState | undefined) {
   if (!s) return { key: 'not_started' as const, label: 'Not started' };
   if (s.best_score !== null && s.best_score >= c.passing_score) return { key: 'passed' as const, label: 'Passed' };
@@ -35,6 +45,7 @@ export default function ChallengesPage() {
   const [difficulty, setDifficulty] = useState<'all' | Difficulty>('all');
   const [status, setStatus] = useState<StatusFilter>('all');
   const [search, setSearch] = useState('');
+  const [length, setLength] = useState<LengthFilter>('all');
 
   const filtered = useMemo(() => {
     if (!challenges.data) return [];
@@ -44,11 +55,12 @@ export default function ChallengesPage() {
       return (
         (category === 'all' || c.category_id === category) &&
         (difficulty === 'all' || c.difficulty === difficulty) &&
+        LENGTHS.find((l) => l.value === length)!.test(minutesOf(c)) &&
         (status === 'all' || st === status || (status === 'attempted' && st === 'pending')) &&
         (!s || c.title.toLowerCase().includes(s) || c.summary.toLowerCase().includes(s))
       );
     });
-  }, [challenges.data, states.data, category, difficulty, status, search]);
+  }, [challenges.data, states.data, category, difficulty, status, search, length]);
 
   if (challenges.isPending || states.isPending) return <PageSkeleton />;
   if (challenges.isError) return <ErrorState error={challenges.error} onRetry={() => challenges.refetch()} />;
@@ -70,6 +82,19 @@ export default function ChallengesPage() {
           </div>
         }
       />
+
+      <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="Length">
+        {LENGTHS.map((l) => (
+          <button
+            key={l.value}
+            onClick={() => setLength(l.value)}
+            aria-pressed={length === l.value}
+            className={cn('rounded-full border px-3 py-1 text-xs', length === l.value ? 'border-accent bg-accent-muted text-fg' : 'border-border text-fg-muted hover:border-border-strong')}
+          >
+            {l.label}
+          </button>
+        ))}
+      </div>
 
       <div className="mb-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="relative">

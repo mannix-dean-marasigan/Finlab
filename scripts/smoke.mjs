@@ -12,7 +12,7 @@ const PORT = 4179;
 const BASE = `http://localhost:${PORT}`;
 
 const PAGES = [
-  { path: '/', expect: 'Run the desk' },
+  { path: '/', expect: 'before you get it' },
   { path: '/about', expect: 'Finance is learned by doing' },
   { path: '/faq', expect: 'Questions, answered' },
   { path: '/terms', expect: 'Terms' },

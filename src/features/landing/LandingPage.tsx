@@ -64,11 +64,11 @@ export default function LandingPage() {
             Free · Closed beta
           </span>
           <h1 className="mt-5 max-w-3xl text-4xl font-semibold leading-[1.1] tracking-tight sm:text-6xl">
-            Don't just study finance. <span className="text-accent">Run the desk.</span>
+            Practice the finance job <span className="text-accent">before you get it.</span>
           </h1>
           <p className="mt-5 max-w-2xl text-lg text-fg-muted">
-            FINLAB PH is the flight simulator for finance. Learn a concept in a short lesson, use it right away on a realistic case, and prove it with a
-            certificate employers can verify. Free for students and young professionals.
+            FINLAB PH is the flight simulator for finance. Short lessons, real-style cases and a trading simulator, built for students in the Philippines.
+            Every answer is scored, and your certificates can be checked by employers. Free.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link to="/register">
@@ -87,6 +87,31 @@ export default function LandingPage() {
             </a>{' '}
             to ask for one.
           </p>
+        </div>
+      </section>
+
+      <section className="border-b border-border">
+        <div className="mx-auto max-w-6xl px-4 py-12">
+          <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <Trophy className="h-6 w-6 text-accent" /> How it works
+          </h2>
+          <ol className="mt-6 grid gap-4 md:grid-cols-3">
+            {[
+              ['Learn it', 'A short lesson with a video and hands-on practice. About 10 to 20 minutes.'],
+              ['Do the work', 'Solve a case like an analyst would: value a company, read a bank, pitch a stock. Scored instantly.'],
+              ['Prove it', 'Your results build your FINLAB Score and earn certificates anyone can verify on LinkedIn.'],
+            ].map(([t, d], i) => (
+              <li key={t} className="flex gap-4 rounded-lg border border-border bg-surface p-5">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/50 bg-accent-muted font-mono text-sm font-semibold text-accent">
+                  {i + 1}
+                </span>
+                <div>
+                  <div className="font-medium">{t}</div>
+                  <div className="mt-1 text-sm text-fg-muted">{d}</div>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
 
@@ -124,14 +149,14 @@ export default function LandingPage() {
           </div>
           <div>
             <h2 className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-              <Trophy className="h-6 w-6 text-accent" /> How it works
+              <Briefcase className="h-6 w-6 text-accent" /> What you walk away with
             </h2>
             <ol className="mt-5 space-y-4">
               {[
-                ['Learn', 'Watch a short video, practise with interactive exercises, pass the knowledge check.'],
-                ['Do the work', 'Solve cases, write pitches, run valuations. Everything is scored against a rubric.'],
-                ['Rank up', 'Your results build your FINLAB Score, your level and your place on the leaderboards.'],
-                ['Prove it', 'Earn verifiable certificates and share them on LinkedIn.'],
+                ['A track record', 'Scored cases, saved valuations and models on your public Finance Passport.'],
+                ['A rank', 'Your FINLAB Score, career level and place on national, school and weekly leaderboards.'],
+                ['Proof', 'Certificates with a public verification page, ready for your resume and LinkedIn.'],
+                ['Interview stories', 'Real things you analyzed, so you can answer "tell me about a time" questions.'],
               ].map(([t, d], i) => (
                 <li key={t} className="flex gap-4">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-accent/50 bg-accent-muted font-mono text-sm font-semibold text-accent">

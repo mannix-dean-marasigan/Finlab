@@ -1237,6 +1237,47 @@ async function main() {
   await expectError(null, `select public.ai_reserve()`, [], 'anon cannot use the helper', 'permission denied');
   await expectError(null, `select public.ai_status()`, [], 'anon cannot read its status', 'permission denied');
   ok(!(await db.query(`select 1 from information_schema.columns where table_name = 'ai_usage' and data_type in ('text','jsonb','character varying')`)).rows.length, 'no message text is stored, only counts');
+
+  // ------------------------------------------------------------------
+  section('AI reports, tricks counter and prompt guard settings');
+  await rpc(ai1, 'ai_report', ['wrong', 'What is WACC?', 'WACC is the weighted average cost of capital.', 'The example is off', 'gemini:gemini-3.5-flash-lite']);
+  ok(!(await q(ai1, `select * from ai_reports`)).rows.length, 'students cannot read reports directly, even their own');
+  await expectError(ai1, `select public.admin_ai_reports(10)`, [], 'students cannot list reports', 'Admins only');
+  const reports = await rpc(bob, 'admin_ai_reports', [10]);
+  ok(reports.length === 1 && reports[0].reason === 'wrong' && reports[0].handle && reports[0].question === 'What is WACC?', 'admins see the report with its question and reply');
+  await rpc(bob, 'admin_ai_report_set', [reports[0].id, 'reviewed']);
+  ok((await rpc(bob, 'admin_ai_reports', [10]))[0].status === 'reviewed', 'admins can mark a report reviewed');
+  await expectError(ai1, `select public.ai_report('nonsense', 'q', 'r')`, [], 'report reasons are limited to the known list', 'check constraint|violates');
+  await expectError(null, `select public.ai_report('wrong', 'q', 'r')`, [], 'anon cannot report', 'permission denied');
+  await rpc(ai1, 'ai_note_guarded');
+  await rpc(ai1, 'ai_note_guarded');
+  const usage = await rpc(bob, 'admin_ai_usage');
+  const aiOne = usage.users.find((u) => u.name === 'Ai One');
+  ok(aiOne && aiOne.guarded === 2 && aiOne.messages === 3, 'admins see messages and tricks blocked per user', usage.users);
+  await expectError(ai1, `select public.admin_ai_usage()`, [], 'students cannot see usage', 'Admins only');
+  await db.exec(`update app_settings set value = '1' where key = 'ai_helper_enabled'; update app_settings set value = '50' where key = 'ai_helper_daily_limit'; update app_settings set value = '500' where key = 'ai_helper_global_daily_cap'`);
+  const reserved = await rpc(ai2, 'ai_reserve');
+  ok(reserved.guard === false && Number(reserved.guard_threshold) === 0.9, 'the prompt guard is off by default and the reserve call reports its settings');
+  await db.exec(`update app_settings set value = '1' where key = 'ai_prompt_guard'; update app_settings set value = '0.3' where key = 'ai_prompt_guard_threshold'`);
+  const reserved2 = await rpc(ai2, 'ai_reserve');
+  ok(reserved2.guard === true && Number(reserved2.guard_threshold) === 0.5, 'switching the guard on is reported, and the threshold is kept within 0.5 to 0.99');
+  await db.exec(`update app_settings set value = '0' where key = 'ai_prompt_guard'; update app_settings set value = '0' where key = 'ai_helper_enabled'`);
+
+  // ------------------------------------------------------------------
+  section("The analyst's answer after a case");
+  const caseId = (await q(alice, `select id from challenges where slug = 'accounting-three-statements'`)).rows[0].id;
+  const model = await rpc(alice, 'challenge_model_answer', [caseId]);
+  const gp = model.tasks.find((t) => t.id === 'gp');
+  const capex = model.tasks.find((t) => t.id === 'capex');
+  const ocf = model.tasks.find((t) => t.id === 'ocf');
+  ok(model.passed === true && Number(gp.answer) === 48, 'after passing, a student sees the correct numbers');
+  ok(capex.answer === 'Balance sheet and cash flow statement' && capex.options?.length === 4, 'multiple-choice answers show the option text, with all options for comparing');
+  ok(Array.isArray(ocf.key_ideas) && ocf.key_ideas.length === 3 && ocf.key_ideas[0] === 'Depreciation', 'written answers show the key ideas a strong answer covers', ocf.key_ideas);
+  await expectError(bob, `select public.challenge_model_answer($1)`, [caseId], 'a student who has not passed cannot see the answers', 'Pass this case first');
+  await expectError(newbie, `select public.challenge_model_answer($1)`, [caseId], 'a student who never tried cannot see the answers', 'Pass this case first');
+  const examId = (await q(alice, `select challenge_id from program_modules where kind = 'exam' limit 1`)).rows[0]?.challenge_id;
+  if (examId) await expectError(alice, `select public.challenge_model_answer($1)`, [examId], 'final exam answers are never shown', 'Final exam answers stay private');
+  await expectError(null, `select public.challenge_model_answer($1)`, [caseId], 'anon cannot read answers', 'permission denied');
   await db.query(`update app_settings set value = '0' where key = 'ai_helper_enabled'`);
 
   console.log(`\n${passed} passed, ${failed} failed`);

@@ -106,6 +106,11 @@ export const STEPS: TutorialStep[] = [
     title: 'Financial models',
     body: 'Enter past numbers and your assumptions, and a forecast builds itself.',
   },
+  {
+    id: 'planner', chapter: 'Tools', route: '/planner', target: 'page-header',
+    title: 'Portfolio planner',
+    body: "Build a portfolio for a real person's goal, then compare it with a coach's plan.",
+  },
   // ---------------------------------------------------------------- Compete
   {
     id: 'leaderboards', chapter: 'Compete', route: '/leaderboard', target: 'page-header',

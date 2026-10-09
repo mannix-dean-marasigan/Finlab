@@ -7,11 +7,16 @@ import { Markdown } from '@/components/common';
 import { cn } from '@/lib/utils';
 import { tidyMath } from './tidyMath';
 import { isGradedPath, useIsGraded } from './gradedMode';
+import { ReportReply } from './ReportReply';
 
 interface Bubble extends HelperMessage {
   error?: boolean;
   /** The reply exactly as the server sent and signed it (the shown text may have formulas tidied). */
   raw?: string;
+  /** Which AI model answered, for reports. */
+  model?: string;
+  /** The rule filter answered instead of the AI (nothing to report). */
+  guarded?: boolean;
 }
 
 const LESSON_PROMPTS = ['Explain this lesson simply', 'Give me a peso example', 'What should I remember most?'];
@@ -50,7 +55,7 @@ export function ChatWidget() {
     try {
       const history = next.filter((b) => !b.error).map((b) => (b.role === 'assistant' ? { role: b.role, text: b.raw ?? b.text, sig: b.sig } : { role: b.role, text: b.text }));
       const res = await askHelper(history, lessonSlug);
-      setBubbles([...next, { role: 'assistant', text: tidyMath(res.reply), raw: res.reply, sig: res.sig }]);
+      setBubbles([...next, { role: 'assistant', text: tidyMath(res.reply), raw: res.reply, sig: res.sig, model: res.model, guarded: !res.model }]);
       if (res.remaining !== null) setRemaining(res.remaining);
       qc.invalidateQueries({ queryKey: ['ai-status'] });
     } catch (e) {
@@ -115,6 +120,9 @@ export function ChatWidget() {
                   )}
                 >
                   {b.role === 'user' || b.error ? <span className="whitespace-pre-wrap">{b.text}</span> : <Markdown className="[&_p]:my-1.5 [&_ul]:my-1.5">{b.text}</Markdown>}
+                  {b.role === 'assistant' && !b.error && !b.guarded && (
+                    <ReportReply question={bubbles.slice(0, i).reverse().find((x) => x.role === 'user')?.text ?? ''} reply={b.raw ?? b.text} model={b.model} />
+                  )}
                 </div>
               </div>
             ))}

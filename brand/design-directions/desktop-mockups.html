@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>FINLAB desktop directions</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Archivo+Black&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #ccc; padding: 20px; display: flex; flex-direction: column; gap: 20px; }
+  .screen { width: 1440px; height: 900px; overflow: hidden; position: relative; display: flex; }
+  svg { display: block; }
+  .side { width: 248px; flex: none; display: flex; flex-direction: column; }
+  .main { flex: 1; min-width: 0; position: relative; }
+
+  /* ================= A: BRIGHT & PLAYFUL ================= */
+  .A { background: #fff; font-family: Nunito, sans-serif; color: #2b2546; }
+  .A .side { border-right: 2px solid #efedf7; padding: 26px 16px; gap: 6px; }
+  .A .logo { font-weight: 900; font-size: 30px; color: #6c4cf1; padding: 0 14px 22px; letter-spacing: -.02em; }
+  .A .nav { display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 14px; font-weight: 900; font-size: 16px; letter-spacing: .04em; color: #77708f; border: 2px solid transparent; }
+  .A .nav.on { background: #f1edff; border-color: #c9bdff; color: #6c4cf1; }
+  .A .nav i { width: 30px; height: 30px; display: grid; place-items: center; }
+  .A .widget { border: 2px solid #efedf7; border-radius: 18px; padding: 18px 20px; }
+  .A .wtitle { font-weight: 900; font-size: 18px; }
+  .A .node { position: absolute; width: 80px; height: 72px; border-radius: 50%; display: grid; place-items: center; }
+  .A .node.done { background: #ffc93c; box-shadow: 0 7px 0 #e0a800; }
+  .A .node.now { background: #6c4cf1; box-shadow: 0 7px 0 #5235c9; outline: 7px solid #e6e0ff; }
+  .A .node.lock { background: #e9e7f2; box-shadow: 0 7px 0 #cfcbe0; }
+  .A .btn { display: inline-block; text-align: center; font-weight: 900; font-size: 16px; letter-spacing: .05em; padding: 14px 28px; border-radius: 16px; }
+  .A .btn.primary { background: #6c4cf1; color: #fff; box-shadow: 0 5px 0 #5235c9; }
+  .A .btn.ghost { background: #fff; color: #77708f; border: 2px solid #e9e7f2; box-shadow: 0 4px 0 #e9e7f2; }
+  .A .opt { border: 2px solid #e9e7f2; box-shadow: 0 4px 0 #e9e7f2; border-radius: 16px; padding: 18px 20px; font-weight: 800; font-size: 18px; display: flex; gap: 14px; align-items: center; }
+  .A .opt .k { width: 32px; height: 32px; border-radius: 9px; border: 2px solid #e9e7f2; display: grid; place-items: center; color: #9a95b3; font-size: 15px; flex: none; }
+  .A .opt.sel { border-color: #b8a8ff; background: #f4f1ff; box-shadow: 0 4px 0 #b8a8ff; color: #5235c9; }
+  .A .opt.sel .k { border-color: #b8a8ff; color: #6c4cf1; }
+  .A .bar { height: 18px; border-radius: 99px; background: #efedf7; overflow: hidden; }
+  .A .bar i { display: block; height: 100%; background: #2bd9a0; border-radius: 99px; box-shadow: inset 0 -5px 0 rgba(0,0,0,.08); }
+  .A .row { display: flex; align-items: center; gap: 16px; padding: 12px 18px; font-weight: 800; font-size: 17px; border-radius: 16px; }
+  .A .av { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; color: #fff; font-weight: 900; }
+  .A .stat { display: flex; align-items: center; gap: 8px; font-weight: 900; font-size: 18px; }
+
+  /* ================= B: CLEAN & PREMIUM ================= */
+  .B { background: #f6f4ef; font-family: Inter, sans-serif; color: #0e1b2c; }
+  .B .serif { font-family: Fraunces, serif; font-weight: 500; letter-spacing: -.01em; }
+  .B .muted { color: #6b7380; }
+  .B .side { padding: 30px 20px; border-right: 1px solid #ebe7de; background: #fbfaf7; gap: 2px; }
+  .B .logo { font-family: Fraunces, serif; font-size: 26px; padding: 0 12px 28px; }
+  .B .nav { display: flex; align-items: center; gap: 12px; padding: 11px 12px; border-radius: 10px; font-size: 15px; font-weight: 500; color: #4b5563; }
+  .B .nav.on { background: #0e1b2c; color: #fff; }
+  .B .group { font-size: 11px; font-weight: 600; color: #9aa1ab; letter-spacing: .08em; padding: 18px 12px 6px; }
+  .B .card { background: #fff; border-radius: 20px; padding: 24px; border: 1px solid #ebe7de; }
+  .B .chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 6px 11px; border-radius: 99px; background: #e7f2ec; color: #0f6b4f; }
+  .B .btn { display: inline-block; text-align: center; font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 12px; background: #0e1b2c; color: #fff; }
+  .B .btn.light { background: #fff; color: #0e1b2c; border: 1px solid #ddd8cc; }
+  .B .line { height: 1px; background: #ebe7de; }
+
+  /* ================= C: BOLD & YOUTHFUL ================= */
+  .C { background: #f2f0ea; font-family: 'Space Grotesk', sans-serif; color: #111; }
+  .C .huge { font-family: 'Archivo Black', sans-serif; text-transform: uppercase; line-height: .95; letter-spacing: -.01em; }
+  .C .side { background: #111; color: #fff; padding: 28px 18px; gap: 8px; }
+  .C .logo { font-family: 'Archivo Black'; font-size: 30px; padding: 0 10px 26px; }
+  .C .nav { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 16px; font-weight: 700; font-size: 16px; color: #bbb; }
+  .C .nav.on { background: #c6f432; color: #111; }
+  .C .block { border: 3px solid #111; border-radius: 24px; box-shadow: 6px 6px 0 #111; }
+  .C .sticker { position: absolute; font-family: 'Archivo Black'; text-transform: uppercase; font-size: 14px; padding: 8px 14px; border: 3px solid #111; border-radius: 99px; white-space: nowrap; }
+  .C .btn { white-space: nowrap; display: inline-block; text-align: center; font-family: 'Archivo Black'; text-transform: uppercase; font-size: 17px; padding: 16px 30px; border: 3px solid #111; border-radius: 16px; box-shadow: 5px 5px 0 #111; }
+</style>
+</head>
+<body>
+
+<!-- ======================= A1 HOME (desktop) ======================= -->
+<div class="screen A" id="A1">
+  <div class="side">
+    <div class="logo">finlab</div>
+    <div class="nav on"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 12L13 3l10 9v11H16v-7h-6v7H3z" fill="#6c4cf1"/></svg></i>LEARN</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 20l6-7 5 4 9-11" stroke="#b9b4cf" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>PRACTICE</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M7 3h12v6a6 6 0 0 1-12 0zM13 15v5M8 23h10" stroke="#b9b4cf" stroke-width="3" fill="none" stroke-linecap="round"/></svg></i>LEAGUES</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="5" width="20" height="16" rx="4" stroke="#b9b4cf" stroke-width="3" fill="none"/><path d="M8 11h10M8 15h6" stroke="#b9b4cf" stroke-width="3" stroke-linecap="round"/></svg></i>CERTIFICATES</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="9" r="5" fill="#b9b4cf"/><path d="M3 24a10 8 0 0 1 20 0z" fill="#b9b4cf"/></svg></i>PROFILE</div>
+  </div>
+  <div class="main" style="display:flex;gap:40px;padding:28px 40px 0 56px">
+    <div style="flex:1;max-width:620px;position:relative">
+      <div style="background:#6c4cf1;color:#fff;border-radius:20px;padding:20px 24px;box-shadow:0 6px 0 #5235c9;display:flex;justify-content:space-between;align-items:center">
+        <div><div style="font-weight:800;font-size:14px;opacity:.8;letter-spacing:.03em">UNIT 2 · FINANCIAL STATEMENT ANALYST</div><div style="font-weight:900;font-size:24px;margin-top:4px">Read the three statements</div></div>
+        <div style="border:2px solid rgba(255,255,255,.45);border-radius:14px;padding:10px 16px;font-weight:900;letter-spacing:.04em;display:flex;gap:8px;align-items:center"><svg width="20" height="20" viewBox="0 0 22 22"><rect x="3" y="2" width="16" height="18" rx="3" fill="none" stroke="#fff" stroke-width="2.5"/><path d="M7 8h8M7 12h8M7 16h5" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/></svg>GUIDEBOOK</div>
+      </div>
+      <div style="position:relative;height:640px">
+        <div class="node done" style="left:270px;top:40px"><svg width="36" height="36" viewBox="0 0 34 34"><path d="M8 18l6 6 12-14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="node done" style="left:200px;top:140px"><svg width="36" height="36" viewBox="0 0 34 34"><path d="M8 18l6 6 12-14" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div style="position:absolute;left:150px;top:228px;background:#fff;border:2px solid #e6e0ff;color:#6c4cf1;font-weight:900;padding:9px 16px;border-radius:12px">START</div>
+        <div class="node now" style="left:170px;top:272px"><svg width="36" height="36" viewBox="0 0 34 34"><path d="M17 5l3.6 7.4 8.2 1.2-6 5.8 1.4 8.1L17 23.6l-7.3 3.9 1.4-8.1-6-5.8 8.2-1.2z" fill="#fff"/></svg></div>
+        <div class="node lock" style="left:250px;top:380px"><svg width="30" height="30" viewBox="0 0 30 30"><rect x="6" y="13" width="18" height="13" rx="3" fill="#b9b4cf"/><path d="M10 13V9a5 5 0 0 1 10 0v4" stroke="#b9b4cf" stroke-width="3.5" fill="none"/></svg></div>
+        <div class="node lock" style="left:320px;top:480px"><svg width="34" height="30" viewBox="0 0 34 30"><path d="M5 25V12M13 25V6M21 25v-9M29 25V3" stroke="#b9b4cf" stroke-width="4" stroke-linecap="round"/></svg></div>
+        <div class="node lock" style="left:260px;top:580px;opacity:.6"></div>
+        <svg style="position:absolute;left:400px;top:190px" width="150" height="175" viewBox="0 0 120 140">
+          <ellipse cx="60" cy="132" rx="34" ry="6" fill="#efedf7"/>
+          <circle cx="60" cy="64" r="50" fill="#ffc93c" stroke="#e0a800" stroke-width="5"/>
+          <circle cx="60" cy="64" r="38" fill="none" stroke="#e0a800" stroke-width="3" stroke-dasharray="4 6"/>
+          <ellipse cx="45" cy="56" rx="7" ry="10" fill="#2b2546"/><ellipse cx="75" cy="56" rx="7" ry="10" fill="#2b2546"/>
+          <circle cx="47" cy="52" r="2.6" fill="#fff"/><circle cx="77" cy="52" r="2.6" fill="#fff"/>
+          <path d="M46 78q14 12 28 0" stroke="#2b2546" stroke-width="5" fill="none" stroke-linecap="round"/>
+          <path d="M104 46q14-14 8-26" stroke="#e0a800" stroke-width="7" stroke-linecap="round" fill="none"/>
+        </svg>
+        <div style="position:absolute;left:380px;top:110px;background:#fff;border:2px solid #efedf7;border-radius:16px;padding:10px 14px;font-weight:800;font-size:15px;width:190px">2 lessons to your first certificate!</div>
+      </div>
+    </div>
+    <div style="width:350px;display:flex;flex-direction:column;gap:18px">
+      <div style="display:flex;justify-content:space-between;padding:4px 6px 4px">
+        <div class="stat"><svg width="28" height="28" viewBox="0 0 26 26"><circle cx="13" cy="13" r="11" fill="#ffc93c" stroke="#e0a800" stroke-width="2"/><text x="13" y="17.5" font-size="12" font-weight="900" text-anchor="middle" fill="#8a6300" font-family="Nunito">₱</text></svg>1,240</div>
+        <div class="stat" style="color:#ff7a1a"><svg width="24" height="28" viewBox="0 0 22 26"><path d="M11 1c2 5 9 8 9 15a9 9 0 0 1-18 0c0-4 2-6 4-8 0 3 1 5 3 5-1-5 0-9 2-12z" fill="#ff7a1a"/><path d="M11 13c1 2 4 3 4 6a4 4 0 0 1-8 0c0-2 2-3 2-4 1 1 1 1 2 1 0-1 0-2 0-3z" fill="#ffc93c"/></svg>12</div>
+        <div class="stat" style="color:#2bd9a0"><svg width="26" height="26" viewBox="0 0 24 24"><rect x="2" y="12" width="5" height="10" rx="2" fill="#2bd9a0"/><rect x="9.5" y="7" width="5" height="15" rx="2" fill="#2bd9a0"/><rect x="17" y="2" width="5" height="20" rx="2" fill="#2bd9a0"/></svg>72</div>
+      </div>
+      <div class="widget">
+        <div style="display:flex;justify-content:space-between"><span class="wtitle">Analyst League</span><span style="color:#6c4cf1;font-weight:900;font-size:14px">VIEW</span></div>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:12px">
+          <svg width="52" height="60" viewBox="0 0 52 62"><path d="M0 12l26-12 26 12v26c0 14-26 24-26 24S0 52 0 38z" fill="#6c4cf1"/><path d="M15 28l8 8 14-16" stroke="#ffc93c" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+          <div style="font-weight:800;font-size:15px;color:#77708f">You're <b style="color:#2b2546">#3</b> this week. Top 5 move up to the Associate League.</div>
+        </div>
+      </div>
+      <div class="widget">
+        <div class="wtitle">Daily goal</div>
+        <div style="display:flex;gap:14px;align-items:center;margin-top:12px">
+          <svg width="44" height="44" viewBox="0 0 44 44"><circle cx="22" cy="22" r="18" stroke="#efedf7" stroke-width="7" fill="none"/><circle cx="22" cy="22" r="18" stroke="#2bd9a0" stroke-width="7" fill="none" stroke-dasharray="113" stroke-dashoffset="45" stroke-linecap="round" transform="rotate(-90 22 22)"/></svg>
+          <div style="flex:1"><div style="font-weight:800;font-size:15px">30 / 50 XP today</div><div class="bar" style="margin-top:8px;height:14px"><i style="width:60%"></i></div></div>
+        </div>
+      </div>
+      <div class="widget" style="background:#fff8e6;border-color:#ffe6a3">
+        <div class="wtitle">Daily question</div>
+        <div style="font-weight:700;font-size:15px;color:#77708f;margin:6px 0 14px">If inflation is 6%, what is ₱1,000 worth in today's money next year?</div>
+        <span class="btn primary" style="padding:11px 20px;font-size:14px">ANSWER · +10 XP</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= A2 LESSON (desktop) ======================= -->
+<div class="screen A" id="A2" style="flex-direction:column">
+  <div style="display:flex;align-items:center;gap:22px;padding:34px 0 0;width:1000px;margin:0 auto">
+    <svg width="26" height="26" viewBox="0 0 22 22"><path d="M4 4l14 14M18 4L4 18" stroke="#b9b4cf" stroke-width="3.5" stroke-linecap="round"/></svg>
+    <div class="bar" style="flex:1"><i style="width:60%"></i></div>
+    <div class="stat" style="color:#ff4f6d"><svg width="26" height="24" viewBox="0 0 22 20"><path d="M11 19S1 13 1 6.5A5 5 0 0 1 11 4a5 5 0 0 1 10 2.5C21 13 11 19 11 19z" fill="#ff4f6d"/></svg>4</div>
+  </div>
+  <div style="width:640px;margin:56px auto 0;flex:1">
+    <div style="color:#6c4cf1;font-weight:900;font-size:15px;letter-spacing:.05em">NEW CONCEPT</div>
+    <div style="font-size:32px;font-weight:900;margin:8px 0 26px;line-height:1.2">Aling Rosa buys ₱20,000 of rice stock on credit. What happens to her store's books?</div>
+    <div style="display:flex;gap:16px;align-items:flex-end;margin-bottom:30px">
+      <svg width="96" height="110" viewBox="0 0 120 140"><circle cx="60" cy="64" r="50" fill="#ffc93c" stroke="#e0a800" stroke-width="5"/><ellipse cx="45" cy="58" rx="7" ry="10" fill="#2b2546"/><ellipse cx="75" cy="58" rx="7" ry="10" fill="#2b2546"/><path d="M48 82q12 6 24 0" stroke="#2b2546" stroke-width="5" fill="none" stroke-linecap="round"/></svg>
+      <div style="border:2px solid #efedf7;border-radius:18px;padding:14px 18px;font-weight:700;font-size:17px">Think about what she owns now, and what she owes.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="opt"><span class="k">1</span>Assets up, equity up</div>
+      <div class="opt sel"><span class="k">2</span>Assets up, liabilities up</div>
+      <div class="opt"><span class="k">3</span>Cash down by ₱20,000</div>
+      <div class="opt"><span class="k">4</span>Nothing until she pays</div>
+    </div>
+  </div>
+  <div style="border-top:2px solid #efedf7;height:140px;display:flex;align-items:center;justify-content:space-between;padding:0 220px">
+    <span class="btn ghost">SKIP</span><span class="btn primary" style="padding:15px 56px">CHECK</span>
+  </div>
+</div>
+
+<!-- ======================= A3 LEADERBOARD (desktop) ======================= -->
+<div class="screen A" id="A3">
+  <div class="side">
+    <div class="logo">finlab</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 12L13 3l10 9v11H16v-7h-6v7H3z" fill="#b9b4cf"/></svg></i>LEARN</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M3 20l6-7 5 4 9-11" stroke="#b9b4cf" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></i>PRACTICE</div>
+    <div class="nav on"><i><svg width="26" height="26" viewBox="0 0 26 26"><path d="M7 3h12v6a6 6 0 0 1-12 0zM13 15v5M8 23h10" stroke="#6c4cf1" stroke-width="3" fill="none" stroke-linecap="round"/></svg></i>LEAGUES</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><rect x="3" y="5" width="20" height="16" rx="4" stroke="#b9b4cf" stroke-width="3" fill="none"/><path d="M8 11h10M8 15h6" stroke="#b9b4cf" stroke-width="3" stroke-linecap="round"/></svg></i>CERTIFICATES</div>
+    <div class="nav"><i><svg width="26" height="26" viewBox="0 0 26 26"><circle cx="13" cy="9" r="5" fill="#b9b4cf"/><path d="M3 24a10 8 0 0 1 20 0z" fill="#b9b4cf"/></svg></i>PROFILE</div>
+  </div>
+  <div class="main" style="display:flex;gap:40px;padding:34px 40px 0 56px">
+    <div style="flex:1;max-width:640px">
+      <div style="text-align:center">
+        <svg width="100%" height="96" viewBox="0 0 640 96">
+          <g transform="translate(170 22)"><path d="M0 8l22-8 22 8v24c0 15-22 26-22 26S0 47 0 32z" fill="#efedf7"/></g>
+          <g transform="translate(232 8)"><path d="M0 10l28-10 28 10v30c0 19-28 32-28 32S0 59 0 40z" fill="#e0dcef"/></g>
+          <g transform="translate(290 0)"><path d="M0 12l30-12 30 12v34c0 23-30 36-30 36S0 69 0 46z" fill="#6c4cf1"/><path d="M16 36l9 9 18-20" stroke="#ffc93c" stroke-width="5.5" fill="none" stroke-linecap="round"/></g>
+          <g transform="translate(352 8)"><path d="M0 10l28-10 28 10v30c0 19-28 32-28 32S0 59 0 40z" fill="#e9e7f2"/></g>
+          <g transform="translate(424 22)"><path d="M0 8l22-8 22 8v24c0 15-22 26-22 26S0 47 0 32z" fill="#f4f3f9"/></g>
+        </svg>
+        <div style="font-size:30px;font-weight:900;margin-top:8px">Analyst League</div>
+        <div style="font-weight:700;color:#9a95b3;margin-top:4px;font-size:16px">Top 5 move up to the Associate League · 3 days left</div>
+      </div>
+      <div style="margin-top:22px">
+        <div class="row"><b style="color:#e0a800;width:22px">1</b><span class="av" style="background:#ff7a1a">BG</span><span style="flex:1">Bea Garcia</span><span style="color:#9a95b3">1,420 XP</span></div>
+        <div class="row"><b style="color:#9a95b3;width:22px">2</b><span class="av" style="background:#2bd9a0">CR</span><span style="flex:1">Carlo Reyes</span><span style="color:#9a95b3">1,305 XP</span></div>
+        <div class="row" style="background:#f4f1ff"><b style="color:#6c4cf1;width:22px">3</b><span class="av" style="background:#6c4cf1">MM</span><span style="flex:1;color:#5235c9">Mannix (you)</span><span style="color:#6c4cf1">1,240 XP</span></div>
+        <div class="row"><b style="width:22px">4</b><span class="av" style="background:#ff4f6d">JS</span><span style="flex:1">Jem Santos</span><span style="color:#9a95b3">990 XP</span></div>
+        <div class="row"><b style="width:22px">5</b><span class="av" style="background:#1fa7ff">AL</span><span style="flex:1">Aira Lim</span><span style="color:#9a95b3">860 XP</span></div>
+        <div style="display:flex;align-items:center;gap:12px;padding:12px 18px;color:#2bd9a0;font-weight:900;font-size:14px"><span style="flex:1;height:2px;background:#c8f5e6"></span>PROMOTION ZONE<span style="flex:1;height:2px;background:#c8f5e6"></span></div>
+        <div class="row"><b style="width:22px">6</b><span class="av" style="background:#b9b4cf">PD</span><span style="flex:1">Paolo Dizon</span><span style="color:#9a95b3">720 XP</span></div>
+        <div class="row"><b style="width:22px">7</b><span class="av" style="background:#ffb03b">KT</span><span style="flex:1">Kat Tan</span><span style="color:#9a95b3">655 XP</span></div>
+      </div>
+    </div>
+    <div style="width:350px;display:flex;flex-direction:column;gap:18px;padding-top:6px">
+      <div class="widget"><div class="wtitle">How leagues work</div><div style="font-weight:700;color:#77708f;font-size:15px;margin-top:8px;line-height:1.5">Earn XP from lessons, cases and the Trading Floor. Every Sunday the top 5 of each group of 20 move up a league.</div></div>
+      <div class="widget"><div class="wtitle">Your school this week</div>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:12px"><div style="width:52px;height:52px;border-radius:14px;background:#2bd9a0;color:#fff;display:grid;place-items:center;font-weight:900">DLSU</div><div style="font-weight:800;font-size:15px;color:#77708f"><b style="color:#2b2546;font-size:20px">#1</b> of 24 schools<br>12,480 XP</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= B1 HOME (desktop) ======================= -->
+<div class="screen B" id="B1">
+  <div class="side">
+    <div class="logo">Finlab</div>
+    <div class="nav on"><svg width="18" height="18" viewBox="0 0 22 22"><path d="M3 10l8-7 8 7v9h-5v-6H8v6H3z" fill="#fff"/></svg>Home</div>
+    <div class="group">LEARN</div>
+    <div class="nav">Certifications</div><div class="nav">Lessons</div><div class="nav">Flashcards</div>
+    <div class="group">PRACTICE</div>
+    <div class="nav">Cases</div><div class="nav">Trading Floor</div><div class="nav">Stock pitches</div>
+    <div class="group">COMPETE</div>
+    <div class="nav">Leaderboards</div><div class="nav">Classes</div>
+    <div style="flex:1"></div>
+    <div style="display:flex;align-items:center;gap:10px;padding:12px;border-top:1px solid #ebe7de"><span style="width:34px;height:34px;border-radius:50%;background:#0e1b2c;color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600">MM</span><div><div style="font-size:14px;font-weight:600">Mannix</div><div class="muted" style="font-size:12px">Junior Analyst</div></div></div>
+  </div>
+  <div class="main" style="padding:44px 56px">
+    <div class="muted" style="font-size:15px;font-weight:500">Friday, 9 October</div>
+    <div class="serif" style="font-size:44px;margin:6px 0 30px">Good afternoon, Mannix.</div>
+    <div style="display:grid;grid-template-columns:1.55fr 1fr;gap:20px">
+      <div class="card" style="padding:30px;display:flex;flex-direction:column">
+        <span class="chip" style="align-self:flex-start">● In progress</span>
+        <div class="serif" style="font-size:30px;margin:16px 0 6px">The Three Financial Statements</div>
+        <div class="muted" style="font-size:15px">Financial Statement Analyst · Lesson 3 of 12 · about 8 minutes</div>
+        <div style="height:6px;background:#eef0ec;border-radius:9px;margin:26px 0"><div style="width:25%;height:100%;background:#0f7b5f;border-radius:9px"></div></div>
+        <div style="display:flex;gap:12px"><span class="btn">Continue lesson</span><span class="btn light">View certificate path</span></div>
+      </div>
+      <div style="display:grid;grid-template-rows:1fr 1fr;gap:20px">
+        <div class="card" style="display:flex;justify-content:space-between;align-items:flex-end"><div><div class="muted" style="font-size:13px;font-weight:500">FINLAB Score</div><div class="serif" style="font-size:52px;line-height:1;margin-top:10px">72<span class="muted" style="font-size:20px">/100</span></div></div><div style="font-size:13px;color:#0f7b5f;font-weight:600">▲ 4 this week</div></div>
+        <div class="card"><div class="muted" style="font-size:13px;font-weight:500">Day streak</div><div style="display:flex;align-items:flex-end;justify-content:space-between;margin-top:10px"><div class="serif" style="font-size:52px;line-height:1">12</div><div style="display:flex;gap:5px">
+          <i style="width:22px;height:30px;border-radius:6px;background:#0f7b5f"></i><i style="width:22px;height:30px;border-radius:6px;background:#0f7b5f"></i><i style="width:22px;height:30px;border-radius:6px;background:#0f7b5f"></i><i style="width:22px;height:30px;border-radius:6px;background:#0f7b5f"></i><i style="width:22px;height:30px;border-radius:6px;background:#0f7b5f"></i><i style="width:22px;height:30px;border-radius:6px;background:#e3e0d7"></i><i style="width:22px;height:30px;border-radius:6px;background:#e3e0d7"></i></div></div></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:20px">
+      <div class="card"><div style="font-weight:600;font-size:16px">Daily question</div><div class="muted" style="font-size:14px;margin:6px 0 16px">One question on inflation · +10 XP</div><span style="font-weight:600;font-size:14px;color:#0f7b5f">Answer now →</span></div>
+      <div class="card"><div style="font-weight:600;font-size:16px">Weekly trading challenge</div><div class="muted" style="font-size:14px;margin:6px 0 10px">Rank 18 of 64 · ends Sunday</div>
+        <svg width="100%" height="34" viewBox="0 0 300 34"><polyline points="0,26 30,22 60,24 90,15 120,18 150,10 180,13 210,7 240,11 270,4 300,6" fill="none" stroke="#0f7b5f" stroke-width="2.5"/></svg></div>
+      <div class="card"><div style="font-weight:600;font-size:16px">Next milestone</div><div class="muted" style="font-size:14px;margin:6px 0 16px">2 requirements left for promotion to Analyst</div><span style="font-weight:600;font-size:14px;color:#0f7b5f">See career ladder →</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= B2 LESSON (desktop) ======================= -->
+<div class="screen B" id="B2" style="background:#fbfaf7">
+  <div class="side" style="width:300px;background:#f6f4ef">
+    <div class="muted" style="font-size:14px;padding:0 12px 18px">‹ Financial Statement Analyst</div>
+    <div style="padding:0 12px 18px"><div class="serif" style="font-size:20px">Lessons</div><div style="height:4px;background:#e3e0d7;border-radius:4px;margin-top:12px"><div style="width:25%;height:100%;background:#0f7b5f;border-radius:4px"></div></div></div>
+    <div class="nav"><span style="color:#0f7b5f">✓</span>What a company is worth</div>
+    <div class="nav"><span style="color:#0f7b5f">✓</span>Reading an annual report</div>
+    <div class="nav on" style="background:#fff;color:#0e1b2c;font-weight:600;border:1px solid #ebe7de"><span>3</span>The three statements</div>
+    <div class="nav"><span class="muted">4</span>Accrual accounting</div>
+    <div class="nav"><span class="muted">5</span>Working capital</div>
+    <div class="nav"><span class="muted">6</span>Cash flow quality</div>
+    <div class="nav"><span class="muted">7</span>Ratio analysis</div>
+  </div>
+  <div class="main" style="overflow:hidden">
+    <div style="width:680px;margin:0 auto;padding:52px 0">
+      <div style="display:flex;justify-content:space-between" class="muted"><span style="font-size:14px;font-weight:600">Lesson 3 of 12</span><span style="font-size:14px;font-weight:600">8 min read</span></div>
+      <div class="serif" style="font-size:46px;line-height:1.08;margin:18px 0 22px">The three financial statements</div>
+      <p style="font-size:18px;line-height:1.7;color:#2c3746">Every company tells its story in three documents. The <b>income statement</b> shows whether it made money. The <b>balance sheet</b> shows what it owns and owes on one day. The <b>cash flow statement</b> shows where the cash actually went.</p>
+      <div style="margin:28px 0;padding:24px 26px;border-left:3px solid #0f7b5f;background:#fff;border-radius:0 16px 16px 0">
+        <div style="font-size:12px;font-weight:700;color:#0f7b5f;letter-spacing:.08em">THE ONE RULE</div>
+        <div class="serif" style="font-size:28px;margin-top:8px">Assets = Liabilities + Equity</div>
+        <div class="muted" style="font-size:15px;margin-top:8px">A sari-sari store with ₱80,000 of stock and a ₱30,000 loan has ₱50,000 of owner's equity.</div>
+      </div>
+      <p style="font-size:18px;line-height:1.7;color:#2c3746">The three connect. Profit from the income statement flows into equity on the balance sheet, and the cash flow statement explains why cash changed even when profit did not.</p>
+      <div class="card" style="padding:18px 22px;display:flex;gap:16px;align-items:center;margin-top:28px">
+        <svg width="46" height="46" viewBox="0 0 44 44"><rect width="44" height="44" rx="12" fill="#e7f2ec"/><path d="M14 23l6 6 11-13" stroke="#0f7b5f" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+        <div style="flex:1"><div style="font-weight:600;font-size:16px">Quick check</div><div class="muted" style="font-size:14px">2 questions before you move on</div></div>
+        <span class="btn">Start check</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= B3 LEADERBOARD (desktop) ======================= -->
+<div class="screen B" id="B3">
+  <div class="side">
+    <div class="logo">Finlab</div>
+    <div class="nav"><svg width="18" height="18" viewBox="0 0 22 22"><path d="M3 10l8-7 8 7v9h-5v-6H8v6H3z" fill="#4b5563"/></svg>Home</div>
+    <div class="group">LEARN</div>
+    <div class="nav">Certifications</div><div class="nav">Lessons</div><div class="nav">Flashcards</div>
+    <div class="group">PRACTICE</div>
+    <div class="nav">Cases</div><div class="nav">Trading Floor</div><div class="nav">Stock pitches</div>
+    <div class="group">COMPETE</div>
+    <div class="nav on">Leaderboards</div><div class="nav">Classes</div>
+  </div>
+  <div class="main" style="padding:44px 56px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-end">
+      <div><div class="serif" style="font-size:44px">Leaderboard</div><div class="muted" style="font-size:15px;margin-top:4px">Rankings use scored work only. Nobody can edit them.</div></div>
+      <div style="display:flex;gap:4px;background:#ebe7de;padding:4px;border-radius:12px;font-size:14px;font-weight:600"><span style="padding:9px 18px;border-radius:9px;background:#fff">This week</span><span style="padding:9px 18px" class="muted">My school</span><span style="padding:9px 18px" class="muted">National</span></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 2.2fr;gap:20px;margin-top:28px">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <div class="card" style="background:#0e1b2c;color:#f6f4ef;border:0;padding:26px">
+          <div style="font-size:13px;opacity:.7">Your rank this week</div>
+          <div style="display:flex;align-items:baseline;gap:10px;margin-top:6px"><span class="serif" style="font-size:60px;line-height:1">#3</span><span style="font-size:14px;color:#7fd8b5;font-weight:600">▲ 2</span></div>
+          <div style="font-size:14px;opacity:.7;margin-top:8px">180 XP behind first place</div>
+        </div>
+        <div class="card"><div class="muted" style="font-size:13px">Weekly XP</div><div class="serif" style="font-size:36px;margin-top:6px">1,240</div>
+          <svg width="100%" height="60" viewBox="0 0 260 60"><g fill="#0f7b5f"><rect x="0" y="34" width="26" height="26" rx="4"/><rect x="38" y="20" width="26" height="40" rx="4"/><rect x="76" y="40" width="26" height="20" rx="4"/><rect x="114" y="10" width="26" height="50" rx="4"/><rect x="152" y="24" width="26" height="36" rx="4"/></g><g fill="#e3e0d7"><rect x="190" y="50" width="26" height="10" rx="4"/><rect x="228" y="50" width="26" height="10" rx="4"/></g></svg></div>
+      </div>
+      <div class="card" style="padding:8px 26px">
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;padding:14px 0;font-size:12px;font-weight:600;letter-spacing:.06em" class="muted"><span>RANK</span><span>NAME</span><span>SCHOOL</span><span style="text-align:right">XP</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 0;font-size:15px"><span class="muted">1</span><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:34px;height:34px;border-radius:50%;background:#e8dfcd;display:grid;place-items:center;font-size:12px">BG</span>Bea Garcia</span><span class="muted">UP Diliman</span><span style="text-align:right;font-weight:600">1,420</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 0;font-size:15px"><span class="muted">2</span><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:34px;height:34px;border-radius:50%;background:#dfe7e3;display:grid;place-items:center;font-size:12px">CR</span>Carlo Reyes</span><span class="muted">Ateneo de Manila</span><span style="text-align:right;font-weight:600">1,305</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 12px;margin:0 -12px;font-size:15px;background:#f1f7f3;border-radius:12px"><span style="color:#0f7b5f;font-weight:700">3</span><span style="display:flex;align-items:center;gap:12px;font-weight:700"><span style="width:34px;height:34px;border-radius:50%;background:#0f7b5f;color:#fff;display:grid;place-items:center;font-size:12px">MM</span>Mannix (you)</span><span class="muted">De La Salle University</span><span style="text-align:right;font-weight:700;color:#0f7b5f">1,240</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 0;font-size:15px"><span class="muted">4</span><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:34px;height:34px;border-radius:50%;background:#e6e1ee;display:grid;place-items:center;font-size:12px">JS</span>Jem Santos</span><span class="muted">UST</span><span style="text-align:right;font-weight:600">990</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 0;font-size:15px"><span class="muted">5</span><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:34px;height:34px;border-radius:50%;background:#f0e4e0;display:grid;place-items:center;font-size:12px">AL</span>Aira Lim</span><span class="muted">PUP</span><span style="text-align:right;font-weight:600">860</span></div>
+        <div class="line"></div>
+        <div style="display:grid;grid-template-columns:50px 1fr 200px 90px;align-items:center;padding:14px 0;font-size:15px"><span class="muted">6</span><span style="display:flex;align-items:center;gap:12px;font-weight:600"><span style="width:34px;height:34px;border-radius:50%;background:#e4e8ee;display:grid;place-items:center;font-size:12px">PD</span>Paolo Dizon</span><span class="muted">Mapúa</span><span style="text-align:right;font-weight:600">720</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= C1 HOME (desktop) ======================= -->
+<div class="screen C" id="C1">
+  <div class="side">
+    <div class="logo">FIN<span style="color:#c6f432">LAB</span></div>
+    <div class="nav on"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="#111"/></svg>Home</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 4h10a3 3 0 0 1 3 3v13a3 3 0 0 0-3-3H4z" stroke="#bbb" stroke-width="2.5" fill="none"/></svg>Learn</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 18l6-7 4 3 8-10" stroke="#bbb" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>Trade</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M7 3h10v6a5 5 0 0 1-10 0zM12 14v4M8 21h8" stroke="#bbb" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>School Wars</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" stroke="#bbb" stroke-width="2.5" fill="none"/><path d="M3 22a9 7 0 0 1 18 0" stroke="#bbb" stroke-width="2.5" fill="none"/></svg>Me</div>
+    <div style="flex:1"></div>
+    <div style="border:2px solid #333;border-radius:18px;padding:16px;color:#ddd;font-size:14px"><b style="color:#c6f432;font-family:'Archivo Black'">12 DAY STREAK</b><br>Don't break it tonight.</div>
+  </div>
+  <div class="main" style="padding:40px 48px">
+    <div style="display:flex;gap:36px;align-items:flex-start">
+      <div style="flex:1">
+        <div class="huge" style="font-size:84px">Yo, Mannix.<br><span style="color:#0047ff">Keep it going.</span></div>
+        <div class="block" style="background:#0047ff;color:#fff;padding:30px;margin-top:34px;position:relative;display:flex;justify-content:space-between;align-items:flex-end">
+          <div><div style="font-weight:700;font-size:14px;opacity:.85;letter-spacing:.05em">UP NEXT · LESSON 3 OF 12</div><div class="huge" style="font-size:42px;margin-top:10px">The three<br>financial statements</div></div>
+          <span class="btn" style="background:#c6f432;color:#111">Let's go →</span>
+          <span class="sticker" style="right:150px;top:-20px;background:#ff5a36;color:#111;transform:rotate(7deg)">+40 XP</span>
+        </div>
+      </div>
+      <div style="width:330px;display:flex;flex-direction:column;gap:22px;padding-top:8px">
+        <div class="block" style="background:#ff5a36;padding:22px"><div style="font-weight:700;font-size:14px">FINLAB SCORE</div><div class="huge" style="font-size:76px;margin-top:8px">72</div><div style="font-weight:700">+4 this week</div></div>
+        <div class="block" style="background:#c6f432;padding:22px;position:relative"><div style="font-weight:700;font-size:14px">SCHOOL WARS</div><div class="huge" style="font-size:40px;margin-top:8px">DLSU #1</div><div style="font-weight:700">You gave 1,240 XP this week</div></div>
+        <div class="block" style="background:#fff;padding:22px"><div style="font-weight:700;font-size:14px">DAILY QUESTION</div><div style="font-weight:600;font-size:16px;margin:8px 0 0">₱1,000 at 6% inflation. What's it worth next year?</div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ======================= C2 LESSON (desktop) ======================= -->
+<div class="screen C" id="C2" style="background:#c6f432;flex-direction:column;padding:40px 72px">
+  <div style="display:flex;gap:8px;width:100%">
+    <i style="flex:1;height:14px;border:3px solid #111;border-radius:9px;background:#111"></i><i style="flex:1;height:14px;border:3px solid #111;border-radius:9px;background:#111"></i><i style="flex:1;height:14px;border:3px solid #111;border-radius:9px;background:#111"></i><i style="flex:1;height:14px;border:3px solid #111;border-radius:9px;background:#fff"></i><i style="flex:1;height:14px;border:3px solid #111;border-radius:9px;background:#fff"></i>
+  </div>
+  <div style="display:flex;gap:60px;margin-top:70px;flex:1">
+    <div style="width:560px">
+      <div style="font-weight:700;font-size:16px;letter-spacing:.05em">QUESTION 4 OF 5</div>
+      <div class="huge" style="font-size:58px;margin-top:14px">Aling Rosa buys ₱20,000 of stock on credit. What moves?</div>
+    </div>
+    <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding-top:30px">
+      <div class="block" style="background:#fff;padding:22px 26px;font-weight:700;font-size:21px">Assets ↑ and equity ↑</div>
+      <div class="block" style="background:#0047ff;color:#fff;padding:22px 26px;font-weight:700;font-size:21px;position:relative">Assets ↑ and liabilities ↑<span class="sticker" style="right:-14px;top:-18px;background:#ff5a36;transform:rotate(-6deg);color:#111">Your pick</span></div>
+      <div class="block" style="background:#fff;padding:22px 26px;font-weight:700;font-size:21px">Cash ↓ by ₱20,000</div>
+      <div class="block" style="background:#fff;padding:22px 26px;font-weight:700;font-size:21px">Nothing, until she pays</div>
+    </div>
+  </div>
+  <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:700;font-size:16px">Hint costs 5 XP</span><span class="btn" style="background:#111;color:#c6f432;box-shadow:5px 5px 0 #0047ff;padding:18px 60px">Lock it in</span></div>
+</div>
+
+<!-- ======================= C3 LEADERBOARD (desktop) ======================= -->
+<div class="screen C" id="C3">
+  <div class="side">
+    <div class="logo">FIN<span style="color:#c6f432">LAB</span></div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8v10h-6v-6H9v6H3z" fill="#bbb"/></svg>Home</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M4 4h10a3 3 0 0 1 3 3v13a3 3 0 0 0-3-3H4z" stroke="#bbb" stroke-width="2.5" fill="none"/></svg>Learn</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M3 18l6-7 4 3 8-10" stroke="#bbb" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>Trade</div>
+    <div class="nav on"><svg width="22" height="22" viewBox="0 0 24 24"><path d="M7 3h10v6a5 5 0 0 1-10 0zM12 14v4M8 21h8" stroke="#111" stroke-width="2.5" fill="none" stroke-linecap="round"/></svg>School Wars</div>
+    <div class="nav"><svg width="22" height="22" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4.5" stroke="#bbb" stroke-width="2.5" fill="none"/><path d="M3 22a9 7 0 0 1 18 0" stroke="#bbb" stroke-width="2.5" fill="none"/></svg>Me</div>
+  </div>
+  <div class="main" style="padding:40px 48px;display:flex;gap:44px">
+    <div style="flex:1">
+      <div class="huge" style="font-size:80px">School <span style="color:#ff5a36">Wars.</span></div>
+      <div style="font-weight:600;font-size:17px;margin:8px 0 30px">This week's XP by university · ends Sunday</div>
+      <div style="display:flex;align-items:flex-end;gap:22px;height:430px">
+        <div style="flex:1;text-align:center"><div style="font-weight:700;font-size:16px;margin-bottom:10px">ATENEO · 11,920 XP</div><div class="block" style="height:290px;background:#fff;display:grid;place-items:center"><span class="huge" style="font-size:64px">2</span></div></div>
+        <div style="flex:1;text-align:center;position:relative"><div style="font-weight:700;font-size:16px;margin-bottom:10px">DLSU · 12,480 XP</div><div class="block" style="height:380px;background:#0047ff;color:#fff;display:grid;place-items:center"><span class="huge" style="font-size:84px">1</span></div><span class="sticker" style="left:-16px;top:-22px;background:#c6f432;transform:rotate(-8deg)">Your school</span></div>
+        <div style="flex:1;text-align:center"><div style="font-weight:700;font-size:16px;margin-bottom:10px">UP DILIMAN · 10,300 XP</div><div class="block" style="height:220px;background:#ff5a36;display:grid;place-items:center"><span class="huge" style="font-size:64px">3</span></div></div>
+      </div>
+    </div>
+    <div style="width:380px;padding-top:30px">
+      <div class="block" style="background:#fff;padding:6px 22px">
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid #111"><span class="huge" style="width:34px;font-size:22px">4</span><span style="flex:1;font-weight:700;font-size:17px">UST</span><span style="font-weight:700">8,940</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid #111"><span class="huge" style="width:34px;font-size:22px">5</span><span style="flex:1;font-weight:700;font-size:17px">PUP</span><span style="font-weight:700">8,410</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 0;border-bottom:3px solid #111"><span class="huge" style="width:34px;font-size:22px">6</span><span style="flex:1;font-weight:700;font-size:17px">Mapúa</span><span style="font-weight:700">7,020</span></div>
+        <div style="display:flex;align-items:center;gap:14px;padding:16px 0"><span class="huge" style="width:34px;font-size:22px">7</span><span style="flex:1;font-weight:700;font-size:17px">FEU</span><span style="font-weight:700">6,880</span></div>
+      </div>
+      <div class="block" style="background:#ff5a36;padding:22px;margin-top:26px;position:relative"><div class="huge" style="font-size:26px">Your XP: 1,240</div><div style="font-weight:700;margin-top:6px">Top contributor for DLSU this week</div><span class="sticker" style="right:-12px;top:-18px;background:#fff;transform:rotate(6deg)">MVP</span></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>

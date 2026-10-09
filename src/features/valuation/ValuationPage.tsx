@@ -17,6 +17,8 @@ import { Field, Input, Textarea } from '@/components/ui/form';
 import { Modal, Tabs, Table, Td, Th } from '@/components/ui/misc';
 import { EmptyState, ErrorState, InlineError } from '@/components/ui/states';
 import { SecurityPicker } from '@/features/shared/WorkHelpers';
+import { buildFootballField } from '@/lib/finance/footballField';
+import { ValuationPicture } from './ValuationPicture';
 import { fmtMoney, fmtNumber, fmtPct, timeAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import type { ValuationModel } from '@/types/domain';
@@ -100,6 +102,16 @@ export default function ValuationPage() {
   const dcfResult = useMemo(() => (dcfErrors.length ? null : runDcf(dcf)), [dcf, dcfErrors.length]);
   const sensitivity = useMemo(() => (dcfErrors.length ? null : dcfSensitivity(dcf)), [dcf, dcfErrors.length]);
   const setD = (k: keyof DcfInputs) => (v: number) => setDcf((d) => ({ ...d, [k]: v }));
+  const fieldBars = useMemo(
+    () =>
+      buildFootballField({
+        eps, peers: peerList, targetPE, bvps, targetPB: pb, justifiedPB: justifiedPb,
+        dcfBase: dcfResult?.valuePerShare ?? null,
+        dcfGrid: sensitivity ? sensitivity.flatMap((r) => r.values.map((v) => v.value)) : [],
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [eps, peers, targetPE, bvps, pb, justifiedPb, dcfResult, sensitivity],
+  );
 
   const current = () => {
     if (method === 'pe') return { inputs: { eps, peers: peerList, targetPE }, outputs: { targetPrice: peTarget } };
@@ -411,6 +423,8 @@ export default function ValuationPage() {
           )}
         </div>
       )}
+
+      <ValuationPicture bars={fieldBars} price={co.currentPrice} currency={co.currency} />
 
       <Card className="mt-6">
         <CardHeader title="Saved valuation models" icon={<FolderOpen className="h-3.5 w-3.5" />} />

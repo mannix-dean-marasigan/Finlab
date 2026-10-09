@@ -17,6 +17,7 @@ import { fmtDateTime, fmtMinutes } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { SaveIndicator, TaskInput, isTaskAnswered, useAutosave } from './TaskWorkspace';
 import { SubmissionResult } from './SubmissionResult';
+import { AnalystAnswer } from './AnalystAnswer';
 
 function announceAchievements(ids: string[] | undefined, names: Map<string, string>) {
   for (const id of ids ?? []) toast.success(`Achievement unlocked: ${names.get(id) ?? id}`);
@@ -229,6 +230,11 @@ export default function ChallengePage() {
           {shownSub && (
             <div>
               <SubmissionResult submission={shownSub} passingScore={c.passing_score} />
+              {c.kind === 'tasks' && shownSub.status === 'scored' && !competitionId && (
+                <div className="mt-4">
+                  <AnalystAnswer challengeId={c.id} responses={shownSub.responses ?? {}} />
+                </div>
+              )}
               <div className="mt-2 flex justify-end">
                 <Button size="sm" variant="ghost" onClick={() => setParams(competitionId ? { competition: competitionId } : {})}>
                   Back to brief

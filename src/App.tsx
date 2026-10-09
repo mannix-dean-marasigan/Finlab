@@ -41,6 +41,7 @@ const ResearchPage = lazy(() => import('./features/research/ResearchPage'));
 const ResearchEditorPage = lazy(() => import('./features/research/ResearchEditorPage'));
 const ValuationPage = lazy(() => import('./features/valuation/ValuationPage'));
 const ModelsPage = lazy(() => import('./features/models/ModelsPage'));
+const PlannerPage = lazy(() => import('./features/planner/PlannerPage'));
 const ModelEditorPage = lazy(() => import('./features/models/ModelEditorPage'));
 const MarketsPage = lazy(() => import('./features/markets/MarketsPage'));
 const SecurityPage = lazy(() => import('./features/markets/SecurityPage'));
@@ -108,6 +109,7 @@ export default function App() {
             <Route path="/pitches/:id" element={<PitchEditorPage />} />
             <Route path="/valuation" element={<ValuationPage />} />
             <Route path="/models" element={<ModelsPage />} />
+            <Route path="/planner" element={<PlannerPage />} />
             <Route path="/models/:id" element={<ModelEditorPage />} />
             <Route path="/markets" element={<MarketsPage />} />
             <Route path="/markets/:id" element={<SecurityPage />} />

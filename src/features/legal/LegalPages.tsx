@@ -70,7 +70,8 @@ This notice explains what FINLAB collects and why, in line with the Philippine *
 | Peer reviews you write or receive | To provide anonymous peer feedback |
 | Calculated data: scores, skills, ranks, achievements, certificates | Core features of the platform |
 | Feedback you send, including the page and browser type | To fix bugs and improve FINLAB |
-| AI study helper: only how many messages you sent each day (the text of your messages is not stored by us) | To apply daily limits |
+| AI study helper: how many messages you sent each day, and how many were stopped by our safety filters (the text of your messages is not stored by us) | To apply daily limits and keep the helper safe |
+| AI answers you choose to report: that answer, the question before it and your note | To fix wrong or unsafe answers |
 | Activity such as streaks, XP and sign-in time | To show your progress and to understand how the platform is used |
 
 We do **not** collect payment information, and we do **not** sell your data or use it for advertising.
@@ -84,7 +85,7 @@ We do **not** collect payment information, and we do **not** sell your data or u
 - **Peer reviews** are anonymous to the pitch's author; the author sees "Peer analyst #N", not your name.
 
 ## AI study helper
-When the AI study helper is switched on and you use it, the messages you type, and the text of the lesson you are reading, are sent to **Google's Gemini** service to produce a reply. When Gemini is busy or out of its free quota, they may instead be sent to **Groq**, a backup AI service, under Groq's own terms. We remove email addresses and phone numbers first, but please do not type personal details. We use Google's free tier, so Google may use these messages to improve its products. We do not store the text of your messages, and the helper never receives your answers or scores. If you would rather not use it, simply do not open the chat button.
+When the AI study helper is switched on and you use it, the messages you type, and the text of the lesson you are reading, are sent to **Google's Gemini** service to produce a reply. When Gemini is busy or out of its free quota, they may instead be sent to **Groq**, a backup AI service, under Groq's own terms. We remove email addresses and phone numbers first, but please do not type personal details. We use Google's free tier, so Google may use these messages to improve its products. We do not store the text of your messages, except an answer you choose to report (with the question before it), and the helper never receives your answers or scores. If you would rather not use it, simply do not open the chat button.
 
 ## Where data is stored
 FINLAB uses **Supabase** (database, authentication and the server function behind the AI study helper), **GitHub Pages** (website hosting) and, for the AI study helper only, **Google Gemini** and **Groq**. Data may be processed outside the Philippines by these providers.

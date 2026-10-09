@@ -17,6 +17,7 @@ import { cn } from '@/lib/utils';
 import { RoundPlayer } from './RoundPlayer';
 import { TradingChart } from './TradingChart';
 import { OrderTicket } from './OrderTicket';
+import { MarketMovers } from './MarketMovers';
 
 type TabId = 'practice' | 'weekly' | 'live' | 'history';
 
@@ -228,6 +229,7 @@ function LiveTab() {
           )}
         </div>
       </div>
+      {tickers.data && tickers.data.length > 0 && <MarketMovers tickers={tickers.data} selected={symbol} onPick={setSymbol} />}
       {account.data && (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card>

@@ -8,6 +8,18 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-16',
+    title: 'Analyst answers, a portfolio planner and market movers',
+    items: [
+      "After you pass a case, compare your work with an analyst's answer: the expected numbers and the key ideas a strong answer covers.",
+      'Portfolio planner (Tools): build a portfolio for a real goal, like an emergency fund or a condo down payment, then compare it with a coach.',
+      'Valuation in one picture: see your P/E, P/B and DCF ranges side by side against the price.',
+      'Market movers on the Trading Floor: biggest gainers and losers, price ranges, swings and sectors.',
+      'Challenges can be filtered by length, like under 15 or under 30 minutes.',
+      'You can report any AI helper answer that looks wrong.',
+    ],
+  },
+  {
     id: '2026-10-13',
     title: 'AI study helper',
     items: [

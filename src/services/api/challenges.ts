@@ -128,3 +128,18 @@ export async function fetchRecommendedChallenge(
   });
   return open[0] ?? null;
 }
+
+export interface ModelAnswerTask {
+  id: string;
+  label: string;
+  type: 'numeric' | 'mcq' | 'text' | string;
+  answer: number | string | null;
+  tolerance_pct: number | null;
+  key_ideas: string[] | null;
+  ideas_needed: number | null;
+  options?: { id: string; label: string }[] | null;
+}
+/** The analyst's answer for a case. Available after passing it or using every attempt; never for exams or competitions. */
+export async function getModelAnswer(challengeId: string): Promise<{ passed: boolean; tasks: ModelAnswerTask[] }> {
+  return unwrap(await supabase.rpc('challenge_model_answer', { p_challenge: challengeId })) as { passed: boolean; tasks: ModelAnswerTask[] };
+}

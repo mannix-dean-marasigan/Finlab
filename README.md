@@ -146,7 +146,7 @@ src/
    then `supabase/migrations/20261012000015_tutorial.sql` (Tutorial Complete badge for the new-user tutorial)
    then `supabase/migrations/20261013000016_trading_floor.sql` (Trading Floor: simulated markets, rounds, weekly challenge, live market)
    then `supabase/migrations/20261014000017_trading_extras.sql` (Trading Floor limit orders, trade journal notes, trading badges)
-   then `supabase/migrations/20261015000018_ai_helper.sql` (AI study helper limits), then deploy `supabase/functions/chat/index.ts` as a Supabase Edge Function named `chat` (secrets: GEMINI_API_KEY, optional GEMINI_MODEL)
+   then `supabase/migrations/20261015000018_ai_helper.sql` (AI study helper limits), then `supabase/migrations/20261016000019_reports_guard_answers.sql` (AI reports, tricks counter, prompt guard settings, analyst answers), then deploy `supabase/functions/chat/index.ts` as a Supabase Edge Function named `chat` (secrets: GEMINI_API_KEY, optional GEMINI_MODEL)
 9. `supabase/seed.sql`
 10. `supabase/seed_002_certifications.sql` (new lessons, knowledge checks, challenges, exams, certifications — safe to re-run)
 11. `supabase/seed_003_lesson_videos.sql` (one embedded YouTube video per lesson — safe to re-run)
