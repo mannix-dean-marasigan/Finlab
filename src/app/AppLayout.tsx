@@ -3,7 +3,7 @@ import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Bell, BookOpen, Briefcase, Calculator, CandlestickChart, ChevronDown, FileSearch, GraduationCap, Compass, Layers, LayoutDashboard,
-  LogOut, Menu, Newspaper, Presentation, Settings, PieChart, Shield, Sigma, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
+  LogOut, Menu, Newspaper, Presentation, Settings, PieChart, Shield, Sigma, Spline, Sparkles, Swords, Target, Trophy, User, Users, X, Zap,
 } from 'lucide-react';
 import { Logo } from '@/components/Logo';
 import { cn, initials } from '@/lib/utils';
@@ -64,6 +64,7 @@ const NAV: NavItem[] = [
       { to: '/valuation', label: 'Valuation', icon: Calculator },
       { to: '/models', label: 'Financial models', icon: Sigma },
       { to: '/planner', label: 'Portfolio planner', icon: PieChart },
+      { to: '/optimizer', label: 'Portfolio optimizer', icon: Spline },
     ],
   },
   {

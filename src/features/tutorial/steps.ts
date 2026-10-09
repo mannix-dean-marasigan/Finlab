@@ -111,6 +111,11 @@ export const STEPS: TutorialStep[] = [
     title: 'Portfolio planner',
     body: "Build a portfolio for a real person's goal, then compare it with a coach's plan.",
   },
+  {
+    id: 'optimizer', chapter: 'Tools', route: '/optimizer', target: 'page-header',
+    title: 'Portfolio optimizer',
+    body: 'See the efficient frontier: the best return for each level of risk, and how the best mix changes with your assumptions.',
+  },
   // ---------------------------------------------------------------- Compete
   {
     id: 'leaderboards', chapter: 'Compete', route: '/leaderboard', target: 'page-header',

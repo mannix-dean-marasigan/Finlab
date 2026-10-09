@@ -13,6 +13,7 @@ export const CHANGELOG: ChangelogEntry[] = [
     items: [
       "After you pass a case, compare your work with an analyst's answer: the expected numbers and the key ideas a strong answer covers.",
       'Portfolio planner (Tools): build a portfolio for a real goal, like an emergency fund or a condo down payment, then compare it with a coach.',
+      'Portfolio optimizer (Tools): see the efficient frontier, the lowest-risk mix and the best return per unit of risk, and change the assumptions yourself.',
       'Valuation in one picture: see your P/E, P/B and DCF ranges side by side against the price.',
       'Market movers on the Trading Floor: biggest gainers and losers, price ranges, swings and sectors.',
       'Challenges can be filtered by length, like under 15 or under 30 minutes.',
