@@ -165,7 +165,7 @@ export function ChatWidget() {
             </form>
             <p className="mt-2 text-[0.65rem] leading-relaxed text-fg-subtle">
               {left > 0 ? `${left} message${left === 1 ? '' : 's'} left today. ` : 'You are out of messages for today. '}
-              AI can be wrong, and this is not investment advice. Don't share personal details. Messages are sent to Google's Gemini, which may use them to improve its products.
+              AI can be wrong, and this is not investment advice. Don't share personal details. Messages are sent to Google's Gemini (which may use them to improve its products), or to Groq when Gemini is busy.
             </p>
           </div>
         </div>

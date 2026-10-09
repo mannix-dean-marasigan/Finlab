@@ -9,7 +9,8 @@ Powered by Google Gemini. The browser never sees the Gemini key.
 3. **Create the function:** Supabase dashboard > Edge Functions > Deploy a new function > name it exactly `chat` > paste the whole of `supabase/functions/chat/index.ts` > Deploy.
 4. **Add the secret:** Edge Functions > Secrets > add `GEMINI_API_KEY` with your key. Optional: `GEMINI_MODEL` (default `gemini-3.5-flash-lite`, then `gemini-3.5-flash`, then `gemini-2.5-flash`). Check AI Studio for the current free model names.
 5. If browsers get a 401 before the function even runs, open the function's settings and turn **off** "Verify JWT". This is safe: the function checks the user's login itself through the database.
-6. **Switch it on:** FINLAB > Admin > Overview > AI study helper > Turn on > Save > **Send a test question**.
+6. **Optional free backup (recommended):** create a free key at https://console.groq.com (API Keys), then add the secret `GROQ_API_KEY`. When every Gemini model is busy or out of its free daily quota, the helper switches to Groq automatically (`llama-3.3-70b-versatile`, then `openai/gpt-oss-120b`, then `llama-3.1-8b-instant`; override the first choice with `GROQ_MODEL`). A message Gemini blocks for safety is never retried on Groq.
+7. **Switch it on:** FINLAB > Admin > Overview > AI study helper > Turn on > Save > **Send a test question**.
 
 ## Limits and privacy
 

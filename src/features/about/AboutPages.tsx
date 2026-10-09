@@ -135,7 +135,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: 'Is there an AI helper? Is it safe?',
-    a: "When it is switched on, a study helper explains lessons and answers questions about FINLAB PH. It is powered by Google's Gemini. It won't give you answers to graded questions, it never sees your scores, and we remove emails and phone numbers before sending your message. On the free tier Google may use messages to improve its products, so please don't type personal details. We only keep a daily message count, never the text.",
+    a: "When it is switched on, a study helper explains lessons and answers questions about FINLAB PH. It is powered by Google's Gemini, with Groq as a backup when Gemini is busy. It won't give you answers to graded questions, it never sees your scores, and we remove emails and phone numbers before sending your message. On the free tier Google may use messages to improve its products, so please don't type personal details. We only keep a daily message count, never the text.",
   },
   { q: 'I found a bug or have an idea.', a: 'Please tell us with the Feedback button in the bottom corner of the app. We read every message.' },
 ];

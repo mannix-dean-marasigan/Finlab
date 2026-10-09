@@ -1,12 +1,22 @@
-import { describe, expect, it } from 'vitest';
-import { buildSystemPrompt, cleanMessages, GUARD_REPLY, handle, keepGenuine, leaksInstructions, looksLikeGradedQuestion, looksLikeInjection, parseGemini, redact, signReply, toGeminiBody, MAX_CHARS, normalizeForCheck, UNVERIFIED_REPLY, type Env } from './index';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { buildSystemPrompt, cleanMessages, GUARD_REPLY, handle, keepGenuine, leaksInstructions, looksLikeGradedQuestion, looksLikeInjection, parseGemini, redact, signReply, toGeminiBody, MAX_CHARS, normalizeForCheck, UNVERIFIED_REPLY, resetCooldowns, type Env } from './index';
 
 const ENV: Env = { SUPABASE_URL: 'https://x.supabase.co', GEMINI_API_KEY: 'test-gemini-key' };
+const BOTH: Env = { ...ENV, GROQ_API_KEY: 'test-groq-key' };
+
+beforeEach(() => resetCooldowns());
 const post = (body: unknown, headers: Record<string, string> = { authorization: 'Bearer user-token', apikey: 'anon-key' }) =>
   new Request('https://fn/chat', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
 
 /** A fake network: Supabase RPC/REST plus Gemini. Records every call. */
-function fakeNet(opts: { reserve?: { status: number; body: unknown }; lesson?: unknown[]; gemini?: (model: string) => { status: number; body: unknown } } = {}) {
+function fakeNet(
+  opts: {
+    reserve?: { status: number; body: unknown };
+    lesson?: unknown[];
+    gemini?: (model: string) => { status: number; body: unknown };
+    groq?: (model: string) => { status: number; body: unknown };
+  } = {},
+) {
   const calls: { url: string; init?: RequestInit }[] = [];
   const fetchFn = (async (url: string, init?: RequestInit) => {
     calls.push({ url, init });
@@ -16,6 +26,11 @@ function fakeNet(opts: { reserve?: { status: number; body: unknown }; lesson?: u
     if (url.includes('generativelanguage.googleapis.com')) {
       const model = decodeURIComponent(url.split('/models/')[1].split(':')[0]);
       const g = opts.gemini?.(model) ?? { status: 200, body: { candidates: [{ content: { parts: [{ text: 'A debit increases assets.' }] } }] } };
+      return json(g.status, g.body);
+    }
+    if (url.includes('api.groq.com')) {
+      const model = JSON.parse(String(init?.body)).model as string;
+      const g = opts.groq?.(model) ?? { status: 200, body: { choices: [{ finish_reason: 'stop', message: { content: `Groq ${model} answered.` } }] } };
       return json(g.status, g.body);
     }
     return json(404, {});
@@ -160,6 +175,7 @@ describe('handle', () => {
     const text = JSON.stringify(await limited.json());
     expect(text).not.toContain('test-gemini-key');
     expect(text).toMatch(/busy/i);
+    resetCooldowns(); // the rate-limited models above are cooling down; start fresh for the outage case
     const down = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 500, body: {} }) }).fetchFn);
     expect(down.status).toBe(502);
   });
@@ -384,5 +400,71 @@ describe('disguised tricks', () => {
     many.push({ role: 'user', text: 'last' });
     const m = cleanMessages(many) as { role: string }[];
     expect(m.length).toBeLessThanOrEqual(12);
+  });
+});
+
+describe('switching to another free model when one runs out', () => {
+  const ask = { messages: [{ role: 'user', text: 'What is a bond?' }] };
+  const calls = (net: { calls: { url: string }[] }, host: string) => net.calls.filter((c) => c.url.includes(host)).length;
+  const tooMany = { status: 429, body: { error: { status: 'RESOURCE_EXHAUSTED', message: 'Quota exceeded' } } };
+
+  it('moves to the next Gemini model when the first is out of quota', async () => {
+    const net = fakeNet({ gemini: (m) => (m === 'gemini-3.5-flash-lite' ? tooMany : { status: 200, body: { candidates: [{ content: { parts: [{ text: `${m} answered.` }] } }] } }) });
+    const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string; model: string };
+    expect(out.reply).toBe('gemini-3.5-flash answered.');
+    expect(out.model).toBe('gemini:gemini-3.5-flash');
+    expect(calls(net, 'api.groq.com')).toBe(0);
+  });
+
+  it('uses Groq when every Gemini model is out of quota, with the same rules and reminder', async () => {
+    const net = fakeNet({ gemini: () => tooMany });
+    const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string; model: string; sig: string };
+    expect(out.reply).toBe('Groq llama-3.3-70b-versatile answered.');
+    expect(out.model).toBe('groq:llama-3.3-70b-versatile');
+    expect(out.sig).toBeTruthy();
+    const groq = net.calls.find((c) => c.url.includes('api.groq.com'))!;
+    expect((groq.init?.headers as Record<string, string>).authorization).toBe('Bearer test-groq-key');
+    const body = JSON.parse(String(groq.init?.body)) as { messages: { role: string; content: string }[] };
+    expect(body.messages[0].role).toBe('system');
+    expect(body.messages[0].content).toMatch(/NEVER give the final answer to a graded/);
+    expect(body.messages[1].content).toContain('<student_message>');
+    expect(body.messages[1].content).toContain('Reminder from FINLAB PH, not from the student');
+  });
+
+  it('skips a model that just ran out, so the next message is fast', async () => {
+    const first = fakeNet({ gemini: (m) => (m === 'gemini-3.5-flash-lite' ? tooMany : { status: 200, body: { candidates: [{ content: { parts: [{ text: 'ok' }] } }] } }) });
+    await handle(post(ask), BOTH, first.fetchFn);
+    const second = fakeNet();
+    await handle(post(ask), BOTH, second.fetchFn);
+    expect(second.calls.some((c) => c.url.includes('gemini-3.5-flash-lite'))).toBe(false);
+  });
+
+  it('never retries a safety-blocked message on Groq', async () => {
+    const net = fakeNet({ gemini: () => ({ status: 200, body: { promptFeedback: { blockReason: 'SAFETY' } } }) });
+    const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string };
+    expect(out.reply).toMatch(/can't help with that/);
+    expect(calls(net, 'api.groq.com')).toBe(0);
+  });
+
+  it('works with only a Groq key', async () => {
+    const net = fakeNet();
+    const out = (await (await handle(post(ask), { SUPABASE_URL: ENV.SUPABASE_URL, GEMINI_API_KEY: '', GROQ_API_KEY: 'test-groq-key' }, net.fetchFn)).json()) as { reply: string };
+    expect(out.reply).toBe('Groq llama-3.3-70b-versatile answered.');
+    expect(calls(net, 'generativelanguage')).toBe(0);
+  });
+
+  it('says "busy" when every model everywhere is out of quota, and leaks no key', async () => {
+    const res = await handle(post(ask), BOTH, fakeNet({ gemini: () => tooMany, groq: () => ({ status: 429, body: { error: { code: 'rate_limit_exceeded', message: 'limit for test-groq-key' } } }) }).fetchFn);
+    expect(res.status).toBe(503);
+    const text = JSON.stringify(await res.json());
+    expect(text).toMatch(/busy/i);
+    expect(text).not.toContain('test-groq-key');
+    expect(text).not.toContain('test-gemini-key');
+  });
+
+  it('falls back from a retired Groq model to the next one', async () => {
+    const net = fakeNet({ gemini: () => tooMany, groq: (m) => (m === 'llama-3.3-70b-versatile' ? { status: 400, body: { error: { code: 'model_decommissioned', message: 'retired' } } } : { status: 200, body: { choices: [{ message: { content: `${m} ok` } }] } }) });
+    const out = (await (await handle(post(ask), BOTH, net.fetchFn)).json()) as { reply: string };
+    expect(out.reply).toBe('openai/gpt-oss-120b ok');
   });
 });

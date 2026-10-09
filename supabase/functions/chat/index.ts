@@ -4,16 +4,22 @@
 //   1. counts the message against the user's daily limit in the database (ai_reserve),
 //   2. loads that lesson's text with the USER'S own login (so only published lessons are readable),
 //   3. removes emails and phone numbers from the messages,
-//   4. asks Gemini, and returns the reply.
-// It never sees answer keys, never stores message text, and the Gemini key stays in this function's secrets.
+//   4. asks Gemini (and Groq as a backup when Gemini is busy or out of free quota), and returns the reply.
+// It never sees answer keys, never stores message text, and the AI keys stay in this function's secrets.
 //
-// Secrets to set in Supabase (Edge Functions > Secrets):  GEMINI_API_KEY  (required),  GEMINI_MODEL  (optional).
-// SUPABASE_URL is provided automatically.
+// Secrets to set in Supabase (Edge Functions > Secrets):
+//   GEMINI_API_KEY  (main),  GEMINI_MODEL  (optional first choice)
+//   GROQ_API_KEY    (optional backup),  GROQ_MODEL  (optional first choice)
+// At least one key is needed. SUPABASE_URL is provided automatically.
 
 export const MAX_TURNS = 6;
 export const MAX_CHARS = 700;
 export const LESSON_CHARS = 12000;
 export const DEFAULT_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-2.5-flash'];
+/** Backup models on Groq's free tier, tried in order when every Gemini model is busy or out of quota. */
+export const DEFAULT_GROQ_MODELS = ['llama-3.3-70b-versatile', 'openai/gpt-oss-120b', 'llama-3.1-8b-instant'];
+/** A model that answered "too many requests" is skipped for this long, so replies stay fast. */
+export const COOLDOWN_MS = 60_000;
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -25,6 +31,8 @@ export interface Env {
   SUPABASE_URL: string;
   GEMINI_API_KEY: string;
   GEMINI_MODEL?: string;
+  GROQ_API_KEY?: string;
+  GROQ_MODEL?: string;
 }
 
 const APP_GUIDE = `About FINLAB PH (use this to answer "how do I..." questions):
@@ -306,6 +314,28 @@ export function toGeminiBody(system: string, messages: ChatMessage[]) {
   };
 }
 
+/** The same conversation in the OpenAI-style format Groq uses (same wrapping, reminder and redaction as Gemini). */
+export function toGroqBody(model: string, system: string, messages: ChatMessage[]) {
+  const g = toGeminiBody(system, messages);
+  return {
+    model,
+    messages: [
+      { role: 'system', content: system },
+      ...g.contents.map((c) => ({ role: c.role === 'model' ? 'assistant' : 'user', content: c.parts[0].text })),
+    ],
+    temperature: 0.3,
+    max_tokens: 900,
+  };
+}
+
+export function parseGroq(json: unknown): { text?: string; blocked?: string } {
+  const j = json as { choices?: { finish_reason?: string; message?: { content?: string | null } }[] };
+  const c = j?.choices?.[0];
+  const text = (c?.message?.content ?? '').trim();
+  if (text && c?.finish_reason !== 'content_filter') return { text };
+  return { blocked: c?.finish_reason ?? 'EMPTY' };
+}
+
 export function parseGemini(json: unknown): { text?: string; blocked?: string } {
   const j = json as {
     promptFeedback?: { blockReason?: string };
@@ -328,11 +358,20 @@ const reply = (status: number, body: Record<string, unknown>) =>
 
 type Fetch = typeof fetch;
 
-/** Gemini's own error text (status and message) for the admin test and the function logs. The key is always removed. */
-export async function geminiError(res: Response, key: string): Promise<string> {
-  const j = (await res.json().catch(() => ({}))) as { error?: { status?: string; message?: string } };
-  const text = `HTTP ${res.status}${j.error?.status ? ` ${j.error.status}` : ''}${j.error?.message ? `: ${j.error.message}` : ''}`;
-  return (key ? text.split(key).join('[key]') : text).slice(0, 300);
+/** The provider's own error text (status and message) for the admin test and the function logs. Keys are always removed. */
+export async function geminiError(res: Response, ...keys: (string | undefined)[]): Promise<string> {
+  const j = (await res.json().catch(() => ({}))) as { error?: { status?: string; code?: string; type?: string; message?: string } };
+  const label = j.error?.status ?? j.error?.code ?? j.error?.type;
+  let text = `HTTP ${res.status}${label ? ` ${label}` : ''}${j.error?.message ? `: ${j.error.message}` : ''}`;
+  for (const k of keys) if (k) text = text.split(k).join('[key]');
+  return text.slice(0, 300);
+}
+
+// Models that recently said "too many requests" (kept in memory per server instance).
+const cooling = new Map<string, number>();
+/** For tests: forget which models are cooling down. */
+export function resetCooldowns() {
+  cooling.clear();
 }
 
 export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Promise<Response> {
@@ -342,7 +381,9 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
   const auth = req.headers.get('authorization') ?? '';
   const apikey = req.headers.get('apikey') ?? '';
   if (!/^Bearer\s+\S+/.test(auth) || !apikey) return reply(401, { error: 'auth', message: 'Please sign in first.' });
-  if (!env.GEMINI_API_KEY) return reply(503, { error: 'off', message: 'The AI helper is not set up yet.' });
+  // Signs replies so fake history can be dropped. Any server-only secret works; the Gemini key is used when present.
+  const secret = env.GEMINI_API_KEY || env.GROQ_API_KEY || '';
+  if (!secret) return reply(503, { error: 'off', message: 'The AI helper is not set up yet.' });
 
   let body: { messages?: unknown; lessonSlug?: unknown };
   try {
@@ -352,7 +393,7 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
   }
   const cleaned = cleanMessages(body.messages);
   if (typeof cleaned === 'string') return reply(400, { error: 'input', message: cleaned });
-  const messages = await keepGenuine(cleaned, env.GEMINI_API_KEY);
+  const messages = await keepGenuine(cleaned, secret);
 
   const rest = (path: string, init: RequestInit = {}) =>
     fetchFn(`${env.SUPABASE_URL}/rest/v1/${path}`, {
@@ -373,8 +414,14 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
     return reply(503, { error: 'unavailable', message: 'The AI helper is unavailable right now.' });
   }
   const { remaining } = (await reserved.json().catch(() => ({}))) as { remaining?: number };
-  const answer = async (text: string, guarded = false) =>
-    reply(200, { reply: text, sig: await signReply(text, env.GEMINI_API_KEY), remaining: remaining ?? null, ...(guarded ? { guarded: true } : {}) });
+  const answer = async (text: string, guarded = false, model?: string) =>
+    reply(200, {
+      reply: text,
+      sig: await signReply(text, secret),
+      remaining: remaining ?? null,
+      ...(guarded ? { guarded: true } : {}),
+      ...(model ? { model } : {}),
+    });
 
   // Rule-changing attempts are answered here without asking Gemini (they still count toward the daily limit).
   if (looksLikeInjection(messages[messages.length - 1].text)) return answer(GUARD_REPLY, true);
@@ -387,40 +434,58 @@ export async function handle(req: Request, env: Env, fetchFn: Fetch = fetch): Pr
     if (res.ok) lesson = ((await res.json().catch(() => [])) as { title: string; summary?: string; body?: string }[])[0] ?? null;
   }
 
-  // 3. Ask Gemini (first the configured model, then the built-in fallbacks).
-  const payload = JSON.stringify(toGeminiBody(buildSystemPrompt(lesson), messages));
-  const models = [env.GEMINI_MODEL, ...DEFAULT_MODELS].filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
-  let lastStatus = 0;
-  let lastDetail = '';
-  for (const model of models) {
-    let res: Response;
-    try {
-      res = await fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
-        body: payload,
-      });
-    } catch {
-      lastStatus = 0;
-      lastDetail = 'Could not reach Gemini (network error).';
+  // 3. Ask the AI. Order: the Gemini models (each has its own free daily quota), then Groq's models as a backup.
+  const system = buildSystemPrompt(lesson);
+  const uniq = (list: (string | undefined)[]) => list.filter((m, i, a): m is string => !!m && a.indexOf(m) === i);
+  const attempts = [
+    ...(env.GEMINI_API_KEY ? uniq([env.GEMINI_MODEL, ...DEFAULT_MODELS]).map((model) => ({ provider: 'gemini' as const, model })) : []),
+    ...(env.GROQ_API_KEY ? uniq([env.GROQ_MODEL, ...DEFAULT_GROQ_MODELS]).map((model) => ({ provider: 'groq' as const, model })) : []),
+  ];
+  const now = Date.now();
+  let allBusy = true;
+  const details: string[] = [];
+  for (const { provider, model } of attempts) {
+    const id = `${provider}:${model}`;
+    if ((cooling.get(id) ?? 0) > now) {
+      details.push(`${id}: cooling down after "too many requests"`);
       continue;
     }
-    lastStatus = res.status;
-    if (!res.ok) {
-      lastDetail = await geminiError(res, env.GEMINI_API_KEY);
-      console.error(`Gemini ${model} failed: ${lastDetail}`); // no user text and no key in logs
-      if (res.status === 404 || (res.status === 400 && /model/i.test(lastDetail))) continue; // unknown model name: try the next one
-      break;
+    let res: Response;
+    try {
+      res =
+        provider === 'gemini'
+          ? await fetchFn(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', 'x-goog-api-key': env.GEMINI_API_KEY },
+              body: JSON.stringify(toGeminiBody(system, messages)),
+            })
+          : await fetchFn('https://api.groq.com/openai/v1/chat/completions', {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', authorization: `Bearer ${env.GROQ_API_KEY}` },
+              body: JSON.stringify(toGroqBody(model, system, messages)),
+            });
+    } catch {
+      allBusy = false;
+      details.push(`${id}: could not reach the provider (network error)`);
+      continue;
     }
-    const parsed = parseGemini(await res.json().catch(() => ({})));
-    if (parsed.text) return leaksInstructions(parsed.text) ? answer(GUARD_REPLY, true) : answer(parsed.text);
-    return answer("I can't help with that one. Try asking it a different way, or ask me about a lesson or how FINLAB PH works.", true);
+    if (!res.ok) {
+      const detail = await geminiError(res, env.GEMINI_API_KEY, env.GROQ_API_KEY);
+      details.push(`${id}: ${detail}`);
+      console.error(`AI ${id} failed: ${detail}`); // no user text and no keys in logs
+      if (res.status === 429) cooling.set(id, now + COOLDOWN_MS);
+      else allBusy = false;
+      continue; // busy, out of quota, retired model, bad key or outage: try the next model
+    }
+    const parsed = provider === 'gemini' ? parseGemini(await res.json().catch(() => ({}))) : parseGroq(await res.json().catch(() => ({})));
+    if (parsed.text) return leaksInstructions(parsed.text) ? answer(GUARD_REPLY, true) : answer(parsed.text, false, id);
+    // A safety block is final: never retry a blocked message on another provider.
+    return answer("I can't help with that one. Try asking it a different way, or ask me about a lesson or how FINLAB PH works.", true, id);
   }
-  const busy = lastStatus === 429;
-  return reply(busy ? 503 : 502, {
-    error: busy ? 'busy' : 'provider',
-    message: busy ? 'The AI helper is busy right now. Please try again in a minute.' : 'The AI helper could not answer. Please try again.',
-    detail: lastDetail || `HTTP ${lastStatus}`,
+  return reply(allBusy ? 503 : 502, {
+    error: allBusy ? 'busy' : 'provider',
+    message: allBusy ? 'The AI helper is busy right now. Please try again in a minute.' : 'The AI helper could not answer. Please try again.',
+    detail: details.slice(-3).join(' | ') || 'No AI provider is set up.',
   });
 }
 
@@ -433,6 +498,8 @@ if (g.Deno) {
       SUPABASE_URL: D.env.get('SUPABASE_URL') ?? '',
       GEMINI_API_KEY: D.env.get('GEMINI_API_KEY') ?? '',
       GEMINI_MODEL: D.env.get('GEMINI_MODEL') ?? undefined,
+      GROQ_API_KEY: D.env.get('GROQ_API_KEY') ?? undefined,
+      GROQ_MODEL: D.env.get('GROQ_MODEL') ?? undefined,
     }),
   );
 }

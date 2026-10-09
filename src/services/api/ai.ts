@@ -25,7 +25,7 @@ export async function getAiStatus(): Promise<AiStatus> {
 }
 
 /** Sends the recent conversation (and the lesson being read) and returns the helper's reply. */
-export async function askHelper(messages: HelperMessage[], lessonSlug?: string): Promise<{ reply: string; sig?: string; remaining: number | null }> {
+export async function askHelper(messages: HelperMessage[], lessonSlug?: string): Promise<{ reply: string; sig?: string; model?: string; remaining: number | null }> {
   const { data, error } = await supabase.functions.invoke('chat', { body: { messages: messages.slice(-20), lessonSlug } });
   if (error) {
     let message = 'The AI helper could not answer. Please try again.';
@@ -41,7 +41,7 @@ export async function askHelper(messages: HelperMessage[], lessonSlug?: string):
     err.detail = detail;
     throw err;
   }
-  return data as { reply: string; sig?: string; remaining: number | null };
+  return data as { reply: string; sig?: string; model?: string; remaining: number | null };
 }
 
 // ------------------------------------------------------------ admin settings

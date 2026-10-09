@@ -84,10 +84,10 @@ We do **not** collect payment information, and we do **not** sell your data or u
 - **Peer reviews** are anonymous to the pitch's author; the author sees "Peer analyst #N", not your name.
 
 ## AI study helper
-When the AI study helper is switched on and you use it, the messages you type, and the text of the lesson you are reading, are sent to **Google's Gemini** service to produce a reply. We remove email addresses and phone numbers first, but please do not type personal details. We use Google's free tier, so Google may use these messages to improve its products. We do not store the text of your messages, and the helper never receives your answers or scores. If you would rather not use it, simply do not open the chat button.
+When the AI study helper is switched on and you use it, the messages you type, and the text of the lesson you are reading, are sent to **Google's Gemini** service to produce a reply. When Gemini is busy or out of its free quota, they may instead be sent to **Groq**, a backup AI service, under Groq's own terms. We remove email addresses and phone numbers first, but please do not type personal details. We use Google's free tier, so Google may use these messages to improve its products. We do not store the text of your messages, and the helper never receives your answers or scores. If you would rather not use it, simply do not open the chat button.
 
 ## Where data is stored
-FINLAB uses **Supabase** (database, authentication and the server function behind the AI study helper), **GitHub Pages** (website hosting) and, for the AI study helper only, **Google Gemini**. Data may be processed outside the Philippines by these providers.
+FINLAB uses **Supabase** (database, authentication and the server function behind the AI study helper), **GitHub Pages** (website hosting) and, for the AI study helper only, **Google Gemini** and **Groq**. Data may be processed outside the Philippines by these providers.
 
 ## Your rights
 Under the Data Privacy Act you have the right to be informed, to access and correct your data, to object, to ask for blocking or erasure, to data portability and to claim damages. In practice you can view and edit your profile in **Settings**, control your visibility, and **permanently delete your account** in Settings, which deletes your profile and all associated work, scores and certificates. For other requests (for example a copy of your data), use the Feedback button and an administrator will respond. You may also lodge a complaint with the **National Privacy Commission** (privacy.gov.ph).
