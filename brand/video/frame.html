@@ -33,6 +33,12 @@
   .square .logo .p { font-size: 11px; }
 
   /* 9:16 for Reels/TikTok/Stories: everything stays inside the area their buttons don't cover (~y 250–1520). */
+  /* Landscape "cinema": the clip sits in a browser window with an address bar. */
+  .cinema { width: 1920px; height: 1080px; }
+  .cinema .eyebrow { left: 240px; top: 44px; }
+  .cinema .title { left: 240px; top: 80px; width: 1180px; font-size: 48px; white-space: nowrap; }
+  .cinema .logo { right: 240px; top: 64px; }
+
   .vertical { width: 1080px; height: 1920px; }
   .vertical .eyebrow { left: 40px; top: 388px; font-size: 26px; }
   .vertical .title { left: 40px; top: 430px; width: 1000px; font-size: 60px; }
@@ -69,7 +75,9 @@
       wide: { W: 1920, H: 1080, WIN: { x: 240, y: 215, w: 1440, h: 810, r: 20 } },
       square: { W: 1080, H: 1080, WIN: { x: 40, y: 300, w: 1000, h: 562, r: 18 } },
       vertical: { W: 1080, H: 1920, WIN: { x: 40, y: 600, w: 1000, h: 880, r: 18 } },
+      cinema: { W: 1920, H: 1080, WIN: { x: 240, y: 214, w: 1440, h: 810, r: 18 }, BAR: 40 },
     };
+    const BAR = SIZES[shape].BAR ?? 0;
     const { W, H, WIN } = SIZES[shape];
 
     document.getElementById('num').textContent = q.get('num') || '';
@@ -100,19 +108,46 @@
       c.shadowColor = 'rgba(245,165,36,0.18)';
       c.shadowBlur = 70;
       c.fillStyle = '#0b0f15';
-      c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
+      c.beginPath(); c.roundRect(WIN.x, WIN.y - BAR, WIN.w, WIN.h + BAR, WIN.r); c.fill();
       c.restore();
       c.globalCompositeOperation = 'destination-out';
       c.fillStyle = '#000'; // must be fully opaque, or the hole is only partly cut
-      c.beginPath(); c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r); c.fill();
+      c.beginPath();
+      if (BAR) c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, [0, 0, WIN.r, WIN.r]);
+      else c.roundRect(WIN.x, WIN.y, WIN.w, WIN.h, WIN.r);
+      c.fill();
       c.globalCompositeOperation = 'source-over';
       c.strokeStyle = '#2a3443';
       c.lineWidth = 2;
-      c.beginPath(); c.roundRect(WIN.x - 1, WIN.y - 1, WIN.w + 2, WIN.h + 2, WIN.r + 1); c.stroke();
+      c.beginPath(); c.roundRect(WIN.x - 1, WIN.y - 1 - BAR, WIN.w + 2, WIN.h + 2 + BAR, WIN.r + 1); c.stroke();
+      if (BAR) {
+        // Browser bar: window dots and the site's address.
+        c.fillStyle = '#12171f';
+        c.beginPath(); c.roundRect(WIN.x, WIN.y - BAR, WIN.w, BAR, [WIN.r, WIN.r, 0, 0]); c.fill();
+        c.fillStyle = '#1c2430'; c.fillRect(WIN.x, WIN.y - 1, WIN.w, 1);
+        ['#f43f5e', '#f5a524', '#22c55e'].forEach((col, i) => {
+          c.fillStyle = col; c.globalAlpha = 0.75;
+          c.beginPath(); c.arc(WIN.x + 24 + i * 20, WIN.y - BAR / 2, 6, 0, Math.PI * 2); c.fill();
+        });
+        c.globalAlpha = 1;
+        window.__drawUrl = () => {
+          const url = 'mannix-dean-marasigan.github.io/Finlab';
+          c.font = '500 15px Inter, system-ui, sans-serif';
+          const tw = c.measureText(url).width;
+          const pw = tw + 64, px = W / 2 - pw / 2, py = WIN.y - BAR + 8;
+          c.fillStyle = '#0b0f15'; c.beginPath(); c.roundRect(px, py, pw, BAR - 16, 12); c.fill();
+          c.fillStyle = '#5d6978';
+          // padlock
+          c.fillRect(px + 18, py + 11, 10, 8);
+          c.strokeStyle = '#5d6978'; c.lineWidth = 1.6; c.beginPath(); c.arc(px + 23, py + 11, 3.5, Math.PI, 0); c.stroke();
+          c.fillStyle = '#8b98a8'; c.textBaseline = 'middle'; c.fillText(url, px + 38, py + (BAR - 16) / 2 + 1);
+        };
+      }
     }
 
     document.fonts.ready.then(() => {
-      if (part === 'title' && shape === 'wide') {
+      if (window.__drawUrl) window.__drawUrl();
+      if (part === 'title' && (shape === 'wide' || shape === 'cinema')) {
         const t = document.getElementById('title');
         let size = 50;
         while (t.scrollWidth > 1180 && size > 30) t.style.fontSize = (size -= 2) + 'px';

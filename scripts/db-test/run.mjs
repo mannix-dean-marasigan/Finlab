@@ -1216,6 +1216,29 @@ async function main() {
   ok((await q(ltr, `select count(*)::int as n from notifications where user_id = $1 and title like 'Achievement unlocked: %'`, [ltr])).rows[0].n === 2, 'each badge notifies once');
   await expectError(ltr, `select public.tf_award_badges(r) from tf_rounds r limit 1`, [], 'players cannot award themselves badges', 'permission denied');
 
+  // ------------------------------------------------------------------
+  section('AI study helper limits');
+  const ai1 = await createUser('ai1@example.com', 'Ai One');
+  const ai2 = await createUser('ai2@example.com', 'Ai Two');
+  ok((await rpc(ai1, 'ai_status')).enabled === false, 'the AI helper is off by default');
+  await expectError(ai1, `select public.ai_reserve()`, [], 'a message is refused while the helper is off', 'AI_OFF');
+  await db.exec(`update app_settings set value = '1' where key = 'ai_helper_enabled'; update app_settings set value = '3' where key = 'ai_helper_daily_limit'; update app_settings set value = '5' where key = 'ai_helper_global_daily_cap'`);
+  ok((await rpc(ai1, 'ai_status')).enabled === true && (await rpc(ai1, 'ai_status')).remaining === 3, 'status shows the daily allowance when on');
+  const aiFirst = await rpc(ai1, 'ai_reserve');
+  ok(aiFirst.remaining === 2 && aiFirst.limit === 3, 'each message counts down the allowance');
+  await rpc(ai1, 'ai_reserve');
+  await rpc(ai1, 'ai_reserve');
+  await expectError(ai1, `select public.ai_reserve()`, [], 'the per-user daily limit is enforced', 'AI_USER_LIMIT');
+  ok((await rpc(ai2, 'ai_status')).remaining === 3, "another user's allowance is separate");
+  await rpc(ai2, 'ai_reserve');
+  await rpc(ai2, 'ai_reserve');
+  await expectError(ai2, `select public.ai_reserve()`, [], 'the global daily cap protects the free quota', 'AI_GLOBAL_CAP');
+  ok(!(await q(ai1, `select * from ai_usage`)).rows.length, 'players cannot read or edit the usage counters directly');
+  await expectError(null, `select public.ai_reserve()`, [], 'anon cannot use the helper', 'permission denied');
+  await expectError(null, `select public.ai_status()`, [], 'anon cannot read its status', 'permission denied');
+  ok(!(await db.query(`select 1 from information_schema.columns where table_name = 'ai_usage' and data_type in ('text','jsonb','character varying')`)).rows.length, 'no message text is stored, only counts');
+  await db.query(`update app_settings set value = '0' where key = 'ai_helper_enabled'`);
+
   console.log(`\n${passed} passed, ${failed} failed`);
   if (failed) {
     console.log('Failures:\n - ' + failures.join('\n - '));

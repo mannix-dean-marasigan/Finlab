@@ -8,6 +8,15 @@ export interface ChangelogEntry {
 /** Newest first. Add an entry whenever something worth announcing ships. */
 export const CHANGELOG: ChangelogEntry[] = [
   {
+    id: '2026-10-13',
+    title: 'AI study helper',
+    items: [
+      'A study helper that explains lessons, gives peso examples and answers "how do I" questions about FINLAB PH.',
+      'It will not give answers to graded questions, and it never sees your scores.',
+      'Daily message limits apply. Please do not type personal details.',
+    ],
+  },
+  {
     id: '2026-10-12',
     title: 'Trading Floor: limit orders and a trade journal',
     items: [

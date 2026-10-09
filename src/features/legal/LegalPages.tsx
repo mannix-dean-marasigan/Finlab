@@ -70,6 +70,7 @@ This notice explains what FINLAB collects and why, in line with the Philippine *
 | Peer reviews you write or receive | To provide anonymous peer feedback |
 | Calculated data: scores, skills, ranks, achievements, certificates | Core features of the platform |
 | Feedback you send, including the page and browser type | To fix bugs and improve FINLAB |
+| AI study helper: only how many messages you sent each day (the text of your messages is not stored by us) | To apply daily limits |
 | Activity such as streaks, XP and sign-in time | To show your progress and to understand how the platform is used |
 
 We do **not** collect payment information, and we do **not** sell your data or use it for advertising.
@@ -82,8 +83,11 @@ We do **not** collect payment information, and we do **not** sell your data or u
 - **Classes:** if you join a class or organization, its **managers** (for example a professor or org officer assigned by an administrator) can see your name, score, lessons, certificates and recent activity, and class members can see your name and XP on the class leaderboard. You can leave a class at any time.
 - **Peer reviews** are anonymous to the pitch's author; the author sees "Peer analyst #N", not your name.
 
+## AI study helper
+When the AI study helper is switched on and you use it, the messages you type, and the text of the lesson you are reading, are sent to **Google's Gemini** service to produce a reply. We remove email addresses and phone numbers first, but please do not type personal details. We use Google's free tier, so Google may use these messages to improve its products. We do not store the text of your messages, and the helper never receives your answers or scores. If you would rather not use it, simply do not open the chat button.
+
 ## Where data is stored
-FINLAB uses **Supabase** (database and authentication) and **GitHub Pages** (website hosting). Data may be processed outside the Philippines by these providers.
+FINLAB uses **Supabase** (database, authentication and the server function behind the AI study helper), **GitHub Pages** (website hosting) and, for the AI study helper only, **Google Gemini**. Data may be processed outside the Philippines by these providers.
 
 ## Your rights
 Under the Data Privacy Act you have the right to be informed, to access and correct your data, to object, to ask for blocking or erasure, to data portability and to claim damages. In practice you can view and edit your profile in **Settings**, control your visibility, and **permanently delete your account** in Settings, which deletes your profile and all associated work, scores and certificates. For other requests (for example a copy of your data), use the Feedback button and an administrator will respond. You may also lodge a complaint with the **National Privacy Commission** (privacy.gov.ph).

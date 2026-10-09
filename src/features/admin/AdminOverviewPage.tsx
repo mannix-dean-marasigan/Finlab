@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/form';
 import { ErrorState, PageSkeleton } from '@/components/ui/states';
 import { BackupCard } from './BackupCard';
 import { InstallContentCard } from './InstallContentCard';
+import { AiHelperCard } from './AiHelperCard';
 
 export default function AdminOverviewPage() {
   const qc = useQueryClient();
@@ -76,6 +77,7 @@ export default function AdminOverviewPage() {
         <Stat label="Competitions · Events" value={`${o.competitions} · ${o.open_events}`} sub="total · open events" />
       </div>
       <InstallContentCard />
+      <AiHelperCard />
       <BackupCard />
       <Card>
         <CardHeader

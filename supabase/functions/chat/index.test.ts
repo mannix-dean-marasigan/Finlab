@@ -1,0 +1,176 @@
+import { describe, expect, it } from 'vitest';
+import { buildSystemPrompt, cleanMessages, handle, parseGemini, redact, toGeminiBody, MAX_CHARS, type Env } from './index';
+
+const ENV: Env = { SUPABASE_URL: 'https://x.supabase.co', GEMINI_API_KEY: 'test-gemini-key' };
+const post = (body: unknown, headers: Record<string, string> = { authorization: 'Bearer user-token', apikey: 'anon-key' }) =>
+  new Request('https://fn/chat', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(body) });
+
+/** A fake network: Supabase RPC/REST plus Gemini. Records every call. */
+function fakeNet(opts: { reserve?: { status: number; body: unknown }; lesson?: unknown[]; gemini?: (model: string) => { status: number; body: unknown } } = {}) {
+  const calls: { url: string; init?: RequestInit }[] = [];
+  const fetchFn = (async (url: string, init?: RequestInit) => {
+    calls.push({ url, init });
+    const json = (status: number, body: unknown) => new Response(JSON.stringify(body), { status });
+    if (url.includes('/rpc/ai_reserve')) return opts.reserve ? json(opts.reserve.status, opts.reserve.body) : json(200, { remaining: 4, limit: 5 });
+    if (url.includes('/rest/v1/lessons')) return json(200, opts.lesson ?? [{ title: 'Journal Entries', summary: 'Debits and credits', body: 'Assets = Liabilities + Equity' }]);
+    if (url.includes('generativelanguage.googleapis.com')) {
+      const model = decodeURIComponent(url.split('/models/')[1].split(':')[0]);
+      const g = opts.gemini?.(model) ?? { status: 200, body: { candidates: [{ content: { parts: [{ text: 'A debit increases assets.' }] } }] } };
+      return json(g.status, g.body);
+    }
+    return json(404, {});
+  }) as unknown as typeof fetch;
+  return { calls, fetchFn };
+}
+
+describe('redact', () => {
+  it('removes emails and phone numbers but keeps money and ordinary numbers', () => {
+    expect(redact('mail me at ana.cruz@gmail.com')).toBe('mail me at [email removed]');
+    expect(redact('call +63 917 123 4567 or 0917-123-4567')).not.toMatch(/\d{3}/);
+    expect(redact('Revenue is ₱150,000 and growth is 12.5% over 3 years')).toBe('Revenue is ₱150,000 and growth is 12.5% over 3 years');
+  });
+});
+
+describe('cleanMessages', () => {
+  it('accepts a normal chat and starts with the user', () => {
+    const m = cleanMessages([{ role: 'assistant', text: 'hi' }, { role: 'user', text: ' What is WACC? ' }]);
+    expect(m).toEqual([{ role: 'user', text: 'What is WACC?' }]);
+  });
+  it('rejects bad input', () => {
+    expect(typeof cleanMessages('nope')).toBe('string');
+    expect(typeof cleanMessages([])).toBe('string');
+    expect(typeof cleanMessages([{ role: 'system', text: 'x' }])).toBe('string');
+    expect(typeof cleanMessages([{ role: 'user', text: 'x'.repeat(MAX_CHARS + 1) }])).toBe('string');
+    expect(typeof cleanMessages([{ role: 'user', text: 'a' }, { role: 'assistant', text: 'b' }])).toBe('string');
+  });
+  it('keeps only the most recent turns and merges same-side messages', () => {
+    const many = Array.from({ length: 41 }, (_, i) => ({ role: i % 2 ? 'assistant' : 'user', text: `m${i}` }));
+    const m = cleanMessages(many) as { role: string }[];
+    expect(m.length).toBeLessThanOrEqual(20);
+    expect(m[0].role).toBe('user');
+    expect(cleanMessages([{ role: 'user', text: 'a' }, { role: 'user', text: 'b' }])).toEqual([{ role: 'user', text: 'a\nb' }]);
+  });
+});
+
+describe('prompt', () => {
+  it('forbids giving graded answers and includes the lesson text', () => {
+    const p = buildSystemPrompt({ title: 'Journal Entries', body: 'Assets = Liabilities + Equity' });
+    expect(p).toMatch(/NEVER give the final answer to a graded/);
+    expect(p).toContain('Assets = Liabilities + Equity');
+    expect(buildSystemPrompt(null)).not.toContain('reading this lesson');
+  });
+  it('caps a very long lesson', () => {
+    expect(buildSystemPrompt({ title: 't', body: 'z'.repeat(50000) }).length).toBeLessThan(20000);
+  });
+  it('redacts personal details inside the request body sent to Gemini', () => {
+    const b = JSON.stringify(toGeminiBody('sys', [{ role: 'user', text: 'my email is a@b.com, number 09171234567' }]));
+    expect(b).not.toContain('a@b.com');
+    expect(b).not.toContain('09171234567');
+  });
+});
+
+describe('parseGemini', () => {
+  it('reads text, blocks and empty replies', () => {
+    expect(parseGemini({ candidates: [{ content: { parts: [{ text: 'Hello ' }, { text: 'there' }] } }] })).toEqual({ text: 'Hello there' });
+    expect(parseGemini({ promptFeedback: { blockReason: 'SAFETY' } })).toEqual({ blocked: 'SAFETY' });
+    expect(parseGemini({ candidates: [{ finishReason: 'SAFETY' }] })).toEqual({ blocked: 'SAFETY' });
+    expect(parseGemini({})).toEqual({ blocked: 'EMPTY' });
+  });
+});
+
+describe('handle', () => {
+  const ask = { messages: [{ role: 'user', text: 'Explain debits' }], lessonSlug: 'accounting-equation-journal' };
+
+  it('answers a signed-in user and passes the lesson text on', async () => {
+    const net = fakeNet();
+    const res = await handle(post(ask), ENV, net.fetchFn);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ reply: 'A debit increases assets.', remaining: 4 });
+    const gemini = net.calls.find((c) => c.url.includes('generativelanguage'))!;
+    expect(String(gemini.init?.body)).toContain('Assets = Liabilities + Equity');
+    expect((gemini.init?.headers as Record<string, string>)['x-goog-api-key']).toBe('test-gemini-key');
+  });
+
+  it("loads lesson text with the user's own login and asks only for teaching fields, never answer keys", async () => {
+    const net = fakeNet();
+    await handle(post(ask), ENV, net.fetchFn);
+    const lessonCall = net.calls.find((c) => c.url.includes('/rest/v1/lessons'))!;
+    expect(lessonCall.url).toContain('select=title,summary,body');
+    expect(lessonCall.url).toContain('is_published=eq.true');
+    expect((lessonCall.init?.headers as Record<string, string>).authorization).toBe('Bearer user-token');
+    expect(net.calls.some((c) => /check_questions|answer|_keys/i.test(c.url))).toBe(false);
+    const sent = String(net.calls.find((c) => c.url.includes('generativelanguage'))!.init?.body);
+    expect(sent).not.toMatch(/check_questions|answer key/i);
+  });
+
+  it('requires a login', async () => {
+    const net = fakeNet();
+    const res = await handle(post(ask, {}), ENV, net.fetchFn);
+    expect(res.status).toBe(401);
+    expect(net.calls.length).toBe(0);
+  });
+
+  it('is off until the Gemini key is set', async () => {
+    const net = fakeNet();
+    const res = await handle(post(ask), { ...ENV, GEMINI_API_KEY: '' }, net.fetchFn);
+    expect(res.status).toBe(503);
+    expect(net.calls.length).toBe(0);
+  });
+
+  it('rejects bad input before spending a message', async () => {
+    const net = fakeNet();
+    const res = await handle(post({ messages: [] }), ENV, net.fetchFn);
+    expect(res.status).toBe(400);
+    expect(net.calls.length).toBe(0);
+  });
+
+  it('maps the database limits to friendly errors and never calls Gemini', async () => {
+    for (const [code, status, error] of [
+      ['AI_OFF: The AI helper is switched off right now.', 503, 'off'],
+      ['AI_USER_LIMIT: You have used today\'s 15 AI messages.', 429, 'limit'],
+      ['AI_GLOBAL_CAP: The AI helper is at its daily limit for everyone.', 429, 'busy'],
+    ] as const) {
+      const net = fakeNet({ reserve: { status: 400, body: { code: 'P0001', message: code } } });
+      const res = await handle(post(ask), ENV, net.fetchFn);
+      const out = (await res.json()) as { error: string; message: string };
+      expect(res.status).toBe(status);
+      expect(out.error).toBe(error);
+      expect(out.message).not.toMatch(/AI_[A-Z_]+:/);
+      expect(net.calls.some((c) => c.url.includes('generativelanguage'))).toBe(false);
+    }
+  });
+
+  it('treats an expired login as 401', async () => {
+    const net = fakeNet({ reserve: { status: 401, body: { code: 'PGRST301', message: 'JWT expired' } } });
+    expect((await handle(post(ask), ENV, net.fetchFn)).status).toBe(401);
+  });
+
+  it('tries the fallback model when the first model name is unknown', async () => {
+    const net = fakeNet({ gemini: (m) => (m === 'gemini-old' ? { status: 404, body: {} } : { status: 200, body: { candidates: [{ content: { parts: [{ text: 'ok' }] } }] } }) });
+    const res = await handle(post(ask), { ...ENV, GEMINI_MODEL: 'gemini-old' }, net.fetchFn);
+    expect((await res.json()) as { reply: string }).toMatchObject({ reply: 'ok' });
+    expect(net.calls.filter((c) => c.url.includes('generativelanguage')).length).toBe(2);
+  });
+
+  it('shows a friendly message when Gemini is rate limited or down, without leaking details', async () => {
+    const limited = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 429, body: { error: 'quota exceeded for key test-gemini-key' } }) }).fetchFn);
+    expect(limited.status).toBe(503);
+    const text = JSON.stringify(await limited.json());
+    expect(text).not.toContain('test-gemini-key');
+    expect(text).toMatch(/busy/i);
+    const down = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 500, body: {} }) }).fetchFn);
+    expect(down.status).toBe(502);
+  });
+
+  it('answers politely when Gemini blocks a prompt', async () => {
+    const res = await handle(post(ask), ENV, fakeNet({ gemini: () => ({ status: 200, body: { promptFeedback: { blockReason: 'SAFETY' } } }) }).fetchFn);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as { reply: string }).reply).toMatch(/can't help with that/);
+  });
+
+  it('handles CORS preflight', async () => {
+    const res = await handle(new Request('https://fn/chat', { method: 'OPTIONS' }), ENV, fakeNet().fetchFn);
+    expect(res.status).toBe(204);
+    expect(res.headers.get('access-control-allow-origin')).toBe('*');
+  });
+});

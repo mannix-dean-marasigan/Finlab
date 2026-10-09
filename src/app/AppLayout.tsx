@@ -17,6 +17,7 @@ import { PageSkeleton } from '@/components/ui/states';
 import { FeedbackButton } from '@/features/feedback/FeedbackButton';
 import { LINKEDIN_PAGE_URL } from '@/lib/brand';
 import { Tutorial } from '@/features/tutorial/Tutorial';
+import { ChatWidget } from '@/features/chat/ChatWidget';
 import { OPEN_TUTORIAL_EVENT } from '@/lib/events';
 import { CHANGELOG_SEEN_KEY, LATEST_CHANGELOG_ID } from '@/lib/changelog';
 
@@ -449,6 +450,7 @@ export function AppLayout() {
           <a href={LINKEDIN_PAGE_URL} target="_blank" rel="noreferrer noopener" className="hover:text-fg">LinkedIn</a>
         </footer>
         <FeedbackButton />
+        <ChatWidget />
         <Tutorial />
       </div>
     </div>

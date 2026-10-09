@@ -29,6 +29,8 @@ const SHAPES = {
   square: { W: 1080, H: 1080, suffix: '-square', window: { x: 40, y: 300, w: 1000, h: 562 }, bar: { x: 0, y: 1080 - BAR, w: 1080 } },
   // Vertical shows a taller window, so each scene is first cropped to the window's shape around its key area.
   vertical: { W: 1080, H: 1920, suffix: '-vertical', window: { x: 40, y: 600, w: 1000, h: 880 }, bar: { x: 40, y: 1506, w: 1000 }, crop: true },
+  // v3 landscape: the clip sits in a browser window (frame.html shape "cinema"); uses the wide intro/outro cards.
+  cinema: { W: 1920, H: 1080, suffix: '', cardSuffix: '', window: { x: 240, y: 214, w: 1440, h: 810 }, bar: { x: 0, y: 1080 - BAR, w: 1920 } },
 };
 
 // Zoom tip: the zoomed view's left edge is cx - 0.5/z; keep it at ~0.2 so it lines up with the app's sidebar edge.
@@ -57,7 +59,28 @@ const TEASER = [
   pick('08-beta-checklist', { start: 3.5, end: 6.75, speed: 1.3 }),
   { file: '09-outro', start: 0.4, end: 6.2, card: true },
 ];
-const CUTS = { full: { segments: FULL, suffix: '' }, teaser: { segments: TEASER, suffix: '-teaser' } };
+// v3: fresh clips from scripts/record-v3.mjs (recordings/v3). Every scene has an exact length (len); the playback
+// speed is worked out from it. Lengths are 0.4s (the crossfade) plus whole beats at 100 BPM, so every cut lands on
+// the beat. "transition" is the xfade used to enter the scene.
+const V3 = [
+  { file: '00-intro', start: 0.4, len: 7.6, card: true },
+  { file: 'dashboard', start: 2.0, end: -3.0, len: 5.2, transition: 'circleopen', num: '01', eyebrow: 'Your desk', title: 'Pick up <em>right where you left off.</em>', zoom: { cx: 0.6, cy: 0.42, z: 1.2 } },
+  { file: 'certifications', start: 2.2, end: -3.0, len: 4.0, num: '02', eyebrow: 'Learn', title: 'Certifications for <em>real finance careers.</em>', zoom: { cx: 0.6, cy: 0.5, z: 1.25 } },
+  { file: 'practice', start: 7.0, end: -3.0, len: 5.2, num: '03', eyebrow: 'Practice', title: 'Learn it. <em>Then practice it.</em>', zoom: { cx: 0.52, cy: 0.55, z: 1.6 } },
+  { file: 'case', start: 3.5, end: -3.0, len: 4.0, num: '04', eyebrow: 'Apply', title: 'Real-style cases, <em>scored instantly.</em>', zoom: { cx: 0.575, cy: 0.5, z: 1.35 } },
+  { file: 'trading-play', start: 3.0, end: -3.5, len: 7.6, transition: 'circleopen', num: '05', eyebrow: 'Trading Floor', title: 'Trade on <em>real charts.</em>', zoom: { cx: 0.5, cy: 0.5, z: 1.06 } },
+  { file: 'trading-order', start: 3.0, end: -3.0, len: 5.2, num: '06', eyebrow: 'Trading Floor', title: 'Set your stop. <em>Manage the risk.</em>', zoom: { cx: 0.5, cy: 0.5, z: 1.04 } },
+  { file: 'leaderboard', start: 2.0, end: -3.0, len: 4.0, num: '07', eyebrow: 'Compete', title: 'Compete with everyone, <em>every week.</em>', zoom: { cx: 0.545, cy: 0.38, z: 1.45 } },
+  { file: 'classes', start: 2.2, end: -3.0, len: 4.0, num: '08', eyebrow: 'Compete', title: 'Your class. <em>Your own leaderboard.</em>', zoom: { cx: 0.535, cy: 0.38, z: 1.5 } },
+  { file: 'certificate', start: 4.5, end: -3.0, len: 5.2, num: '09', eyebrow: 'Prove it', title: 'Earn certificates <em>anyone can verify.</em>', zoom: { cx: 0.5, cy: 0.45, z: 1.2 } },
+  { file: 'beta', start: 2.5, end: -3.0, len: 4.0, num: '10', eyebrow: 'Closed beta', title: '5 tasks = a <em>Founding Beta Tester</em> certificate.', zoom: { cx: 0.8, cy: 0.42, z: 1.75 } },
+  { file: '09-outro', start: 0.4, len: 7.6, card: true, transition: 'fadeblack' },
+];
+const CUTS = {
+  full: { segments: FULL, suffix: '' },
+  teaser: { segments: TEASER, suffix: '-teaser' },
+  v3: { segments: V3, suffix: '-v3', dir: 'v3', only: ['cinema'], defaultTransition: 'smoothleft', sfx: true },
+};
 
 const run = (args) => execFileSync(FFMPEG, ['-hide_banner', '-loglevel', 'error', '-y', ...args], { stdio: 'inherit' });
 function duration(file) {
@@ -78,11 +101,13 @@ const browser = await chromium.launch({ channel: 'chrome', headless: true });
 
 for (const cutName of cuts.length ? cuts : Object.keys(CUTS))
 for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
+  const cut = CUTS[cutName];
+  if (cut.only ? !cut.only.includes(shapeName) : shapeName === 'cinema') continue;
   const S = SHAPES[shapeName];
-  const SEGMENTS = CUTS[cutName].segments;
-  const out = join(REC, `finlab-ph-beta-video${S.suffix}${CUTS[cutName].suffix}.mp4`);
+  const SEGMENTS = cut.segments;
+  const out = join(REC, `finlab-ph-beta-video${S.suffix}${cut.suffix}.mp4`);
   const win = S.window;
-  const tag = `${shapeName}${CUTS[cutName].suffix}`;
+  const tag = `${shapeName}${cut.suffix}`;
 
   // ------------------------------------------------------------ 1. overlay layers (background + headline)
   const framePage = pathToFileURL(join(root, 'brand', 'video', 'frame.html')).href;
@@ -99,11 +124,13 @@ for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
 
   // ------------------------------------------------------------ 2. segment lengths and positions
   const plan = SEGMENTS.map((s) => {
-    const src = join(REC, `${s.file}${s.card ? S.suffix : ''}.webm`);
-    const end = s.end < 0 ? duration(src) + s.end : s.end;
-    const speed = s.speed ?? 1;
+    const src = s.card ? join(REC, `${s.file}${S.cardSuffix ?? S.suffix}.webm`) : join(REC, cut.dir ?? '', `${s.file}.webm`);
     const hold = s.hold ?? 0;
-    return { ...s, src, end, speed, hold, len: n((end - s.start) / speed + hold) };
+    if (s.len && s.card) return { ...s, src, end: s.start + s.len, speed: 1, hold, len: s.len };
+    const end = s.end < 0 ? duration(src) + s.end : s.end;
+    // With an exact length, speed the source up or down to fit it (never slower than 0.8x).
+    const speed = s.len ? Math.max(0.8, (end - s.start) / (s.len - hold)) : s.speed ?? 1;
+    return { ...s, src, end, speed: n(speed), hold, len: s.len ?? n((end - s.start) / speed + hold) };
   });
   const total = n(plan.reduce((a, p) => a + p.len, 0) - XFADE * (plan.length - 1));
   let at = 0;
@@ -159,7 +186,7 @@ for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
   // ------------------------------------------------------------ 4. music, composed in code (no licence issues)
   const music = join(WORK, `${tag}-music.wav`);
   const page = await browser.newPage();
-  const b64 = await page.evaluate(async ({ seconds, introEnd, outroStart }) => {
+  const b64 = await page.evaluate(async ({ seconds, introEnd, outroStart, whooshes, hit }) => {
     const SR = 44100;
     const ctx = new OfflineAudioContext(2, Math.ceil(SR * seconds), SR);
     const BPM = 100, BEAT = 60 / BPM, BARLEN = BEAT * 4;
@@ -211,6 +238,20 @@ for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
         h.connect(hf).connect(hg).connect(master); h.start(t + BEAT / 2); h.stop(t + BEAT / 2 + 0.06);
       }
     }
+    // Sound design: a soft filtered-noise whoosh on every cut, and a low hit when the logo lands.
+    const sfx = ctx.createGain(); sfx.gain.value = 0.55; sfx.connect(comp);
+    for (const t0 of whooshes) {
+      const w = ctx.createBufferSource(); w.buffer = noise;
+      const f = ctx.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.2;
+      f.frequency.setValueAtTime(400, Math.max(0, t0 - 0.25)); f.frequency.exponentialRampToValueAtTime(3200, t0 + 0.2);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.0001, Math.max(0, t0 - 0.25)); g.gain.exponentialRampToValueAtTime(0.35, t0); g.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.35);
+      w.connect(f).connect(g).connect(sfx); w.start(Math.max(0, t0 - 0.25)); w.stop(t0 + 0.4);
+    }
+    if (hit !== null) {
+      const o = ctx.createOscillator(); o.frequency.setValueAtTime(90, hit); o.frequency.exponentialRampToValueAtTime(38, hit + 0.6);
+      const g = ctx.createGain(); g.gain.setValueAtTime(0.9, hit); g.gain.exponentialRampToValueAtTime(0.001, hit + 1.2);
+      o.connect(g).connect(sfx); g.connect(verb); o.start(hit); o.stop(hit + 1.3);
+    }
     master.gain.setValueAtTime(0, 0); master.gain.linearRampToValueAtTime(0.9, 1.0);
     master.gain.setValueAtTime(0.9, seconds - 2.5); master.gain.linearRampToValueAtTime(0, seconds);
     const buf = await ctx.startRendering();
@@ -229,7 +270,7 @@ for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
     let s = '';
     for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
     return btoa(s);
-  }, { seconds: total, introEnd: plan[0].len, outroStart: plan.at(-1).offset });
+  }, { seconds: total, introEnd: plan[0].len, outroStart: plan.at(-1).offset, whooshes: cut.sfx ? plan.slice(1).map((p) => p.offset) : [], hit: cut.sfx ? 3.75 : null });
   writeFileSync(music, Buffer.from(b64, 'base64'));
   await page.close();
 
@@ -238,7 +279,7 @@ for (const shapeName of shapes.length ? shapes : Object.keys(SHAPES)) {
   let graph = '', prev = '[0:v]';
   for (let i = 1; i < plan.length; i++) {
     const label = i === plan.length - 1 ? '[v]' : `[x${i}]`;
-    graph += `${prev}[${i}:v]xfade=transition=fade:duration=${XFADE}:offset=${plan[i].offset}${label};`;
+    graph += `${prev}[${i}:v]xfade=transition=${plan[i].transition ?? cut.defaultTransition ?? 'fade'}:duration=${XFADE}:offset=${plan[i].offset}${label};`;
     prev = `[x${i}]`;
   }
   graph += `[${plan.length}:a]atrim=0:${total},loudnorm=I=-16:TP=-1.5:LRA=11,afade=t=out:st=${n(total - 2)}:d=2[a]`;
