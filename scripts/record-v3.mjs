@@ -112,6 +112,46 @@ const SCENES = {
     await p.getByRole('button', { name: 'Set exits' }).click().catch(() => {});
     await wait(2600);
   },
+  'ai-helper': async (p) => {
+    await open(p, '/dashboard');
+    const btn = p.getByRole('button', { name: 'Open the AI study helper' });
+    await btn.waitFor({ timeout: 15000 }).catch(() => {});
+    await wait(800);
+    await btn.click().catch(() => {});
+    await wait(1200);
+    await p.getByRole('button', { name: 'How does the weekly challenge work?' }).click().catch(() => {});
+    // Wait for the reply (uses one AI message), then let it sit on screen.
+    await p.waitForFunction(() => document.querySelectorAll('[role="dialog"] .prose-fin').length > 0, null, { timeout: 30000 }).catch(() => {});
+    await settle(p);
+    await wait(3200);
+  },
+  planner: async (p) => {
+    await open(p, '/planner');
+    await p.getByRole('button', { name: /Paolo/ }).click().catch(() => {});
+    await wait(900);
+    for (const [label, v] of [['Time deposit', 25], ['Government bonds', 30], ['Corporate bonds', 20], ['PSEi index fund', 15], ['REITs', 10]]) {
+      await p.getByLabel(`${label} percent`).fill(String(v)).catch(() => {});
+      await wait(380);
+    }
+    await wait(500);
+    await p.getByRole('button', { name: 'Check my plan' }).click().catch(() => {});
+    await wait(1600);
+    await scrollToText(p, /Compare with a coach/, 1600);
+    await wait(1800);
+  },
+  optimizer: async (p) => {
+    await open(p, '/optimizer');
+    await p.locator('.recharts-surface').first().waitFor({ timeout: 15000 }).catch(() => {});
+    await wait(1500);
+    const slider = p.getByLabel('Position on the frontier');
+    for (let v = 0.05; v <= 0.95; v += 0.05) {
+      await slider.fill(v.toFixed(2)).catch(() => {});
+      await wait(150);
+    }
+    await wait(700);
+    await p.getByRole('button', { name: 'Jump to the best return per risk' }).click().catch(() => {});
+    await wait(2600);
+  },
   leaderboard: async (p) => {
     await open(p, '/leaderboard?board=xp_week');
     await p.locator('table').first().waitFor({ timeout: 15000 }).catch(() => {});

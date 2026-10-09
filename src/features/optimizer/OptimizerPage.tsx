@@ -4,6 +4,8 @@ import { Lightbulb, RotateCcw, SlidersHorizontal, TrendingUp } from 'lucide-reac
 import { PageHeader } from '@/components/common';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Tabs } from '@/components/ui/misc';
+import { StockOptimizer } from './StockOptimizer';
 import { cn } from '@/lib/utils';
 import { ASSETS, correlation, type AssetId } from '@/features/planner/planner';
 import { covariance, frontier, maxSharpe, portfolioReturn, portfolioRisk, randomPortfolios } from './optimizer';
@@ -15,7 +17,7 @@ type Inputs = Record<AssetId, { on: boolean; ret: number; vol: number }>;
 const DEFAULTS = Object.fromEntries(ASSETS.map((a) => [a.id, { on: true, ret: a.ret, vol: a.vol }])) as Inputs;
 const pct = (x: number, d = 1) => `${(x * 100).toFixed(d)}%`;
 
-export default function OptimizerPage() {
+function AssetClassOptimizer() {
   const [inputs, setInputs] = useState<Inputs>(DEFAULTS);
   const [cap, setCap] = useState(0.5);
   // The time deposit rate: what you can earn with almost no risk. With the savings rate instead, a near-riskless
@@ -52,12 +54,6 @@ export default function OptimizerPage() {
 
   return (
     <div className="animate-fade-in">
-      <PageHeader
-        eyebrow="Tools"
-        title="Portfolio optimizer"
-        description="See the efficient frontier: the best return you can get for each level of risk. Change the assumptions and watch the best mixes move. For learning, not investment advice."
-      />
-
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
         <Card>
           <CardHeader
@@ -187,6 +183,29 @@ export default function OptimizerPage() {
         Returns, risks and correlations are rough assumptions for learning (the same ones as the Portfolio planner). Real results differ, and nothing here is advice to buy any product.
         {model && ` Current best mix: ${pct(portfolioReturn(model.best?.weights ?? [], model.mu))} return at ±${pct(portfolioRisk(model.best?.weights ?? [], model.cov))} risk.`}
       </p>
+    </div>
+  );
+}
+
+export default function OptimizerPage() {
+  const [tab, setTab] = useState<'classes' | 'stocks'>('classes');
+  return (
+    <div className="animate-fade-in">
+      <PageHeader
+        eyebrow="Tools"
+        title="Portfolio optimizer"
+        description="See the efficient frontier: the best return you can get for each level of risk. Use rough assumptions for asset types, or paste prices for stocks you choose. For learning, not investment advice."
+      />
+      <Tabs
+        className="mb-4"
+        value={tab}
+        onChange={setTab}
+        tabs={[
+          { value: 'classes', label: 'Asset types' },
+          { value: 'stocks', label: 'Your stocks (max Sharpe)' },
+        ]}
+      />
+      {tab === 'classes' ? <AssetClassOptimizer /> : <StockOptimizer />}
     </div>
   );
 }

@@ -70,10 +70,13 @@ const V3 = [
   { file: 'case', start: 3.5, end: -3.0, len: 4.0, num: '04', eyebrow: 'Apply', title: 'Real-style cases, <em>scored instantly.</em>', zoom: { cx: 0.575, cy: 0.5, z: 1.35 } },
   { file: 'trading-play', start: 3.0, end: -3.5, len: 7.6, transition: 'circleopen', num: '05', eyebrow: 'Trading Floor', title: 'Trade on <em>real charts.</em>', zoom: { cx: 0.5, cy: 0.5, z: 1.06 } },
   { file: 'trading-order', start: 3.0, end: -3.0, len: 5.2, num: '06', eyebrow: 'Trading Floor', title: 'Set your stop. <em>Manage the risk.</em>', zoom: { cx: 0.5, cy: 0.5, z: 1.04 } },
-  { file: 'leaderboard', start: 2.0, end: -3.0, len: 4.0, num: '07', eyebrow: 'Compete', title: 'Compete with everyone, <em>every week.</em>', zoom: { cx: 0.545, cy: 0.38, z: 1.45 } },
-  { file: 'classes', start: 2.2, end: -3.0, len: 4.0, num: '08', eyebrow: 'Compete', title: 'Your class. <em>Your own leaderboard.</em>', zoom: { cx: 0.535, cy: 0.38, z: 1.5 } },
-  { file: 'certificate', start: 4.5, end: -3.0, len: 5.2, num: '09', eyebrow: 'Prove it', title: 'Earn certificates <em>anyone can verify.</em>', zoom: { cx: 0.5, cy: 0.45, z: 1.2 } },
-  { file: 'beta', start: 2.5, end: -3.0, len: 4.0, num: '10', eyebrow: 'Closed beta', title: '5 tasks = a <em>Founding Beta Tester</em> certificate.', zoom: { cx: 0.8, cy: 0.42, z: 1.75 } },
+  { file: 'ai-helper', start: 2.4, end: -3.0, len: 6.4, transition: 'circleopen', num: '07', eyebrow: 'AI study helper', title: 'Stuck? <em>Ask the helper.</em>', zoom: { cx: 0.82, cy: 0.62, z: 1.55 } },
+  { file: 'planner', start: 2.0, end: -3.0, len: 5.2, num: '08', eyebrow: 'Tools', title: 'Plan a portfolio <em>for a real goal.</em>', zoom: { cx: 0.5, cy: 0.5, z: 1.1 } },
+  { file: 'optimizer', start: 2.4, end: -3.0, len: 5.2, num: '09', eyebrow: 'Tools', title: 'Find the <em>efficient frontier.</em>', zoom: { cx: 0.42, cy: 0.5, z: 1.15 } },
+  { file: 'leaderboard', start: 2.0, end: -3.0, len: 4.0, num: '10', eyebrow: 'Compete', title: 'Compete with everyone, <em>every week.</em>', zoom: { cx: 0.545, cy: 0.38, z: 1.45 } },
+  { file: 'classes', start: 2.2, end: -3.0, len: 4.0, num: '11', eyebrow: 'Compete', title: 'Your class. <em>Your own leaderboard.</em>', zoom: { cx: 0.535, cy: 0.38, z: 1.5 } },
+  { file: 'certificate', start: 4.5, end: -3.0, len: 5.2, num: '12', eyebrow: 'Prove it', title: 'Earn certificates <em>anyone can verify.</em>', zoom: { cx: 0.5, cy: 0.45, z: 1.2 } },
+  { file: 'beta', start: 2.5, end: -3.0, len: 4.0, num: '13', eyebrow: 'Closed beta', title: '5 tasks = a <em>Founding Beta Tester</em> certificate.', zoom: { cx: 0.8, cy: 0.42, z: 1.75 } },
   { file: '09-outro', start: 0.4, len: 7.6, card: true, transition: 'fadeblack' },
 ];
 const CUTS = {
