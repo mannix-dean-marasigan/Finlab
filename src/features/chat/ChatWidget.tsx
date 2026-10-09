@@ -6,9 +6,12 @@ import { askHelper, getAiStatus, type HelperMessage } from '@/services/api/ai';
 import { Markdown } from '@/components/common';
 import { cn } from '@/lib/utils';
 import { tidyMath } from './tidyMath';
+import { isGradedPath, useIsGraded } from './gradedMode';
 
 interface Bubble extends HelperMessage {
   error?: boolean;
+  /** The reply exactly as the server sent and signed it (the shown text may have formulas tidied). */
+  raw?: string;
 }
 
 const LESSON_PROMPTS = ['Explain this lesson simply', 'Give me a peso example', 'What should I remember most?'];
@@ -26,13 +29,15 @@ export function ChatWidget() {
   const [remaining, setRemaining] = useState<number | null>(null);
   const end = useRef<HTMLDivElement>(null);
   const lessonSlug = /^\/learn\/([a-z0-9-]+)/.exec(pathname)?.[1];
+  const graded = useIsGraded() || isGradedPath(pathname);
 
   // Block body on purpose: an effect must return nothing or a cleanup function (scrollIntoView can return a Promise).
   useEffect(() => {
     end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [bubbles, busy, open]);
 
-  if (!status.data?.enabled) return null;
+  // Hidden on challenge pages (cases and final exams) and while a knowledge check is being answered.
+  if (!status.data?.enabled || graded) return null;
   const left = remaining ?? status.data.remaining;
 
   const send = async (text: string) => {
@@ -43,8 +48,9 @@ export function ChatWidget() {
     setInput('');
     setBusy(true);
     try {
-      const res = await askHelper(next.filter((b) => !b.error).map(({ role, text: x }) => ({ role, text: x })), lessonSlug);
-      setBubbles([...next, { role: 'assistant', text: tidyMath(res.reply) }]);
+      const history = next.filter((b) => !b.error).map((b) => (b.role === 'assistant' ? { role: b.role, text: b.raw ?? b.text, sig: b.sig } : { role: b.role, text: b.text }));
+      const res = await askHelper(history, lessonSlug);
+      setBubbles([...next, { role: 'assistant', text: tidyMath(res.reply), raw: res.reply, sig: res.sig }]);
       if (res.remaining !== null) setRemaining(res.remaining);
       qc.invalidateQueries({ queryKey: ['ai-status'] });
     } catch (e) {
@@ -136,7 +142,7 @@ export function ChatWidget() {
             >
               <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value.slice(0, 1000))}
+                onChange={(e) => setInput(e.target.value.slice(0, 700))}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();

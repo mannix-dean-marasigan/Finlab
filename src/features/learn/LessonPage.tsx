@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useGradedMode } from '@/features/chat/gradedMode';
 import { Link, useParams } from 'react-router';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, ArrowRight, CheckCircle2, Clock, GraduationCap, Layers, ListChecks, Lock, PlayCircle, Puzzle, RotateCcw, Target, XCircle } from 'lucide-react';
@@ -49,6 +50,9 @@ function KnowledgeCheck({ lesson, completed }: { lesson: Lesson; completed: bool
       if (r.passed) toast.success(r.first_completion ? 'Lesson complete. You passed the check.' : 'Passed again');
     },
   });
+
+  // The study helper hides while the check is being answered (until it is passed). Called before any early return.
+  useGradedMode(Object.values(answers).some((v) => (v ?? '').trim() !== '') && !result?.passed);
 
   if (!questions.length) {
     return <p className="text-sm text-fg-muted">This lesson has no knowledge check yet, so completion isn't tracked.</p>;

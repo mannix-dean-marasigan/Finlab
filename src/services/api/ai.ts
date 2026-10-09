@@ -10,6 +10,8 @@ export interface AiStatus {
 export interface HelperMessage {
   role: 'user' | 'assistant';
   text: string;
+  /** The server's signature on its own replies; sent back so the server can tell real replies from fake ones. */
+  sig?: string;
 }
 
 /** An error from the helper. `detail` is Gemini's own reason (no key), shown only on the admin test. */
@@ -23,7 +25,7 @@ export async function getAiStatus(): Promise<AiStatus> {
 }
 
 /** Sends the recent conversation (and the lesson being read) and returns the helper's reply. */
-export async function askHelper(messages: HelperMessage[], lessonSlug?: string): Promise<{ reply: string; remaining: number | null }> {
+export async function askHelper(messages: HelperMessage[], lessonSlug?: string): Promise<{ reply: string; sig?: string; remaining: number | null }> {
   const { data, error } = await supabase.functions.invoke('chat', { body: { messages: messages.slice(-20), lessonSlug } });
   if (error) {
     let message = 'The AI helper could not answer. Please try again.';
@@ -39,7 +41,7 @@ export async function askHelper(messages: HelperMessage[], lessonSlug?: string):
     err.detail = detail;
     throw err;
   }
-  return data as { reply: string; remaining: number | null };
+  return data as { reply: string; sig?: string; remaining: number | null };
 }
 
 // ------------------------------------------------------------ admin settings
