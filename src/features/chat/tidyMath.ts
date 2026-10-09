@@ -21,6 +21,7 @@ export function tidyMath(text: string): string {
     .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `\n\n**${plain(m)}**\n\n`)
     .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => plain(m))
     .replace(/\$([^$\n]*\\[a-zA-Z][^$\n]*)\$/g, (_, m: string) => plain(m)) // inline $...$ only when it holds LaTeX, so "$5" stays
+    .replace(/[ \t]+\n/g, '\n')
     .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
